@@ -21,6 +21,7 @@ import whitewallet.core.wallet.PayQuote
 import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.runSuspendCatching
 
 /**
  * A mint a payment can be made from: whether it is home, the most one payment from it can be, and whether its signing key no longer matches
@@ -170,7 +171,7 @@ constructor(
         viewModelScope.launch {
             // For the mint that pays it: the one picked, else home (a node can't pay its own invoice).
             val payer = _state.value.from ?: wallet.homeHost.first()
-            val invoice = runCatching { faucet.invoice(FAUCET_SATS, payer ?: error("no account")) }
+            val invoice = runSuspendCatching { faucet.invoice(FAUCET_SATS, payer ?: error("no account")) }
             _state.update {
                 it.copy(faucet = FaucetState(error = invoice.exceptionOrNull()?.let { e -> e.message ?: e.javaClass.simpleName }))
             }

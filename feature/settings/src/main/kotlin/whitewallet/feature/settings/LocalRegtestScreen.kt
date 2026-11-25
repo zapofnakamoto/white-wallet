@@ -42,6 +42,7 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.runSuspendCatching
 import whitewallet.lnurlcash.client.LnurlcashClient
 import whitewallet.lnurlcash.protocol.ProtocolViolation
 
@@ -109,7 +110,7 @@ constructor(
     private suspend fun status(host: String): LocalMintStatus =
         try {
             val pay = client.servicePayRequest(host)
-            val key = runCatching { client.withdrawDiscovery(host).mintPubkey?.toHex() }.getOrNull()
+            val key = runSuspendCatching { client.withdrawDiscovery(host).mintPubkey?.toHex() }.getOrNull()
             LocalMintStatus.Reachable(pay.pay.minSendable, pay.pay.maxSendable, pay.fee?.baseMsat, pay.fee?.ppm, key)
         } catch (e: IOException) {
             LocalMintStatus.Unreachable(e.message ?: "connection failed")

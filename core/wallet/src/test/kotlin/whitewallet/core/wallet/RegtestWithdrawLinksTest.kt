@@ -301,7 +301,7 @@ class RegtestWithdrawLinksTest {
             assertEquals(ReceivedState.Claimed, received(bob).single().state)
             // Spent at its mint.
             val q = assertNotNull(NoteLink.parse(link)).spend.q
-            assertTrue(runCatching { LnurlcashClient().lookup("http://$HOST2/w", q) }.isFailure)
+            assertTrue(runSuspendCatching { LnurlcashClient().lookup("http://$HOST2/w", q) }.isFailure)
         }
 
     @Test

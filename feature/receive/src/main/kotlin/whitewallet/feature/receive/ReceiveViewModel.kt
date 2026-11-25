@@ -30,6 +30,7 @@ import whitewallet.core.wallet.RefreshResult
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
 import whitewallet.core.wallet.noHome
+import whitewallet.core.wallet.runSuspendCatching
 
 /** Why no invoice could be made; each maps to a full string. */
 sealed interface InvoiceProblem {
@@ -290,7 +291,7 @@ constructor(
                 .distinctUntilChanged()
                 .filterNotNull()
                 .collect { address ->
-                    runCatching { wallet.checkShownAddress(address) }
+                    runSuspendCatching { wallet.checkShownAddress(address) }
                 }
         }
         viewModelScope.launch {
@@ -383,7 +384,7 @@ constructor(
         if (ui.value.faucet.busy) return
         ui.update { it.copy(faucet = FaucetState(busy = true)) }
         viewModelScope.launch {
-            val error = runCatching { faucet.pay(target, FAUCET_SATS) }.exceptionOrNull()
+            val error = runSuspendCatching { faucet.pay(target, FAUCET_SATS) }.exceptionOrNull()
             ui.update { it.copy(faucet = FaucetState(error = error?.let { e -> e.message ?: e.javaClass.simpleName })) }
             if (error == null && s.invoice == null) lookForPayments()
         }
@@ -393,7 +394,7 @@ constructor(
     private suspend fun lookForPayments() {
         val s = state.first { it.loaded }
         val address = s.address?.takeIf { s.invoice == null && !s.showAmountForm } ?: return
-        val result = runCatching { wallet.lookForPayments(address) }.getOrNull()
+        val result = runSuspendCatching { wallet.lookForPayments(address) }.getOrNull()
         if (result != null) received.update { it + result }
     }
 
@@ -403,7 +404,7 @@ constructor(
         watch = viewModelScope.launch {
             while (isActive) {
                 delay(timings.invoicePollMillis)
-                val status = runCatching { wallet.invoiceStatus(id) }.getOrNull() ?: continue
+                val status = runSuspendCatching { wallet.invoiceStatus(id) }.getOrNull() ?: continue
                 if (status == InvoiceStatus.Waiting) continue
                 ui.update { u -> u.copy(invoice = u.invoice?.takeIf { it.request.id == id }?.copy(status = status) ?: u.invoice) }
                 break

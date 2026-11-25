@@ -18,6 +18,7 @@ import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.NotesView
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.runSuspendCatching
 
 /** What the settings hub summarizes; each part is edited on its own page. */
 data class SettingsState(
@@ -136,6 +137,6 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
 
     init {
         // Refreshing also re-checks that the address still points at this wallet.
-        viewModelScope.launch { runCatching { wallet.refresh() } }
+        viewModelScope.launch { runSuspendCatching { wallet.refresh() } }
     }
 }

@@ -72,7 +72,7 @@ internal class MintInspector(private val wallet: Wallet) {
         return try {
             val pay = wallet.client.servicePayRequest(h)
             // Null if it can't be asked now.
-            val discovery = runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
+            val discovery = runSuspendCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
             val walletId = wallet.store.currentAccountId()?.let { wallet.walletOf(it) }
             MintPreview.Ready(
                 host = h,
@@ -123,7 +123,7 @@ internal class MintInspector(private val wallet: Wallet) {
                     pay.pay.metadataEntries.firstOrNull { it.first == "text/plain" && !it.second.startsWith("Mint fees:") }?.second
                 val pinned = wallet.mintOf(accountId, h)?.mintPubkey
                 // Null if it can't be asked now; an answer without a valid key, from a pinned mint, is a changed key.
-                val discovery = runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
+                val discovery = runSuspendCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
                 presented = discovery?.mintPubkey?.toHex()
                 if (pinned != null && discovery != null) wallet.sawKey(wallet.walletOf(accountId), h, changed = pinned != presented)
                 if (pinned != null && discovery != null && pinned != presented) {

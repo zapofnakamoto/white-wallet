@@ -86,7 +86,7 @@ internal class NoteMutator(private val wallet: Wallet) {
         if (SimulatedFailure.take(SimulatedFailure.Kind.Unreachable)) return MutationResult.Unreachable("simulated: no answer")
         // Asked by the first note's key alone (LUD-25 "Checking a note without exposing it"): spends go out only with the mutation, and
         // nothing goes out to a mint that signs with another key than the pinned one (see Pinning).
-        val info = runCatching {
+        val info = runSuspendCatching {
             Pinning.lookup(wallet, mint, ByteVector32(inputs.first().id))
         }
             .getOrElse {

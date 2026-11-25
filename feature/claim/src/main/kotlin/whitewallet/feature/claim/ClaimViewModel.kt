@@ -20,6 +20,7 @@ import whitewallet.core.wallet.MintKeyChangedException
 import whitewallet.core.wallet.ReclaimResult
 import whitewallet.core.wallet.RegtestFaucet
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.runSuspendCatching
 import whitewallet.lnurlcash.protocol.NoteLink
 import whitewallet.lnurlcash.protocol.RejectionKind
 
@@ -128,7 +129,7 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
         if (_state.value.busy || _state.value.faucet.busy) return
         _state.update { it.copy(faucet = FaucetState(busy = true)) }
         viewModelScope.launch {
-            val link = runCatching { make() }
+            val link = runSuspendCatching { make() }
             link.onSuccess(::onScanned).onFailure { e ->
                 _state.update { it.copy(faucet = FaucetState(error = e.message ?: e.javaClass.simpleName)) }
             }

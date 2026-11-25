@@ -20,7 +20,7 @@ class RegtestRestoreBoundaryTest : RestoreBoundaryTest() {
         val asker = Wallet(InMemoryWalletStore(), InMemorySeedStore(), client)
         Regtest.pay(assertIs<MintInvoice.Ok>(MintInvoice.fetch(asker, pay, sats * 1000, key)).invoice, sats)
         repeat(30) {
-            val note = runCatching { client.lookup(pay.withdrawUrl, key) }.getOrNull()
+            val note = runSuspendCatching { client.lookup(pay.withdrawUrl, key) }.getOrNull()
             if (note != null) return note.maxWithdrawableMsat
             delay(1_000)
         }

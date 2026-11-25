@@ -76,7 +76,7 @@ internal object Regtest {
             URI(Lnurl.withQuery(mint.pay.callback, listOf("amount" to "${sats * 1000}", "comment" to Cp1.encode(q)))).toURL().readText()
         pay(checkNotNull(Regex("\"pr\":\\s*\"([^\"]+)\"").find(quote)) { quote }.groupValues[1], sats)
         repeat(30) {
-            if (runCatching { client.lookup(mint.withdrawUrl, q) }.isSuccess) return
+            if (runSuspendCatching { client.lookup(mint.withdrawUrl, q) }.isSuccess) return
             delay(500)
         }
         error("no note at ${q.toHex()} on $host")

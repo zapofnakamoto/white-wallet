@@ -149,13 +149,13 @@ class KeyIndexTest {
         val (store2, wallet2) = strangerDevice(LnurlcashClient(http = http))
         val preview = assertIs<ClaimPreview.Offline>(wallet2.previewClaim(bearerLink()))
         wallet2.keepClaim(preview)
-        runCatching { wallet2.refresh() }
+        runSuspendCatching { wallet2.refresh() }
         assertEquals(ReceivedState.Waiting, wallet2.receivedNotes.first().single().state, "still offline: still waiting")
         assertNull(store2.mint(mint.host))
         assertNull(store2.indexOrNull("a", mint.host, KeySet.Wallet), "no key was taken")
 
         offline = false
-        runCatching { wallet2.refresh() }
+        runSuspendCatching { wallet2.refresh() }
         assertEquals(ReceivedState.Claimed, wallet2.receivedNotes.first().single().state)
         assertEquals(1, store2.journal.size, "no request was refused as already in use")
         assertEquals(4L, store2.allNotes().single { it.state == NoteState.Outstanding && it.amountMsat == 2_000L }.index)

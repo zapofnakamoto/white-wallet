@@ -6,6 +6,7 @@ import fr.acinq.bitcoin.PublicKey
 import java.io.IOException
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -1056,6 +1057,8 @@ class Wallet(
         val presented =
             try {
                 client.withdrawDiscovery(host).mintPubkey
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 return false
             }
@@ -1084,7 +1087,7 @@ class Wallet(
         val checked = KeyCheckedMint.of(this, mint.copy(mintPubkey = key.toHex())) ?: return
         val updated = held.mapNotNull { note ->
             val q = ByteVector32(note.id)
-            val info = runCatching { Pinning.lookup(this, checked, q) }.getOrNull() ?: return@mapNotNull null
+            val info = runSuspendCatching { Pinning.lookup(this, checked, q) }.getOrNull() ?: return@mapNotNull null
             val certificate = info.certificate?.takeIf { certifies(it, mint.host, q, key) && it.amountMsat == info.maxWithdrawableMsat }
             note.copy(certificate = certificate?.encode(), updatedAtMillis = now())
         }

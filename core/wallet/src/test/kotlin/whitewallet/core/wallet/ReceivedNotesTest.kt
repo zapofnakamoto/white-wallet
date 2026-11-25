@@ -80,7 +80,7 @@ class ReceivedNotesTest {
             assertEquals(0, syncAsked, "nothing to claim before the date")
             assertEquals(7_000, wallet.incomingMsat.first())
 
-            runCatching { wallet.refresh() }
+            runSuspendCatching { wallet.refresh() }
             assertEquals(ReceivedState.Locked, wallet.receivedNotes.first().single().state)
         }
 
@@ -99,7 +99,7 @@ class ReceivedNotesTest {
                 )
             for (cw1 in broken) {
                 val link = "lnurlw://$host/w?k1=${cw1.encode()}"
-                val preview = runCatching {
+                val preview = runSuspendCatching {
                     wallet.previewClaim(link)
                 }
                     .getOrElse { throw AssertionError("${cw1.controlBlock.size()} / ${cw1.script.size()} threw $it", it) }

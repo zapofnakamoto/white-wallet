@@ -57,7 +57,7 @@ class RegtestZeroAnswerTest {
         val note = assertNotNull(NoteLink.parse(link))
         val client = LnurlcashClient()
         val deadline = System.currentTimeMillis() + 30_000
-        while (runCatching { client.lookup(note.withdrawUrl, note.spend.q) }.isFailure) {
+        while (runSuspendCatching { client.lookup(note.withdrawUrl, note.spend.q) }.isFailure) {
             check(System.currentTimeMillis() < deadline) { "the note never came back to its maker" }
             delay(500)
         }

@@ -103,6 +103,8 @@ internal class Melter(private val wallet: Wallet) {
             } catch (e: MintKeyChangedException) {
                 // Nothing is paid through a mint with another signing key than the pinned one, or none (or one that isn't a key).
                 return MeltOutcome.KeyChanged
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 return MeltOutcome.Unreachable
             }
@@ -248,8 +250,9 @@ internal class MeltReconciler(private val wallet: Wallet) {
             try {
                 // key-checked: asked only after Pinning.settling answered for this mint.
                 wallet.client.verify(url)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                if (e is CancellationException) throw e
                 return JournalStatus.Unknown
             }
         if (!answer.settled) return JournalStatus.Unknown

@@ -74,7 +74,7 @@ class RequestLogTest {
                 repeat(5) { server.enqueue(MockResponse(body = """{"status":"OK","n":$it}""")) }
                 server.start()
                 val log = RequestLog(capacity = 3)
-                repeat(5) { runCatching { client(log).get(server.url("/n$it").toString()) } }
+                repeat(5) { client(log).get(server.url("/n$it").toString()) }
                 assertEquals(listOf("n4", "n3", "n2"), log.entries.value.map { it.url.substringAfterLast('/') })
                 log.clear()
                 assertTrue(log.entries.value.isEmpty())

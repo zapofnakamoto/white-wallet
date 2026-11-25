@@ -15,6 +15,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.cancellation.CancellationException
 import whitewallet.core.wallet.Wallet
 
 /**
@@ -35,6 +36,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         return try {
             wallet.refresh()
             Result.success()
+        } catch (e: CancellationException) {
+            // WorkManager stopped the work: it runs again on its own.
+            throw e
         } catch (e: Exception) {
             // Offline, a mint down, a pinned key that changed: try again next period; the UI shows the details.
             Result.retry()

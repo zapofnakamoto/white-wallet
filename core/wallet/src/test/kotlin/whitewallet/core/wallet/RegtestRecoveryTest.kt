@@ -471,7 +471,7 @@ class RegtestRecoveryTest {
             val link = Regtest.note(2000)
             val preview = assertIs<ClaimPreview.Ready>(alice.wallet.previewClaim(link))
             dying = true
-            assertTrue(runCatching { alice.wallet.claim(preview) }.isFailure)
+            assertTrue(runSuspendCatching { alice.wallet.claim(preview) }.isFailure)
             dying = false
             assertEquals(1, alice.wallet.unresolvedOperations(), "prepared, never sent")
 

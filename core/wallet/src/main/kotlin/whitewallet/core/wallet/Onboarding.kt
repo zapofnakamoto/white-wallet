@@ -451,7 +451,8 @@ internal class Onboarding(private val wallet: Wallet) {
             val pinned = existing?.mintPubkey
             // A mint the wallet has already keeps working without it. A new one is added only with its key (a failure to ask ends here).
             val discovery =
-                if (existing == null) wallet.client.withdrawDiscovery(h) else runCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
+                if (existing == null) wallet.client.withdrawDiscovery(h)
+                else runSuspendCatching { wallet.client.withdrawDiscovery(h) }.getOrNull()
             val discovered = discovery?.mintPubkey
             if (existing == null && discovered == null)
                 return ConnectResult.Failed(OnboardResult.MintInvalid(MintRefusal.WithoutSigningKey))

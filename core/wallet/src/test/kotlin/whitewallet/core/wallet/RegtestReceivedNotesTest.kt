@@ -93,7 +93,7 @@ class RegtestReceivedNotesTest {
             assertEquals(1_000_000, bob.wallet.incomingMsat.first())
             assertEquals(0, bob.balance())
 
-            runCatching { bob.wallet.refresh() }
+            runSuspendCatching { bob.wallet.refresh() }
             assertEquals(ReceivedState.Waiting, bob.wallet.receivedNotes.first().single().state, "still offline: still waiting")
 
             connection.offline = false
@@ -191,7 +191,7 @@ class RegtestReceivedNotesTest {
             loseNext = false
             connection.offline = false
             otherKey = true
-            runCatching { bob.wallet.refresh() }
+            runSuspendCatching { bob.wallet.refresh() }
             val waiting = bob.wallet.receivedNotes.first().single()
             assertEquals(ReceivedState.Claiming, waiting.state, "an answer with another key settles nothing")
             assertNotNull(waiting.k1, "its spend is kept")
@@ -265,7 +265,7 @@ class RegtestReceivedNotesTest {
             val link = aNote()
             connection.offline = true
             bob.wallet.keepClaim(assertIs<ClaimPreview.Offline>(bob.wallet.previewClaim(link)))
-            runCatching { bob.wallet.refresh() }
+            runSuspendCatching { bob.wallet.refresh() }
             connection.offline = false
             bob.wallet.refresh()
             assertEquals(ReceivedState.Claimed, bob.wallet.receivedNotes.first().first().state)
@@ -287,7 +287,7 @@ class RegtestReceivedNotesTest {
             assertEquals(ReceivedState.KeyChanged, bob.wallet.keepClaim(preview).note.state)
             assertEquals(1_000_000, bob.wallet.incomingMsat.first())
 
-            runCatching { bob.wallet.refresh() }
+            runSuspendCatching { bob.wallet.refresh() }
             assertEquals(
                 ReceivedState.KeyChanged,
                 bob.wallet.receivedNotes.first().single().state,
@@ -322,7 +322,7 @@ class RegtestReceivedNotesTest {
 
                 val preview = assertIs<ClaimPreview.KeyChanged>(bob.wallet.previewClaim(link), "not already spent: keyless=$keyless")
                 assertEquals(ReceivedState.KeyChanged, bob.wallet.keepClaim(preview).note.state)
-                runCatching { bob.wallet.refresh() }
+                runSuspendCatching { bob.wallet.refresh() }
                 val kept = bob.wallet.receivedNotes.first().single()
                 assertEquals(ReceivedState.KeyChanged, kept.state, "keyless=$keyless")
                 assertNotNull(kept.k1, "its spend is kept: keyless=$keyless")
@@ -352,7 +352,7 @@ class RegtestReceivedNotesTest {
                 connection.changed = !keyless
                 connection.keyless = keyless
                 connection.worthless = true
-                runCatching { bob.wallet.refresh() }
+                runSuspendCatching { bob.wallet.refresh() }
                 val kept = bob.wallet.receivedNotes.first().single()
                 // The claim's outcome is open, and an answer from such a mint settles nothing: it waits for one.
                 assertEquals(ReceivedState.Claiming, kept.state, "keyless=$keyless")
