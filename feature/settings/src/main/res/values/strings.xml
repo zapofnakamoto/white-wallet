@@ -107,15 +107,15 @@
     <string name="addresses_unregister_unknown">Couldn\'t confirm that %1$s was unregistered. Check it again in a moment.</string>
     <string name="addresses_primary_changed">%1$s is now your primary address.</string>
     <string name="mint_home_hint">New addresses of this account are made here.</string>
-    <string name="keys_home_mint">%1$s (home)</string>
+    <string name="keys_home_mint" translatable="false">%1$s (home)</string>
     <string name="settings_amounts">Amounts</string>
     <string name="settings_amounts_hint">How amounts are shown. The numbers stay the same: ₿1 is the smallest unit, the same as 1 sat, and 100,000,000 of them make one BTC.</string>
     <string name="settings_unit_bitcoin">Bitcoin (₿)</string>
     <string name="settings_unit_sats">Sats</string>
     <string name="settings_amounts_hide_hint">Tip: tap your balance on the home screen to hide it.</string>
     <string name="settings_notes_with_renew">%1$s · auto-renew on</string>
-    <string name="developer_max_addresses_fewer">Fewer</string>
-    <string name="developer_max_addresses_more">More</string>
+    <string name="developer_max_addresses_fewer" translatable="false">Fewer</string>
+    <string name="developer_max_addresses_more" translatable="false">More</string>
 
     <string name="backup_title">Recovery phrase</string>
     <string name="backup_intro_next">You will be shown your recovery phrase on the next screen.</string>
@@ -191,109 +191,109 @@
     <string name="developer_title">Developer options</string>
     <string name="developer_mode">Developer mode</string>
     <string name="developer_mode_hint">Shows extra pages for testing and debugging. Not needed for everyday use.</string>
-    <string name="developer_no_pages">No developer pages yet.</string>
+    <string name="developer_no_pages" translatable="false">No developer pages yet.</string>
 
-    <string name="logs_title">Request log</string>
-    <string name="logs_hint">Kept in memory only and cleared when the app closes. Note spends and preimages are masked.</string>
-    <string name="logs_empty">No requests yet.</string>
-    <string name="logs_clear">Clear</string>
-    <string name="logs_copy">Copy</string>
-    <string name="logs_failed">failed</string>
-    <string name="logs_no_body">(no response body)</string>
+    <string name="logs_title" translatable="false">Request log</string>
+    <string name="logs_hint" translatable="false">Kept in memory only and cleared when the app closes. Note spends and preimages are masked.</string>
+    <string name="logs_empty" translatable="false">No requests yet.</string>
+    <string name="logs_clear" translatable="false">Clear</string>
+    <string name="logs_copy" translatable="false">Copy</string>
+    <string name="logs_failed" translatable="false">failed</string>
+    <string name="logs_no_body" translatable="false">(no response body)</string>
 
-    <string name="keys_title">Derived keys</string>
-    <string name="keys_description">Note keys of this account, local indexes, lookups and rescans</string>
+    <string name="keys_title" translatable="false">Derived keys</string>
+    <string name="keys_description" translatable="false">Note keys of this account, local indexes, lookups and rescans</string>
     <!-- Developer mode, on the account's page: the account has no home mint afterwards, as when it was removed. %1$s: the home mint's host -->
     <string name="developer_forget_home" translatable="false">Developer: forget the home mint</string>
     <string name="developer_forget_home_hint" translatable="false">%1$s stays one of your mints but isn\'t this account\'s home any more, as if it was removed. Make it home again on the Mints page.</string>
-    <string name="keys_purpose_wallet">Wallet (0)</string>
-    <string name="keys_purpose_change">Change (1)</string>
-    <string name="keys_address_number">Address %1$d</string>
-    <string name="keys_scan_stopped">Stopped early: %1$s</string>
-    <string name="keys_status_confirming">waiting for an answer</string>
-    <string name="keys_status_spent">spent</string>
-    <string name="keys_status_skipped">never used</string>
-    <string name="keys_status_handed_out">handed out</string>
-    <string name="keys_status_next">next</string>
-    <string name="keys_status_free">free</string>
-    <string name="keys_hint_funded">Unspent note in this wallet</string>
-    <string name="keys_hint_confirming">An operation on this note is waiting for an answer</string>
-    <string name="keys_hint_spent">Used and emptied. Never used again.</string>
-    <string name="keys_hint_next">The next key this wallet uses</string>
-    <string name="keys_hint_next_address">The next payment to your address lands here</string>
-    <string name="keys_hint_free">Not used yet</string>
-    <string name="keys_detail_outstanding">%1$s, %2$s</string>
-    <string name="keys_lookup_unused">never seen</string>
-    <string name="keys_lookup_refused">refused %1$s</string>
-    <string name="keys_lookup_failed">no answer, %1$s</string>
-    <string name="keys_certified">certified</string>
-    <string name="keys_uncertified">not certified</string>
-    <string name="keys_imported">added to wallet</string>
+    <string name="keys_purpose_wallet" translatable="false">Wallet (0)</string>
+    <string name="keys_purpose_change" translatable="false">Change (1)</string>
+    <string name="keys_address_number" translatable="false">Address %1$d</string>
+    <string name="keys_scan_stopped" translatable="false">Stopped early: %1$s</string>
+    <string name="keys_status_confirming" translatable="false">waiting for an answer</string>
+    <string name="keys_status_spent" translatable="false">spent</string>
+    <string name="keys_status_skipped" translatable="false">never used</string>
+    <string name="keys_status_handed_out" translatable="false">handed out</string>
+    <string name="keys_status_next" translatable="false">next</string>
+    <string name="keys_status_free" translatable="false">free</string>
+    <string name="keys_hint_funded" translatable="false">Unspent note in this wallet</string>
+    <string name="keys_hint_confirming" translatable="false">An operation on this note is waiting for an answer</string>
+    <string name="keys_hint_spent" translatable="false">Used and emptied. Never used again.</string>
+    <string name="keys_hint_next" translatable="false">The next key this wallet uses</string>
+    <string name="keys_hint_next_address" translatable="false">The next payment to your address lands here</string>
+    <string name="keys_hint_free" translatable="false">Not used yet</string>
+    <string name="keys_detail_outstanding" translatable="false">%1$s, %2$s</string>
+    <string name="keys_lookup_unused" translatable="false">never seen</string>
+    <string name="keys_lookup_refused" translatable="false">refused %1$s</string>
+    <string name="keys_lookup_failed" translatable="false">no answer, %1$s</string>
+    <string name="keys_certified" translatable="false">certified</string>
+    <string name="keys_uncertified" translatable="false">not certified</string>
+    <string name="keys_imported" translatable="false">added to wallet</string>
 
-    <string name="regtest_title">Local regtest</string>
-    <string name="regtest_description">The local regtest mints (dev/regtest) and how to pay them</string>
-    <string name="regtest_checking">Checking the local mint…</string>
-    <string name="regtest_reachable">Local mint reachable at %1$s</string>
-    <string name="regtest_unreachable">Local mint not reachable at %1$s</string>
-    <string name="regtest_limits">Mint limits: %1$s to %2$s</string>
-    <string name="regtest_fee">Mint fee: %1$d msat + %2$d ppm</string>
-    <string name="regtest_fix">On your computer, start the stack and forward the port to this device:</string>
-    <string name="regtest_commands">Commands (run on your computer)</string>
-    <string name="regtest_pay_address">Pay your address from the regtest node:</string>
-    <string name="regtest_pay_invoice">Pay an invoice:</string>
-    <string name="regtest_other">Mine a block, show status, start over:</string>
-    <string name="regtest_make_note">Make a note here, to claim under Receive → Claim a note:</string>
-    <string name="regtest_multi_hint">To get notes on several of these: claim a note made on another one (it stays where it was made), or move notes under Settings → Notes.</string>
-    <string name="keys_renew">Renew</string>
-    <string name="keys_renew_all">Renew all (%1$d)</string>
-    <string name="keys_renew_title">Renew this note?</string>
-    <string name="keys_renew_body">Moves %1$s from #%2$d (%3$s) to the next wallet key (#%4$d) under a new spend. Renewing is free; the balance does not change.</string>
-    <string name="keys_renew_all_title">Renew %1$d notes?</string>
-    <string name="keys_renew_all_body">Moves %1$s on this tab to new wallet keys (from #%2$d), one note at a time. Renewing is free; the balance does not change.</string>
-    <string name="keys_renewed">Renewed %1$s: #%2$d → wallet #%3$d</string>
-    <string name="keys_renewed_all">Renewed %1$d notes (%2$s), %3$d failed, %4$d pending</string>
-    <string name="keys_renew_failed">Renew failed: %1$s</string>
-    <string name="keys_renew_not_possible">Nothing to renew: %1$s</string>
+    <string name="regtest_title" translatable="false">Local regtest</string>
+    <string name="regtest_description" translatable="false">The local regtest mints (dev/regtest) and how to pay them</string>
+    <string name="regtest_checking" translatable="false">Checking the local mint…</string>
+    <string name="regtest_reachable" translatable="false">Local mint reachable at %1$s</string>
+    <string name="regtest_unreachable" translatable="false">Local mint not reachable at %1$s</string>
+    <string name="regtest_limits" translatable="false">Mint limits: %1$s to %2$s</string>
+    <string name="regtest_fee" translatable="false">Mint fee: %1$d msat + %2$d ppm</string>
+    <string name="regtest_fix" translatable="false">On your computer, start the stack and forward the port to this device:</string>
+    <string name="regtest_commands" translatable="false">Commands (run on your computer)</string>
+    <string name="regtest_pay_address" translatable="false">Pay your address from the regtest node:</string>
+    <string name="regtest_pay_invoice" translatable="false">Pay an invoice:</string>
+    <string name="regtest_other" translatable="false">Mine a block, show status, start over:</string>
+    <string name="regtest_make_note" translatable="false">Make a note here, to claim under Receive → Claim a note:</string>
+    <string name="regtest_multi_hint" translatable="false">To get notes on several of these: claim a note made on another one (it stays where it was made), or move notes under Settings → Notes.</string>
+    <string name="keys_renew" translatable="false">Renew</string>
+    <string name="keys_renew_all" translatable="false">Renew all (%1$d)</string>
+    <string name="keys_renew_title" translatable="false">Renew this note?</string>
+    <string name="keys_renew_body" translatable="false">Moves %1$s from #%2$d (%3$s) to the next wallet key (#%4$d) under a new spend. Renewing is free; the balance does not change.</string>
+    <string name="keys_renew_all_title" translatable="false">Renew %1$d notes?</string>
+    <string name="keys_renew_all_body" translatable="false">Moves %1$s on this tab to new wallet keys (from #%2$d), one note at a time. Renewing is free; the balance does not change.</string>
+    <string name="keys_renewed" translatable="false">Renewed %1$s: #%2$d → wallet #%3$d</string>
+    <string name="keys_renewed_all" translatable="false">Renewed %1$d notes (%2$s), %3$d failed, %4$d pending</string>
+    <string name="keys_renew_failed" translatable="false">Renew failed: %1$s</string>
+    <string name="keys_renew_not_possible" translatable="false">Nothing to renew: %1$s</string>
     <string name="settings_strategy_manual">Manual</string>
     <string name="settings_auto_renew_included">Included in \"%1$s\".</string>
     <string name="settings_policy_run">Last automatic run: %1$d combined, %2$d split, %3$d renewed, %4$d failed</string>
     <string name="settings_policy_stopped">Stopped: %1$s</string>
-    <string name="keys_find_index">Find index</string>
-    <string name="keys_set_index">Set index…</string>
-    <string name="keys_verified_at">verified %1$s</string>
-    <string name="keys_not_verified">not verified this session</string>
-    <string name="keys_found">Index set to #%1$d (checked %2$d keys, %3$d notes found)</string>
-    <string name="keys_set_applied">Index set to #%1$d</string>
-    <string name="keys_set_below">Not changed: keys below #%1$d have been used</string>
-    <string name="keys_set_title">Set index</string>
-    <string name="keys_set_field">Next index</string>
-    <string name="keys_set_apply">Set</string>
-    <string name="keys_index">Index #%1$d</string>
-    <string name="keys_gap_limit">Gap limit</string>
-    <string name="keys_scan_ahead">Scan ahead (from #%1$d)</string>
-    <string name="keys_recheck_all">Check all again (from #0)</string>
-    <string name="keys_scanned">Checked #%1$d–#%2$d: %3$d with funds, %4$d new · index now #%5$d</string>
-    <string name="keys_behind">Behind used key #%1$d. Find index fixes this.</string>
+    <string name="keys_find_index" translatable="false">Find index</string>
+    <string name="keys_set_index" translatable="false">Set index…</string>
+    <string name="keys_verified_at" translatable="false">verified %1$s</string>
+    <string name="keys_not_verified" translatable="false">not verified this session</string>
+    <string name="keys_found" translatable="false">Index set to #%1$d (checked %2$d keys, %3$d notes found)</string>
+    <string name="keys_set_applied" translatable="false">Index set to #%1$d</string>
+    <string name="keys_set_below" translatable="false">Not changed: keys below #%1$d have been used</string>
+    <string name="keys_set_title" translatable="false">Set index</string>
+    <string name="keys_set_field" translatable="false">Next index</string>
+    <string name="keys_set_apply" translatable="false">Set</string>
+    <string name="keys_index" translatable="false">Index #%1$d</string>
+    <string name="keys_gap_limit" translatable="false">Gap limit</string>
+    <string name="keys_scan_ahead" translatable="false">Scan ahead (from #%1$d)</string>
+    <string name="keys_recheck_all" translatable="false">Check all again (from #0)</string>
+    <string name="keys_scanned" translatable="false">Checked #%1$d–#%2$d: %3$d with funds, %4$d new · index now #%5$d</string>
+    <string name="keys_behind" translatable="false">Behind used key #%1$d. Find index fixes this.</string>
     <string name="settings_address_unconfirmed">Registered (the app can\'t confirm it)</string>
     <string name="addresses_intro">Payments to any of these addresses arrive in this account. Receive offers the primary address first.</string>
     <plurals name="addresses_limit">
         <item quantity="one">%1$d of %2$d address</item>
         <item quantity="other">%1$d of %2$d addresses</item>
     </plurals>
-    <string name="developer_max_addresses">Lightning addresses per host</string>
-    <string name="developer_max_addresses_hint">How many addresses an account may register on one host. Back to 1 when developer mode is off.</string>
+    <string name="developer_max_addresses" translatable="false">Lightning addresses per host</string>
+    <string name="developer_max_addresses_hint" translatable="false">How many addresses an account may register on one host. Back to 1 when developer mode is off.</string>
     <plurals name="delete_unresolved">
         <item quantity="one">%1$d operation is still waiting for an answer. Deleting now may lose it.</item>
         <item quantity="other">%1$d operations are still waiting for an answer. Deleting now may lose them.</item>
     </plurals>
-    <string name="logs_description">Every request to a server and its response</string>
-    <string name="keys_hint_skipped">Handed out, but never used</string>
-    <string name="keys_hint_handed_out">Used before, no note in this wallet, never looked up. Check again to look it up.</string>
-    <string name="keys_lookup">Lookup: %1$s (checked %2$s)</string>
-    <string name="keys_lookup_none">Never looked up</string>
-    <string name="keys_no_mint">This account has no address yet.</string>
-    <string name="keys_renew_pending">No answer yet. Your wallet asks again on the next refresh.</string>
-    <string name="keys_set_body">Lowest allowed: #%1$d. Used keys are never reissued, so the index can\'t go below keys this wallet has used.</string>
+    <string name="logs_description" translatable="false">Every request to a server and its response</string>
+    <string name="keys_hint_skipped" translatable="false">Handed out, but never used</string>
+    <string name="keys_hint_handed_out" translatable="false">Used before, no note in this wallet, never looked up. Check again to look it up.</string>
+    <string name="keys_lookup" translatable="false">Lookup: %1$s (checked %2$s)</string>
+    <string name="keys_lookup_none" translatable="false">Never looked up</string>
+    <string name="keys_no_mint" translatable="false">This account has no address yet.</string>
+    <string name="keys_renew_pending" translatable="false">No answer yet. Your wallet asks again on the next refresh.</string>
+    <string name="keys_set_body" translatable="false">Lowest allowed: #%1$d. Used keys are never reissued, so the index can\'t go below keys this wallet has used.</string>
 
     <string name="mint_reachable">Reachable</string>
     <string name="mint_unreachable">Not answering right now</string>
@@ -413,17 +413,17 @@
     <string name="settings_notices">Tell me what the wallet did by itself</string>
 
     <!-- Developer options: requests behave as on a bad connection. -->
-    <string name="developer_network">Network</string>
-    <string name="developer_network_normal">Normal</string>
-    <string name="developer_network_slow">Slow</string>
-    <string name="developer_network_very_slow">Very slow</string>
-    <string name="developer_network_flaky">Flaky</string>
-    <string name="developer_network_offline">Offline</string>
-    <string name="developer_network_normal_hint">Requests go out as they are.</string>
-    <string name="developer_network_slow_hint">Every request takes 0.2 seconds longer. Normal again when developer mode is off.</string>
-    <string name="developer_network_very_slow_hint">Every request takes 6 seconds longer. Normal again when developer mode is off.</string>
-    <string name="developer_network_flaky_hint">Requests take up to 4 seconds longer, and one in five never arrives. Normal again when developer mode is off.</string>
-    <string name="developer_network_offline_hint">No request goes out, and the app acts as if the phone were offline. Normal again when developer mode is off.</string>
+    <string name="developer_network" translatable="false">Network</string>
+    <string name="developer_network_normal" translatable="false">Normal</string>
+    <string name="developer_network_slow" translatable="false">Slow</string>
+    <string name="developer_network_very_slow" translatable="false">Very slow</string>
+    <string name="developer_network_flaky" translatable="false">Flaky</string>
+    <string name="developer_network_offline" translatable="false">Offline</string>
+    <string name="developer_network_normal_hint" translatable="false">Requests go out as they are.</string>
+    <string name="developer_network_slow_hint" translatable="false">Every request takes 0.2 seconds longer. Normal again when developer mode is off.</string>
+    <string name="developer_network_very_slow_hint" translatable="false">Every request takes 6 seconds longer. Normal again when developer mode is off.</string>
+    <string name="developer_network_flaky_hint" translatable="false">Requests take up to 4 seconds longer, and one in five never arrives. Normal again when developer mode is off.</string>
+    <string name="developer_network_offline_hint" translatable="false">No request goes out, and the app acts as if the phone were offline. Normal again when developer mode is off.</string>
     <string name="addresses_held">Waiting for payment</string>
     <string name="addresses_held_copy">Copy invoice</string>
     <string name="addresses_held_pay">Pay from balance</string>

@@ -122,7 +122,7 @@ class BrandDirectoryTest(unittest.TestCase):
         # A new string that needs either word goes into its module's brand-term block, so a brand's list stays complete.
         # Developer options may name them anyway: their strings are English only (translatable="false").
         words = {"values": r"\b(mints?|notes?)\b", "values-de": r"\b(Mint|Mints|Schein\w*)\b"}
-        allowed = re.compile(r"^(keys_|regtest_|logs_hint$|onboarding_mint_local$)")
+        allowed = re.compile(r"^onboarding_mint_local$")
         terms = {name for name, _ in nb.brand_terms("values")}
         for qualifier, word in words.items():
             for strings in nb.module_strings(qualifier):

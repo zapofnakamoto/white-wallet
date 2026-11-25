@@ -87,10 +87,6 @@
     <string name="note_reclaim_body">Sein QR-Code und Link funktionieren dann nicht mehr. Hat ihn schon jemand eingelöst, ändert sich nichts.</string>
     <string name="note_spent">Ausgegeben, meist vom Empfänger. Es kann auch ein anderes Gerät mit deiner Wiederherstellungsphrase gewesen sein.</string>
     <string name="note_reclaimed">Du hast ihn selbst eingelöst. Du kannst ihn wieder ausgeben.</string>
-    <!-- Entwicklermodus auf einer lokalen Regtest-Mint (Debug-Builds): der Faucet von dev/regtest erstellt eine Rechnung zum Bezahlen. %1$s: ein Betrag -->
-    <string name="send_faucet">Entwickler: eine Regtest-Rechnung über %1$s bezahlen</string>
-    <!-- %1$s: der Fehler des Faucets oder der Verbindung, wie er kam -->
-    <string name="send_faucet_failed">Der Regtest-Faucet hat keine Rechnung erstellt: %1$s. Läuft dev/regtest und ist es verbunden?</string>
     <string name="scan_title">Scannen</string>
     <string name="scan_hint">Richte die Kamera auf einen QR-Code, um zu bezahlen oder einzulösen.</string>
     <string name="send_from">Von %1$s</string>

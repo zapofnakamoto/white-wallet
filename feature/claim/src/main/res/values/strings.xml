@@ -82,9 +82,9 @@
     <string name="claim_melt_receive">Receive over Lightning</string>
     <string name="claim_keep_for_later">Keep it for later</string>
     <!-- Developer mode in a debug build: dev/regtest's faucet makes a note to claim. %1$s: an amount, %2$s: a local mint's host -->
-    <string name="regtest_note">Developer: %1$s note from %2$s</string>
+    <string name="regtest_note" translatable="false">Developer: %1$s note from %2$s</string>
     <!-- Developer mode in a debug build: dev/regtest's faucet makes a plain withdraw link (no note, no mint), received over Lightning. %1$s: an amount -->
     <string name="regtest_withdraw_link" translatable="false">Developer: %1$s withdraw link, over Lightning</string>
     <!-- %1$s: the faucet's or the connection's error, as it came -->
-    <string name="regtest_note_failed">The regtest faucet couldn\'t make it: %1$s. Is dev/regtest up and connected?</string>
+    <string name="regtest_note_failed" translatable="false">The regtest faucet couldn\'t make it: %1$s. Is dev/regtest up and connected?</string>
 </resources>

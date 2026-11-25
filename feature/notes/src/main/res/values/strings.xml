@@ -164,13 +164,13 @@
     <string name="notes_share">Hand out</string>
     <string name="notes_renew">Renew</string>
     <!-- Developer mode only. %1$d: key purpose, %2$d: key index, %3$s: the note's public key, shortened. -->
-    <string name="notes_dev_key">Key %1$d/%2$d · %3$s</string>
+    <string name="notes_dev_key" translatable="false">Key %1$d/%2$d · %3$s</string>
     <!-- Developer mode in debug builds: the next action on notes fails once, as chosen, to see its failure screens. -->
-    <string name="notes_dev_section">Developer · debug builds only</string>
-    <string name="notes_dev_fail">The next action fails, once.</string>
-    <string name="notes_dev_fail_unreachable">No answer</string>
-    <string name="notes_dev_fail_refused">Refused</string>
-    <string name="notes_dev_fail_lost">Answer lost</string>
+    <string name="notes_dev_section" translatable="false">Developer · debug builds only</string>
+    <string name="notes_dev_fail" translatable="false">The next action fails, once.</string>
+    <string name="notes_dev_fail_unreachable" translatable="false">No answer</string>
+    <string name="notes_dev_fail_refused" translatable="false">Refused</string>
+    <string name="notes_dev_fail_lost" translatable="false">Answer lost</string>
     <string name="notes_renewed">Renewed: %1$s, now under a fresh key.</string>
     <string name="notes_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in its details, nothing more is done with it.</string>
     <string name="notes_state_paying">Paying…</string>

@@ -38,8 +38,11 @@ tagging.
 - **Code is formatted by ktfmt** (kotlinlang style, 140 wide): run `just format` before committing; `just check` and
   CI fail on code that isn't formatted.
 - **Every text works in other languages.** Use plural resources, whole sentences with placeholders, and no English
-  built in Kotlin. A new string needs its German translation too; lint fails without one.
-- **The words for the custodian and its notes** ("mint", "note") appear only in the strings marked *Brand terms*.
+  built in Kotlin. A new string needs its German translation too; lint fails without one. Text only seen in developer
+  mode (developer options once on, Derived keys, request log, local regtest, faucet buttons) is English only:
+  `translatable="false"`, no German.
+- **The words for the custodian and its notes** ("mint", "note") appear only in the strings marked *Brand terms*, and
+  in developer-mode text.
 - **No brand values outside `brand/`**: no app name, application ID, mint host or brand color in the code
   (`dev/check-brand.sh`).
 - **Brand-specific behavior** is a brand option or goes through `core/brand-api` / `core/brand-ui`, not a fork of the wallet. Screens use the designsystem's components, not Material's (`dev/check-design.sh`).
