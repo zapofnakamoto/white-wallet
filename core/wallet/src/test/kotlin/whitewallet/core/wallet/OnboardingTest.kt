@@ -463,6 +463,11 @@ class OnboardingTest {
             assertNull(store.homeOf(main))
             assertEquals(otherHost, store.homeOf(savings))
             assertTrue(wallet.hasMint.first())
+            // The account in use's own home too: it has none, nor the others that had it.
+            assertEquals(RemoveMintResult.Removed, wallet.removeMint(otherHost))
+            assertNull(store.homeOf(savings))
+            assertNull(store.homeOf(third))
+            assertNull(wallet.homeHost.first())
         }
 
     @Test

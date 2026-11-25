@@ -164,10 +164,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   and Receive, and the Mints page show a warning sign with "Signing key doesn't match".
 - For brands: `Page.Mints` is the one Mints page (`Empty` without any mint). New brand terms `settings_mints_no_home`
   ("No home mint"), `mints_remove_in_use` (it names no mint, but its pronoun follows the brand's word),
-  `mints_remove_home_this` and `mints_remove_home_others`; `mints_remove_body` no longer says that an account loses its
-  home (the new terms say which); new strings `mints_card_unused`, `mints_card_open`, `mints_card_read_separator`,
-  `mints_remove_keep` and `mints_remove_anyway`. `notes_count`, `notes_detail_separator` and
-  `notes_trusted` are in the design system now (a brand overrides them by name as before).
+  `mints_remove_home_this` and `mints_remove_home_others`; `mints_remove_body` no longer says that an account loses
+  its home (the new terms say which), and its German speaks of "die Mint" ("sie"), as everywhere else; new strings
+  `mints_card_unused`, `mints_card_open`, `mints_card_read_separator`, `mints_remove_keep` and `mints_remove_anyway`.
+  `notes_count`, `notes_detail_separator` and `notes_trusted` are in the design system now (a brand overrides them by
+  name as before).
 - For developers: the account switcher (`AccountSwitcher`, `AccountActions`, `WalletAccountButton`) moved from
   `feature/home` to `core/designsystem`, with its strings (a brand overrides them by name as before), and with the new
   `AccountChoice` (`core/model`, from `Wallet.accountChoice`) it is shared, for any page that shows one account's

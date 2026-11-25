@@ -96,6 +96,27 @@ class MintDetailsViewModelTest {
     }
 
     @Test
+    fun `after a switch the page names the other accounts with the mint as home, never the one now in use`() = runTest {
+        store.saveWallet(WalletRecord("w", null, 0))
+        store.saveAccount(Account("a", "A", 0, walletId = "w", index = 0, homeHost = "h1.example"))
+        store.saveAccount(Account("b", "B", 1, walletId = "w", index = 1, homeHost = "h1.example"))
+        store.saveMint(Mint("w", "h1.example", "https://h1.example/w", "02" + "ab".repeat(32), 1_000, 1_000_000_000, null, null))
+        store.setActiveAccount("a")
+        val screen =
+            MintDetailsViewModel(wallet, SavedStateHandle(mapOf("host" to "h1.example")), AppDefaults(emptyList(), allowMintChange = true))
+        val seen = mutableListOf<MintDetailsState>()
+        CoroutineScope(Dispatchers.Unconfined).launch { screen.state.collect { seen += it } }
+        assertEquals(listOf("B"), screen.state.first { it.details != null && !it.loading && it.accounts?.activeId == "a" }.homeOf)
+        screen.switchAccount("b")
+        assertEquals(listOf("A"), screen.state.first { it.details != null && !it.loading && it.accounts?.activeId == "b" }.homeOf)
+        assertTrue(
+            seen.none { s ->
+                s.accounts?.activeId?.let { id -> s.accounts.accounts.first { it.account.id == id }.account.name in s.homeOf } == true
+            }
+        )
+    }
+
+    @Test
     fun `setTrusted is ignored while the key doesn't match`() = runTest {
         trust.setKeyChanged("w", "other.example", true)
         val screen = page()

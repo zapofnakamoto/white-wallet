@@ -459,6 +459,47 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun whileAHomeIsBeingRemovedTheQuestionStaysAndKeepWaits() {
+        val removable = MintInfo("other.example", mint.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
+        var state by
+            mutableStateOf(
+                MintDetailsState(
+                    details(MintDetails.Reachability.Reachable).copy(host = "other.example", isHome = false),
+                    loading = false,
+                    mint = removable,
+                    homeOf = listOf("Savings"),
+                )
+            )
+        compose.setContent { MintDetailsScreen(state, {}, {}) }
+        compose.onNodeWithText(text(R.string.mints_remove_mint)).performScrollTo().performClick()
+        state = state.copy(removing = true)
+        compose.onNodeWithText(text(R.string.mints_remove_title, "other.example")).assertExists()
+        compose.onNodeWithText(text(R.string.mints_remove_keep)).assertIsNotEnabled()
+    }
+
+    @Test
+    @Config(qualifiers = "de")
+    fun germanRemovalOfAHomeNamesTheAccountsAndSaysSieForTheMint() {
+        val removable = MintInfo("mint.example", mint.mintPubkey, trusted = true, trustedByDefault = null, isHome = true, removable = true)
+        compose.setContent {
+            MintDetailsScreen(
+                MintDetailsState(details(MintDetails.Reachability.Reachable), loading = false, mint = removable, homeOf = listOf("Sparen")),
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText("Mint entfernen").performScrollTo().performClick()
+        compose.onNodeWithText("Sie ist die Haupt-Mint dieses Kontos: Es hat dann keine, bis du eine andere wählst.").assertExists()
+        compose.onNodeWithText("Das Konto Sparen hat sie als Haupt-Mint und dann keine, bis du dort eine andere wählst.").assertExists()
+        // Die Mint: sie, ihr, ihren.
+        compose
+            .onNodeWithText("Diese Wallet vergisst sie, ihren Signaturschlüssel und ob du ihr vertraust.", substring = true)
+            .assertExists()
+        compose.onNodeWithText("Trotzdem entfernen").assertExists()
+        compose.onNodeWithText("Behalten").assertExists()
+    }
+
+    @Test
     fun removingAMintNoAccountHasAsHomeAsksAsBefore() {
         val removable = MintInfo("other.example", mint.mintPubkey, trusted = false, trustedByDefault = null, removable = true)
         compose.setContent {
