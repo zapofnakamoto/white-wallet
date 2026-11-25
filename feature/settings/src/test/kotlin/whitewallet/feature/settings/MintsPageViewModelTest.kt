@@ -100,7 +100,7 @@ class MintsPageViewModelTest {
                 }
                 else -> error("a loaded state without a home: $s")
             }
-            assertEquals(s.home?.host == "h2.example", s.accounts?.activeId == "b", "the account mark follows the page: $s")
+            assertEquals(s.home.host == "h2.example", s.accounts?.activeId == "b", "the account mark follows the page: $s")
         }
     }
 

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -81,6 +82,7 @@ private data class Input(
 class MoveFundsViewModel @Inject constructor(private val wallet: Wallet, private val defaults: AppDefaults) : ViewModel() {
     private val input = MutableStateFlow(Input())
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<MoveFundsState> =
         combine(wallet.accounts, wallet.activeAccount, wallet.walletGroups, input) { accounts, active, groups, i ->
                 val targets = accounts.filter { it.account.id != active?.account?.id }

@@ -183,7 +183,7 @@ internal class Payer(private val wallet: Wallet) {
         // Within a mint whose signing key doesn't match nothing moves: the payment goes over Lightning from another, if any.
         val holdsNotes = payeeHost != null && payable(accountId).any { it.host == payeeHost }
         // Paid from another mint, it goes over Lightning: a transfer only moves a note within its mint.
-        val transfer = holdsNotes && (from == null || from == payeeHost) && sharesMint(accountId, pay, payeeHost!!)
+        val transfer = holdsNotes && (from == null || from == payeeHost) && sharesMint(accountId, pay, payeeHost)
         // One of the account's own addresses.
         if (wallet.store.addresses(accountId).first().any { Lnurl.lightningAddressUrl(it.address) == url }) {
             return PayPreview.Invalid(PayProblem.OwnAddress)

@@ -144,12 +144,12 @@ class RegtestE2ETest {
             val sent = assertIs<CreateNoteResult.Created>(wallet.createNote(1_000_000)).note
             val lnurl = "lightning:" + assertNotNull(Lnurl.bech32Link(sent.link!!))
             val other = Regtest.phone(strategy = ManualStrategy.ID).wallet
-            val plain = assertIs<ClaimPreview.Ready>(other.previewClaim(sent.link!!))
+            val plain = assertIs<ClaimPreview.Ready>(other.previewClaim(sent.link))
             val preview = assertIs<ClaimPreview.Ready>(other.previewClaim(lnurl), "claim preview ($lnurl)")
             assertTrue(preview.certified)
             assertEquals(plain.amountMsat, preview.amountMsat)
             // Other wallets wrap the lnurlw:// link itself in bech32, against the spec (we never do): read the same.
-            val wrapped = assertIs<ClaimPreview.Ready>(other.previewClaim(Lnurl.encodeBech32(sent.link!!)))
+            val wrapped = assertIs<ClaimPreview.Ready>(other.previewClaim(Lnurl.encodeBech32(sent.link)))
             assertTrue(wrapped.certified)
             assertEquals(plain.amountMsat, wrapped.amountMsat)
             assertIs<ClaimResult.Claimed>(other.claim(preview))
