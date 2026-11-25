@@ -9,7 +9,7 @@
 
 ## Shortcuts
 
-`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just test-device`, `just test-screenshots`, `just lint`, `just check` (what CI checks, but the slow suites: regtest, device, screenshots), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` prepares the conformance suite in `.conformance/` first.
+`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just test-device`, `just test-screenshots`, `just lint`, `just check` (what CI checks, but the slow suites: regtest, device, screenshots), `just verify` (before merging to main or a release: `just check`, then `just test-screenshots`, then `just test-regtest`, starting the regtest stack if it is down and saying so), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` prepares the conformance suite in `.conformance/` first.
 
 To install on a phone without a cable (Android 11+), open Developer options → Wireless debugging → "Pair device with pairing code" on the phone and run `just pair`: it asks for the pairing address and code, then for the address under "IP address & Port" to connect to. Later sessions only need `just connect <ip:port>`. `just phone` then builds the latest debug build, installs it on the connected phone (never an emulator) and opens it. `just regtest connect` forwards the local regtest mints over wireless debugging as well, for as long as the phone stays connected.
 
@@ -157,8 +157,8 @@ render before, before, after and a picture of what differs (in red), then every 
 same keeps showing the last change. Nothing is committed and
 nothing fails on a change: the images are for looking at. `just test-screenshots` draws a small set for `brand/` and
 every `brand-examples/*` (`check/<brand>/`; `just test-screenshots brand-examples/acme` for one), and fails only when a
-preview can't be drawn, or its text is hard to read. It is slow, so `just check` leaves it out: run it after a change to
-what a screen shows; CI runs it on every push.
+preview can't be drawn, or its text is hard to read. It is slow, so `just check` leaves it out: `just verify` runs it before
+a merge to main or a release, and CI on every push.
 
 **Contrast**: `ContrastTest` draws every preview light and dark (a brand with a fixed `app.appearance` only its look), in
 the brand's design, and fails when a text stands out from what is drawn behind it by less than 4.5:1, or 3:1 for large

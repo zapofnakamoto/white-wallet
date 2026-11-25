@@ -165,7 +165,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `addresses_register_again`, `addresses_remove`, `addresses_not_registered_again`.
 - A message at the bottom of the screen can be swiped away, to either side.
 - For developers: `just check` leaves out the slow suites, which CI still runs on every push: the screenshots with the
-  contrast check are `just test-screenshots` now, beside `just test-regtest` and `just test-device`.
+  contrast check are `just test-screenshots` now, beside `just test-regtest` and `just test-device`. `just verify` runs
+  `just check`, the screenshots and the regtest tests, before a merge to main or a release. The test JVMs' heap is
+  `whitewallet.test.maxHeap` (512m), lower per machine with the workers (docs/DEVELOPMENT.md, "Tests").
 - The notes view's total is drawn like the balance on the wallet tab, as large, through the brand's `Amount`.
 - One Mints page instead of two (Settings → Mints for the wallet, Account → Your mints for the account): the account's
   home mint is a card on top, in the home notes' colour, with ✓ when trusted as on the other cards, its money large,

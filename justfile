@@ -155,15 +155,15 @@ screenshots brand=brand:
     ./gradlew :screenshots:renderScreenshots -Pscreenshots=full -PbrandDir={{ brand }}
     dev/screenshots.py screenshots/build/screenshots/full/"$(basename {{ brand }})" --render screenshots/build/screenshots/render
 
-# Fails only if a preview can't be drawn or a text in it is hard to read. CI runs it on every push; here, run it after a
-# change to what a screen shows (docs/DEVELOPMENT.md, "Screenshots").
+# Fails only if a preview can't be drawn or a text in it is hard to read. CI runs it on every push; here, `just verify` runs
+# it before a merge (docs/DEVELOPMENT.md, "Screenshots").
 # Screenshots and the contrast check (slow): a small set for every sample brand, or `brand` alone
 [group('checks')]
 test-screenshots brand="":
     for b in {{ if brand == "" { "brand brand-examples/*/" } else { brand } }}; do b="${b%/}"; ./gradlew -q :screenshots:renderScreenshots -Pscreenshots=check -PbrandDir="$b"; dev/screenshots.py screenshots/build/screenshots/check/"$(basename "$b")" --render screenshots/build/screenshots/render; done
 
 # Lint runs on its own: beside the release build, its Kotlin analysis of the app's tests sometimes crashes (a lint bug).
-# Not the slow suites, which CI runs too: `just test-regtest`, `just test-device` and `just test-screenshots`.
+# Not the slow suites, which CI runs too: `just verify` adds the screenshots and regtest ones; `just test-device` is for a release.
 # What CI checks, but the slow suites: formatting, tests, both builds, lint, brand, design, flash, lookup and resource checks, scaffolder tests
 [group('checks')]
 check: test
@@ -177,6 +177,20 @@ check: test
     dev/check-resources.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
+
+# The regtest stack is checked first: if it is down, this says so and starts it (stop it again with `just regtest-down`).
+# Before merging to main or a release: `just check`, then the screenshots and contrast check, then the regtest tests
+[group('checks')]
+verify:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -z "$(docker compose -p whitewallet-regtest ps -q mint 2>/dev/null)" ]]; then
+        echo "The regtest stack is down: starting it for the regtest tests at the end (stop it again with 'just regtest-down')." >&2
+        dev/regtest/regtest.sh up
+    fi
+    just check
+    just test-screenshots
+    just test-regtest
 
 # Create a new brand (e.g. just new-brand --name "Acme Cash" --id com.acme.cash --mint mint.acme.com --primary "#0B6E4F")
 [group('brands')]

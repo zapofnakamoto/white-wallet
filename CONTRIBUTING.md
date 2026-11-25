@@ -14,6 +14,10 @@ Before opening a pull request, run:
 just check
 ```
 
+Before merging to main or a release, run `just verify`: `just check`, then the screenshots and contrast check
+(`just test-screenshots`) and the regtest tests (`just test-regtest`, on the local regtest stack, which it starts if it
+is down). CI runs all of them on every push too.
+
 ## Commit messages
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
