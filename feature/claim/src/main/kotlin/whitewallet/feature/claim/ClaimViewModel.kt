@@ -62,7 +62,17 @@ data class ClaimState(
                     is ClaimPreview.Offline,
                     ClaimPreview.OfflineLink -> true
                     is ClaimPreview.OwnShared -> !p.reachable
-                    else -> false
+                    ClaimPreview.AlreadyInWallet,
+                    ClaimPreview.AlreadySpent,
+                    is ClaimPreview.Invalid,
+                    is ClaimPreview.KeyChanged,
+                    is ClaimPreview.Locked,
+                    is ClaimPreview.Melt,
+                    is ClaimPreview.MintRefused,
+                    ClaimPreview.NotSpendable,
+                    is ClaimPreview.PayLink,
+                    is ClaimPreview.Ready,
+                    null -> false
                 }
 }
 

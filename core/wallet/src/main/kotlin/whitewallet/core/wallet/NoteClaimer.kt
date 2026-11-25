@@ -260,7 +260,10 @@ internal class NoteClaimer(private val wallet: Wallet) {
             when (val found = KeyLookup.of(wallet, accountId, link.host, link.withdrawUrl, script.q)) {
                 is KeyLookup.Note -> found.info.maxWithdrawableMsat
                 is KeyLookup.Refused -> if (found.burned) return ClaimPreview.AlreadySpent else null
-                else -> null
+                KeyLookup.KeyChanged,
+                KeyLookup.NotANote,
+                is KeyLookup.OtherService,
+                KeyLookup.Unreachable -> null
             }
         return ClaimPreview.Locked(link, script.lockedUntilSeconds?.let { it * 1000 }, script.lockedForSeconds, amount)
     }

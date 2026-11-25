@@ -45,7 +45,9 @@ internal class Restore(private val wallet: Wallet) {
         val words =
             when (val check = RecoveryPhrase.check(phrase)) {
                 is PhraseCheck.Valid -> check.words
-                else -> return RestoreResult.InvalidPhrase(check)
+                PhraseCheck.BadChecksum,
+                is PhraseCheck.UnknownWords,
+                is PhraseCheck.WrongCount -> return RestoreResult.InvalidPhrase(check)
             }
         val accounts = wallet.store.accounts.first()
         for (summary in accounts) {
@@ -82,7 +84,13 @@ internal class Restore(private val wallet: Wallet) {
                 return when (val r = connected.result) {
                     is OnboardResult.NetworkError -> RestoreResult.NetworkError(r.reason)
                     is OnboardResult.MintInvalid -> RestoreResult.MintInvalid(r.refusal, r.mintReason)
-                    else -> RestoreResult.MintInvalid(MintRefusal.Refused)
+                    is OnboardResult.AwaitingFee,
+                    is OnboardResult.FeeRefused,
+                    is OnboardResult.LimitReached,
+                    is OnboardResult.Ready,
+                    is OnboardResult.RegistrationFailed,
+                    OnboardResult.UsernameInvalid,
+                    is OnboardResult.UsernameTaken -> RestoreResult.MintInvalid(MintRefusal.Refused)
                 }
             }
         }

@@ -138,7 +138,8 @@ data class ReceiveState(
             when (val status = invoice?.status) {
                 is InvoiceStatus.Paid -> status.receivedMsat
                 null -> receivedMsat.takeIf { it > 0 }
-                else -> null
+                InvoiceStatus.Expired,
+                InvoiceStatus.Waiting -> null
             }
 
     /** How many payments [arrivedMsat] is: a paid invoice is always one. */

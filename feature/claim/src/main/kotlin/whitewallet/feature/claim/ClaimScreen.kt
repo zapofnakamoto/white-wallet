@@ -241,7 +241,14 @@ fun ClaimScreen(
                         )
                         PrimaryButton(stringResource(R.string.claim_check), onCheck, enabled = state.input.isNotBlank(), busy = state.busy)
                     }
-                else -> {
+                ClaimPreview.AlreadyInWallet,
+                ClaimPreview.AlreadySpent,
+                is ClaimPreview.Invalid,
+                is ClaimPreview.MintRefused,
+                ClaimPreview.NotSpendable,
+                ClaimPreview.OfflineLink,
+                is ClaimPreview.PayLink,
+                null -> {
                     preview?.let { Text(previewMessage(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
                     PrimaryButton(stringResource(R.string.claim_check), onCheck, enabled = state.input.isNotBlank(), busy = state.busy)
                     FaucetButtons(state, onFaucet, onFaucetWithdraw)

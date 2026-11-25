@@ -169,7 +169,9 @@ class ArchiveViewModel @Inject constructor(private val wallet: Wallet, defaults:
                     is NoteCheck.KeyChanged -> RetryOutcome.NoteKeyChanged(check.host)
                     // Gone meanwhile (removed, or back): nothing to tell.
                     NoteCheck.NotFound -> null
-                    else -> RetryOutcome.NoteNoAnswer
+                    NoteCheck.Landed,
+                    NoteCheck.NotLanded,
+                    NoteCheck.Unreachable -> RetryOutcome.NoteNoAnswer
                 }
             ui.update { it.copy(retrying = null, outcome = outcome) }
         }

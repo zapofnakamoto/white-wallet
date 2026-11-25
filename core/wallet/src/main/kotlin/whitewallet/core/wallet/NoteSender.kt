@@ -289,7 +289,14 @@ internal class NoteSender(private val wallet: Wallet) {
         }
         return when (val check = check(note)) {
             Check.Waiting -> takeBack(note)
-            else -> settled(note, check) ?: failure(check) ?: ReclaimResult.Failed(PayProblem.Refused)
+            Check.InUse,
+            Check.KeyChanged,
+            Check.NoMint,
+            Check.Offline,
+            is Check.Refused,
+            Check.Spent,
+            Check.UnknownToMint,
+            Check.Unreadable -> settled(note, check) ?: failure(check) ?: ReclaimResult.Failed(PayProblem.Refused)
         }
     }
 

@@ -149,7 +149,9 @@ public class LnurlcashClient(
             outcome =
                 when (val replay = MutationClassifier.classify(type, execute(request, freshConnectionHttp))) {
                     is MutationOutcome.Rejected -> MutationOutcome.Ambiguous("replay refused: ${replay.reason ?: replay.kind}")
-                    else -> replay
+                    is MutationOutcome.Ambiguous,
+                    is MutationOutcome.Confirmed,
+                    is MutationOutcome.Unverifiable -> replay
                 }
         }
         return outcome

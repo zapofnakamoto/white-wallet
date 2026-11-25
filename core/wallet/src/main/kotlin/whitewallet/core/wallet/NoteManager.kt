@@ -389,7 +389,14 @@ internal class NoteManager(private val wallet: Wallet) {
             when (val r = result) {
                 is OnboardResult.NetworkError -> NoteProblem.Unreachable
                 is OnboardResult.MintInvalid if r.refusal == MintRefusal.KeyChanged -> NoteProblem.KeyChanged
-                else -> NoteProblem.MintInvalid
+                is OnboardResult.AwaitingFee,
+                is OnboardResult.FeeRefused,
+                is OnboardResult.LimitReached,
+                is OnboardResult.MintInvalid,
+                is OnboardResult.Ready,
+                is OnboardResult.RegistrationFailed,
+                OnboardResult.UsernameInvalid,
+                is OnboardResult.UsernameTaken -> NoteProblem.MintInvalid
             }
 
     private val MutationResult.Unreachable.problem

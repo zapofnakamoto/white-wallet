@@ -643,7 +643,8 @@ constructor(
         act(NoteAction.Combine) { ids ->
             when (val r = wallet.combineNotes(ids)) {
                 is NoteActionResult.Done -> NotesOutcome.Combined(r.notes.sumOf { it.amountMsat })
-                else -> r.toOutcome(ids)
+                is NoteActionResult.Failed,
+                NoteActionResult.Pending -> r.toOutcome(ids)
             }
         }
 
@@ -672,7 +673,8 @@ constructor(
             if (switchToManual) wallet.setNoteStrategy(ManualStrategy.ID)
             when (val r = wallet.splitNote(ids.single(), amount)) {
                 is NoteActionResult.Done -> r.notes.map { it.amountMsat }.let { NotesOutcome.Split(it.first(), it.getOrElse(1) { 0 }) }
-                else -> r.toOutcome(ids)
+                is NoteActionResult.Failed,
+                NoteActionResult.Pending -> r.toOutcome(ids)
             }
         }
     }

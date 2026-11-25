@@ -146,7 +146,10 @@ internal class FundsMover(private val wallet: Wallet) {
         for ((host, amount) in asked) {
             when (val reason = cantMove(fromId, toId, host)) {
                 null -> movable += amount
-                else -> stayed += MoveStayed(host, amount, reason)
+                StayReason.Unreachable,
+                StayReason.KeyChanged,
+                StayReason.OtherWalletKey,
+                StayReason.Refused -> stayed += MoveStayed(host, amount, reason)
             }
         }
         return MoveCheck(movable, stayed)
@@ -217,7 +220,13 @@ internal class FundsMover(private val wallet: Wallet) {
                         if (r.refusal == MintRefusal.KeyChanged) failed(StayReason.KeyChanged, null)
                         else failed(StayReason.Refused, r.mintReason)
                     is OnboardResult.NetworkError -> failed(StayReason.Unreachable, null)
-                    else -> failed(StayReason.Refused, null)
+                    is OnboardResult.AwaitingFee,
+                    is OnboardResult.FeeRefused,
+                    is OnboardResult.LimitReached,
+                    is OnboardResult.Ready,
+                    is OnboardResult.RegistrationFailed,
+                    OnboardResult.UsernameInvalid,
+                    is OnboardResult.UsernameTaken -> failed(StayReason.Refused, null)
                 }
         }
     }
