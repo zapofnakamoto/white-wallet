@@ -129,6 +129,11 @@ class SettingsViewModel @Inject constructor(private val wallet: Wallet, preferen
 
     private class ActiveAccount(val id: String?, val name: String?, val backedUp: Boolean, val place: Int, val wallet: WalletGroup?)
 
+    /** Developer: the active account has no home mint any more ([Wallet.forgetHomeMint]). */
+    fun forgetHomeMint() {
+        viewModelScope.launch { wallet.forgetHomeMint() }
+    }
+
     init {
         // Refreshing also re-checks that the address still points at this wallet.
         viewModelScope.launch { runCatching { wallet.refresh() } }

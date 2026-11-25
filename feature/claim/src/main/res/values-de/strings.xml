@@ -76,5 +76,5 @@
     <!-- Entwicklermodus in einem Debug-Build: der Faucet von dev/regtest erzeugt einen Schein zum Einlösen. %1$s: ein Betrag, %2$s: der Host einer lokalen Mint -->
     <string name="regtest_note">Entwickler: Schein über %1$s von %2$s</string>
     <!-- %1$s: der Fehler des Faucets oder der Verbindung, wie er kam -->
-    <string name="regtest_note_failed">Der Regtest-Faucet hat keinen Schein erzeugt: %1$s. Läuft dev/regtest und ist es verbunden?</string>
+    <string name="regtest_note_failed">Der Regtest-Faucet konnte das nicht erzeugen: %1$s. Läuft dev/regtest und ist es verbunden?</string>
 </resources>

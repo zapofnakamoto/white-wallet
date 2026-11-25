@@ -10,7 +10,7 @@ A local Bitcoin regtest network with a real LNURLcash mint, for developing the w
 | `mint` | The reference mint [`lnurlcash/lnurl-mint`](https://github.com/lnurlcash/lnurl-mint), at `http://localhost:8111`, on `0.13.1` (LUD-25/26 at luds `92e430f`), as are the other mints |
 | `mint2` | A second mint (same image, 2 sat base fee) funded by `user-lnd`, at `http://localhost:8112`: for moving notes between mints. It charges 21 sats for an address (`ADDRESS_FEE_MSAT`), so holding a name, paying for it and going on without one can be tried. |
 | `mint3` | A third mint (1 sat base fee) at `http://localhost:8113` whose signing key can change: it runs on `mint-lnd` or `user-lnd`, and signs with that node's identity key. `rotate-mint3` switches the node, keeping its notes |
-| `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8110`: when the app asks, pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s), like `pay`, or makes an invoice for the app to pay, like `invoice`, on the node that doesn't fund the app's mint |
+| `faucet` | [`faucet.py`](faucet.py) at `http://localhost:8110`: when the app asks, pays an address or invoice from `user-lnd` (or `mint-lnd` for `mint2`'s), like `pay`, makes an invoice for the app to pay, like `invoice`, on the node that doesn't fund the app's mint, a note, like `note`, or a plain withdraw link of its own |
 
 `up` opens a 0.1 BTC channel from `user-lnd` to `mint-lnd` (half pushed to the mint), so minting and paying work immediately. Only the mints and the faucet are exposed, on `127.0.0.1:8110` to `127.0.0.1:8113` (mint N on port 811N, the faucet on 8110); `connect` reverses all four ports.
 
@@ -35,6 +35,8 @@ Or without the terminal: on **Receive**, a debug build in developer mode with an
 Sending works the same way: on **Send**, **Developer: pay a regtest invoice of ₿1,000** has the faucet make an invoice and fills it in, as if pasted; review and pay it as usual.
 
 And notes: on **Receive → Claim a note**, a debug build in developer mode shows **Developer: ₿1,000 note from localhost:811x** for each local mint, whichever mint the account is on (or none). The faucet makes the note there, as `note` does, and the screen checks it as if pasted. A note from a mint the wallet hasn't added is a note from an unknown mint.
+
+Below them, **Developer: ₿1,000 withdraw link, over Lightning** has the faucet hand out a plain LUD-03 withdraw link of its own (`lnurlw://localhost:8110/withdraw/…`): no note and no mint, like LNbits or an ATM, so the app receives it over Lightning into one of its mints, and the faucet pays the invoice. Into the home mint; to see the app ask which mint should receive it, first use **Developer: forget the home mint** on the account's page (Settings → Wallets → a wallet → an account), and make it home again on the Mints page afterwards.
 
 ## Commands
 

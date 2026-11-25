@@ -93,6 +93,25 @@ class ClaimScreenTest {
     }
 
     @Test
+    fun inDeveloperModeTheFaucetMakesAWithdrawLink() {
+        var asked = 0
+        var label = ""
+        compose.setContent {
+            label = stringResource(R.string.regtest_withdraw_link, formatAmount(FAUCET_SATS * 1_000))
+            ClaimScreen(
+                ClaimState(faucetMints = listOf("localhost:8111")),
+                onBack = {},
+                onInputChange = {},
+                onCheck = {},
+                onClaim = {},
+                onFaucetWithdraw = { asked++ },
+            )
+        }
+        compose.onNodeWithText(label).performScrollTo().performClick()
+        assertEquals(1, asked)
+    }
+
+    @Test
     fun withoutDeveloperModeThereIsNoFaucet() {
         show(ClaimState())
         compose.onNodeWithText("localhost", substring = true).assertDoesNotExist()

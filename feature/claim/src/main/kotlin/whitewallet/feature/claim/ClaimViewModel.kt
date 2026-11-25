@@ -112,16 +112,21 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
         )
 
     /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */
-    fun noteFromFaucet(mint: String) {
+    fun noteFromFaucet(mint: String) = fromFaucet { faucet.note(FAUCET_SATS, mint) }
+
+    private fun fromFaucet(make: suspend () -> String) {
         if (_state.value.busy || _state.value.faucet.busy) return
         _state.update { it.copy(faucet = FaucetState(busy = true)) }
         viewModelScope.launch {
-            val link = runCatching { faucet.note(FAUCET_SATS, mint) }
+            val link = runCatching { make() }
             link.onSuccess(::onScanned).onFailure { e ->
                 _state.update { it.copy(faucet = FaucetState(error = e.message ?: e.javaClass.simpleName)) }
             }
         }
     }
+
+    /** Developer: has the regtest faucet make a plain withdraw link (no note, no mint), and checks it as if it was pasted. */
+    fun withdrawLinkFromFaucet() = fromFaucet { faucet.withdrawLink(FAUCET_SATS) }
 
     fun startScan() = _state.update { it.copy(scanning = true) }
 

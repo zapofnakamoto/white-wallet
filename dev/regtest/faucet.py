@@ -14,12 +14,18 @@ listens on 127.0.0.1 of the computer, like the mints.
     POST /note?sats=<amount>&host=<a mint, localhost:8112>
     200 {"link": "lnurlw://localhost:8112/w?k1=…&amount=…", "amount_msat": 999000}   a bearer note on that mint, to claim
 
+    POST /withdraw?sats=<amount>
+    200 {"link": "lnurlw://localhost:8110/withdraw/…", "amount_msat": 1000000}   a plain LUD-03 withdraw link of the faucet's own,
+    no note and no mint (like LNbits or an ATM): the app receives it over Lightning into one of its mints. Used once, it pays
+    from user-lnd (or mint-lnd for an invoice of user-lnd's) through GET /withdraw/<k1> and its callback.
+
 Python standard library only; it runs in the mint image, with both LND volumes mounted read-only.
 """
 import hashlib
 import json
 import secrets
 import ssl
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -30,6 +36,11 @@ PORT = 8110
 # How the app names the mints (BASE_URL, over adb reverse) and where they are inside the stack.
 MINTS = {"localhost:8111": "http://mint:8111", "localhost:8112": "http://mint2:8112", "localhost:8113": "http://mint3:8113"}
 MAX_SATS = 1_000_000
+# How the app reaches the faucet (adb reverse), for the withdraw links it hands out.
+PUBLIC = f"localhost:{PORT}"
+# Withdraw links handed out and not used yet: k1 -> what they pay, in msat. Gone on a restart, like the links.
+WITHDRAWS = {}
+WITHDRAWS_LOCK = threading.Lock()
 
 
 class Node:
@@ -189,7 +200,66 @@ def note(sats, host):
     raise Refused("the mint did not issue the note", 502)
 
 
+def withdraw_link(sats):
+    """A plain withdraw link for [sats], not a note: its k1 is the faucet's own token, never shaped like a note's spend."""
+    k1 = secrets.token_urlsafe(24)
+    with WITHDRAWS_LOCK:
+        WITHDRAWS[k1] = sats * 1000
+    return {"link": f"lnurlw://{PUBLIC}/withdraw/{k1}", "amount_msat": sats * 1000}
+
+
+def withdraw_request(k1):
+    """LUD-03's first answer for the link with [k1]: what it pays, and where to send the invoice."""
+    with WITHDRAWS_LOCK:
+        msat = WITHDRAWS.get(k1)
+    if msat is None:
+        return {"status": "ERROR", "reason": "unknown or used withdraw link"}
+    return {
+        "tag": "withdrawRequest",
+        "callback": f"http://{PUBLIC}/withdraw/callback",
+        "k1": k1,
+        "minWithdrawable": 1000,
+        "maxWithdrawable": msat,
+        "defaultDescription": "White Wallet regtest withdraw link",
+    }
+
+
+def withdraw_callback(k1, request):
+    """LUD-03's callback: the invoice [request] for the link with [k1] is paid, once, after the answer (as services do)."""
+    with WITHDRAWS_LOCK:
+        msat = WITHDRAWS.get(k1)
+        if msat is None:
+            return {"status": "ERROR", "reason": "unknown or used withdraw link"}
+        try:
+            asked = int(USER.call("GET", f"/v1/payreq/{request}").get("num_msat", 0))
+        except (urllib.error.HTTPError, OSError, ValueError):
+            return {"status": "ERROR", "reason": "not an invoice"}
+        if not 1000 <= asked <= msat:
+            return {"status": "ERROR", "reason": f"the invoice must be for 1 to {msat // 1000} sats"}
+        del WITHDRAWS[k1]
+
+    def settle():
+        try:
+            pay(request)
+        except (Refused, urllib.error.HTTPError, OSError) as e:
+            print(f"withdraw link payment failed: {e}", flush=True)
+
+    threading.Thread(target=settle, daemon=True).start()
+    return {"status": "OK"}
+
+
 class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        """The withdraw links' LUD-03 requests, as the app makes them."""
+        url = urllib.parse.urlparse(self.path)
+        query = urllib.parse.parse_qs(url.query)
+        if url.path == "/withdraw/callback":
+            self.reply(200, withdraw_callback(query.get("k1", [""])[0], query.get("pr", [""])[0]))
+        elif url.path.startswith("/withdraw/"):
+            self.reply(200, withdraw_request(url.path.removeprefix("/withdraw/")))
+        else:
+            self.reply(404, {"status": "ERROR", "reason": "not found"})
+
     def do_POST(self):
         url = urllib.parse.urlparse(self.path)
         query = urllib.parse.parse_qs(url.query)
@@ -204,8 +274,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, invoice(sats, query.get("host", [""])[0]))
             elif url.path == "/note":
                 self.reply(200, note(sats, query.get("host", [""])[0]))
+            elif url.path == "/withdraw":
+                self.reply(200, withdraw_link(sats))
             else:
-                raise Refused("unknown path; POST /pay?target=…&sats=…, /invoice?sats=…&host=… or /note?sats=…&host=…", 404)
+                raise Refused(
+                    "unknown path; POST /pay?target=…&sats=…, /invoice?sats=…&host=…, /note?sats=…&host=… or /withdraw?sats=…", 404
+                )
         except Refused as e:
             self.reply(e.status, {"error": str(e)})
         except (ValueError, KeyError, OSError) as e:

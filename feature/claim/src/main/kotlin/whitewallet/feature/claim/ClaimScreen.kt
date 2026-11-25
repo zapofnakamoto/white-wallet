@@ -93,6 +93,7 @@ fun ClaimRoute(onBack: () -> Unit, onPay: (String) -> Unit = {}, viewModel: Clai
             onKeep = viewModel::keep,
             onTakeBack = viewModel::takeBack,
             onFaucet = viewModel::noteFromFaucet,
+            onFaucetWithdraw = viewModel::withdrawLinkFromFaucet,
             melt = MeltActions(viewModel::melt, viewModel::askLink, viewModel::meltInto, viewModel::keepForLightning),
         )
     }
@@ -112,6 +113,8 @@ fun ClaimScreen(
     onTakeBack: () -> Unit = {},
     /** Developer: have the regtest faucet make a note on this local mint. */
     onFaucet: (String) -> Unit = {},
+    /** Developer: have the regtest faucet make a plain withdraw link, received over Lightning. */
+    onFaucetWithdraw: () -> Unit = {},
     melt: MeltActions = MeltActions(),
 ) {
     val clipboard = LocalClipboard.current
@@ -240,20 +243,28 @@ fun ClaimScreen(
                 else -> {
                     preview?.let { Text(previewMessage(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
                     PrimaryButton(stringResource(R.string.claim_check), onCheck, enabled = state.input.isNotBlank(), busy = state.busy)
-                    FaucetButtons(state, onFaucet)
+                    FaucetButtons(state, onFaucet, onFaucetWithdraw)
                 }
             }
         }
     }
 }
 
-/** Developer mode in a debug build: the regtest faucet makes a note on a local mint, as `regtest.sh note` would, and it is checked here. */
+/**
+ * Developer mode in a debug build: the regtest faucet makes a note on a local mint, as `regtest.sh note` would, or a plain withdraw link of
+ * its own (received over Lightning), and it is checked here.
+ */
 @Composable
-private fun FaucetButtons(state: ClaimState, onFaucet: (String) -> Unit) {
+private fun FaucetButtons(state: ClaimState, onFaucet: (String) -> Unit, onWithdraw: () -> Unit) {
+    if (state.faucetMints.isEmpty()) return
+    val enabled = !state.busy && !state.faucet.busy
     state.faucetMints.forEach { mint ->
-        WalletButton(kind = ButtonKind.Secondary, onClick = { onFaucet(mint) }, enabled = !state.busy && !state.faucet.busy) {
+        WalletButton(kind = ButtonKind.Secondary, onClick = { onFaucet(mint) }, enabled = enabled) {
             Text(stringResource(R.string.regtest_note, formatAmount(FAUCET_SATS * 1_000), mint))
         }
+    }
+    WalletButton(kind = ButtonKind.Secondary, onClick = onWithdraw, enabled = enabled) {
+        Text(stringResource(R.string.regtest_withdraw_link, formatAmount(FAUCET_SATS * 1_000)))
     }
     state.faucet.error?.let {
         Text(

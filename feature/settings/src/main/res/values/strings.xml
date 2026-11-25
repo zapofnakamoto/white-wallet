@@ -203,6 +203,9 @@
 
     <string name="keys_title">Derived keys</string>
     <string name="keys_description">Note keys of this account, local indexes, lookups and rescans</string>
+    <!-- Developer mode, on the account's page: the account has no home mint afterwards, as when it was removed. %1$s: the home mint's host -->
+    <string name="developer_forget_home" translatable="false">Developer: forget the home mint</string>
+    <string name="developer_forget_home_hint" translatable="false">%1$s stays one of your mints but isn\'t this account\'s home any more, as if it was removed. Make it home again on the Mints page.</string>
     <string name="keys_purpose_wallet">Wallet (0)</string>
     <string name="keys_purpose_change">Change (1)</string>
     <string name="keys_address_number">Address %1$d</string>

@@ -120,7 +120,7 @@ class BrandDirectoryTest(unittest.TestCase):
 
     def test_only_brand_terms_name_the_mint_or_the_note(self):
         # A new string that needs either word goes into its module's brand-term block, so a brand's list stays complete.
-        # Developer options may name them anyway.
+        # Developer options may name them anyway: their strings are English only (translatable="false").
         words = {"values": r"\b(mints?|notes?)\b", "values-de": r"\b(Mint|Mints|Schein\w*)\b"}
         allowed = re.compile(r"^(keys_|regtest_|logs_hint$|onboarding_mint_local$)")
         terms = {name for name, _ in nb.brand_terms("values")}
@@ -129,7 +129,8 @@ class BrandDirectoryTest(unittest.TestCase):
                 for element in ET.parse(strings).getroot():
                     name = element.get("name")
                     text = "".join(element.itertext())
-                    if name and name not in terms and not allowed.match(name):
+                    developer = element.get("translatable") == "false"
+                    if name and name not in terms and not developer and not allowed.match(name):
                         with self.subTest(f"{strings.relative_to(nb.ROOT)}: {name}"):
                             self.assertIsNone(re.search(word, text, re.I if qualifier == "values" else 0), text)
 

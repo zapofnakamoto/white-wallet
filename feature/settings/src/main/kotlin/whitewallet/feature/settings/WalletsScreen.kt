@@ -371,7 +371,14 @@ fun AccountSettingsRoute(
         accountId == state.activeAccountId -> {
             // A wallet's only account goes with the wallet, on the wallet's page.
             val siblings = state.wallet(summary.account.walletId)?.accounts?.size ?: 1
-            AccountSettingsScreen(active, onBack, onOpen, viewModel::renameAccount, viewModel::askRemoval.takeIf { siblings > 1 })
+            AccountSettingsScreen(
+                active,
+                onBack,
+                onOpen,
+                viewModel::renameAccount,
+                viewModel::askRemoval.takeIf { siblings > 1 },
+                onForgetHome = settings::forgetHomeMint,
+            )
             removal?.let { AccountRemovalDialog(summary.account.name, it, removing, viewModel::dismissRemoval, viewModel::removeAccount) }
         }
         else -> AccountNotInUseScreen(summary, state.places[accountId] ?: 0, onBack) { viewModel.use(accountId) }
@@ -380,7 +387,7 @@ fun AccountSettingsRoute(
 
 /**
  * Everything that belongs to the account in use: its name, addresses, mints (its home among them), notes and note settings, and, with
- * [onRemove], the way to take it off this phone.
+ * [onRemove], the way to take it off this phone. In developer mode, [onForgetHome] leaves it without a home mint.
  */
 @Composable
 fun AccountSettingsScreen(
@@ -389,6 +396,7 @@ fun AccountSettingsScreen(
     open: (SettingsTarget) -> Unit,
     onRename: (String) -> Unit = {},
     onRemove: (() -> Unit)? = null,
+    onForgetHome: () -> Unit = {},
 ) {
     val name = state.accountName.orEmpty()
     var renaming by rememberSaveable { mutableStateOf(false) }
@@ -455,6 +463,15 @@ fun AccountSettingsScreen(
                     stringResource(R.string.keys_description),
                 ) {
                     open(SettingsTarget.Keys)
+                }
+                // To try what an account without a home mint does; the Mints page gives it one again.
+                state.homeHost?.let { home ->
+                    SummaryRow(
+                        pageIcon(SettingsTarget.Mints),
+                        stringResource(R.string.developer_forget_home),
+                        stringResource(R.string.developer_forget_home_hint, home),
+                        onClick = onForgetHome,
+                    )
                 }
             }
             if (onRemove != null) {

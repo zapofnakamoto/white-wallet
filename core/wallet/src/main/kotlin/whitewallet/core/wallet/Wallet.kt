@@ -730,6 +730,20 @@ class Wallet(
     }
 
     /**
+     * Developer: the active account has no home mint any more, as when its home mint was removed, so what depends on one (a link received
+     * over Lightning picks its mint, Receive asks for one) can be tried. Its mints, notes and addresses stay, and the old home stays
+     * trusted if it was, as with [setHomeMint], which gives it one again.
+     */
+    suspend fun forgetHomeMint(): Unit = lock.withLock {
+        val id = activeId()
+        val home = homeOf(id) ?: return@withLock
+        val walletId = walletOf(id)
+        val trusted = store.mint(walletId, home)?.mintPubkey?.let { MintKey(home, it) }?.takeIf { isTrusted(walletId, it) }
+        accountOf(id)?.let { store.saveAccount(it.copy(homeHost = null)) }
+        trusted?.let { trust.setTrusted(walletId, it, true) }
+    }
+
+    /**
      * What moving the active account's money to [toHost] would do: per mint holding it (only [fromHost], if given), what arrives and the
      * fee, or why it can't move. Null if [toHost] is not a valid host. Connects to [toHost] (pinning its key) to ask for the quotes;
      * nothing is paid.

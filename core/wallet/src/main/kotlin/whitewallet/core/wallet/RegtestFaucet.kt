@@ -19,9 +19,9 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
- * The local regtest stack's faucet (dev/regtest/faucet.py, reached over `adb reverse`): pays this wallet, makes an invoice for it to pay,
- * or a note for it to claim, from the stack's own Lightning nodes, so receiving and sending can be tried without a terminal. [host] is null
- * in release builds, where there is no faucet.
+ * The local regtest stack's faucet (dev/regtest/faucet.py, reached over `adb reverse`): pays this wallet, makes an invoice for it to pay, a
+ * note for it to claim, or a plain withdraw link for it to receive over Lightning, from the stack's own Lightning nodes, so receiving and
+ * sending can be tried without a terminal. [host] is null in release builds, where there is no faucet.
  */
 class RegtestFaucet(
     val host: String?,
@@ -56,6 +56,10 @@ class RegtestFaucet(
     suspend fun note(sats: Long, mint: String): String =
         call("note", "sats" to sats.toString(), "host" to mint)["link"]?.jsonPrimitive?.content
             ?: throw IOException("the faucet made no note")
+
+    /** A plain withdraw link for [sats] of the faucet's own: no note and no mint, so it is received over Lightning into a mint. */
+    suspend fun withdrawLink(sats: Long): String =
+        call("withdraw", "sats" to sats.toString())["link"]?.jsonPrimitive?.content ?: throw IOException("the faucet made no withdraw link")
 
     private suspend fun call(path: String, vararg query: Pair<String, String>): JsonObject =
         withContext(io) {

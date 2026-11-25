@@ -288,8 +288,24 @@ class WalletsScreenTest {
 
     @Test
     fun withoutDeveloperModeTheAccountsPageHasNoKeys() {
-        compose.setContent { AccountSettingsScreen(active.copy(hidden = emptySet()), {}, {}) }
+        compose.setContent { AccountSettingsScreen(active.copy(homeHost = "mint.example", hidden = emptySet()), {}, {}) }
         compose.onNodeWithText(text(R.string.keys_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.developer_forget_home)).assertDoesNotExist()
+    }
+
+    @Test
+    fun inDeveloperModeTheAccountsHomeMintCanBeForgotten() {
+        var forgotten = 0
+        val dev = active.copy(developerMode = true, hidden = emptySet())
+        compose.setContent { AccountSettingsScreen(dev.copy(homeHost = "mint.example"), {}, {}, onForgetHome = { forgotten++ }) }
+        compose.onNodeWithText(text(R.string.developer_forget_home)).performScrollTo().performClick()
+        assertEquals(1, forgotten)
+    }
+
+    @Test
+    fun withoutAHomeMintThereIsNothingToForget() {
+        compose.setContent { AccountSettingsScreen(active.copy(developerMode = true, hidden = emptySet(), homeHost = null), {}, {}) }
+        compose.onNodeWithText(text(R.string.developer_forget_home)).assertDoesNotExist()
     }
 
     @Test

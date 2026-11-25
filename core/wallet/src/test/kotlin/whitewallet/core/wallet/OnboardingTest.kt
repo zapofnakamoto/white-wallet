@@ -299,6 +299,20 @@ class OnboardingTest {
         }
 
     @Test
+    fun `a forgotten home mint stays a mint and a trusted one, and can be made home again`() = withMint { _, homeHost ->
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", homeHost))
+
+        wallet.forgetHomeMint()
+        assertEquals(null, wallet.homeHost.first())
+        assertTrue(wallet.mints.first().single { it.host == homeHost }.trusted)
+        assertEquals("alice@$homeHost", wallet.primaryAddress.first()?.address)
+
+        assertIs<ConnectResult.Connected>(wallet.setHomeMint(homeHost).result)
+        assertEquals(homeHost, wallet.homeHost.first())
+    }
+
+    @Test
     fun `each wallet has its own mints, each account its own of them, and only an unused one can be removed`() =
         withTwoMints { _, homeHost, _, otherHost ->
             val store = InMemoryWalletStore()
