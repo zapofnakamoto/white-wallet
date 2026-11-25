@@ -20,6 +20,7 @@
     <string name="claim_kept_key_changed">Deine Wallet löst ihn ein, sobald der Signaturschlüssel der Mint wieder passt oder du in ihren Details den neuen annimmst.</string>
     <string name="claim_melt_not_a_note">%1$s antwortet darauf nicht wie auf einen Schein; vielleicht ist es ein Auszahlungslink anderer Art. Er lässt sich stattdessen über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="claim_melt_into_home">Auf %1$s, deine Haupt-Mint</string>
+    <string name="claim_melt_into_home_detail">Haupt-Mint</string>
     <string name="claim_melt_pick">Dein Konto hat keine Haupt-Mint. Welche Mint soll es empfangen?</string>
     <string name="claim_melt_no_mint">Füge zuerst eine Mint hinzu und öffne diesen Link dann noch einmal.</string>
     <string name="claim_kept_for_lightning">Empfange es über Lightning, sobald du eine Mint hinzugefügt hast.</string>
@@ -67,6 +68,7 @@
     <string name="claim_melt_plain">Ein Auszahlungslink von %1$s: Er zahlt über Lightning aus.</string>
     <string name="claim_melt_pays">%1$s zahlt %2$s; nach der Gebühr kommen etwa %3$s an.</string>
     <string name="claim_melt_into">Auf %1$s</string>
+    <string name="claim_melt_into_title">Empfangen auf</string>
     <string name="claim_melt_ask_hint">Um zu erfahren, was er auszahlt, muss deine Wallet den Link selbst %1$s zeigen. Frag nur, wenn der Link von %1$s stammt.</string>
     <string name="claim_melt_ask">%1$s fragen</string>
     <string name="claim_melt_out_of_range">Dieser Link zahlt %1$s, aber %2$s nimmt %3$s bis %4$s an.</string>

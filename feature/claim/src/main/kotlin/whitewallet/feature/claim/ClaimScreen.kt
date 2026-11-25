@@ -19,8 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
@@ -40,7 +40,9 @@ import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.walletColors
-import whitewallet.core.designsystem.HostText
+import whitewallet.core.designsystem.MintChoiceLine
+import whitewallet.core.designsystem.MintChoiceSheet
+import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ResultScreen
@@ -51,7 +53,6 @@ import whitewallet.core.designsystem.SuccessAction
 import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
-import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletNoteFace
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
@@ -367,29 +368,33 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
                     )
                 preview.problem == MeltProblem.MintUnreachable ->
                     Text(stringResource(DesignR.string.mint_not_answering, target), color = MaterialTheme.colorScheme.error)
-                else -> {
+                else ->
                     Text(stringResource(R.string.claim_melt_pays, host, formatAmount(amount), formatAmount(preview.expectedMsat ?: amount)))
-                    Text(
-                        stringResource(if (target == state.home) R.string.claim_melt_into_home else R.string.claim_melt_into, target),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
             }
         }
     }
     val target = preview.target
+    // Without a home mint the picker opens at once: there is nothing to receive into until one is picked.
+    var picking by rememberSaveable(target == null) { mutableStateOf(target == null && preview.problem != MeltProblem.NoMint) }
+    if (preview.problem != MeltProblem.NoMint) {
+        // "Into mint.example.com · Change", as on Receive; also when that mint doesn't take it, so another can be tried.
+        if (target != null)
+            MintChoiceLine(
+                stringResource(if (target == state.home) R.string.claim_melt_into_home else R.string.claim_melt_into, target),
+                { picking = true }.takeIf { preview.mints.size > 1 && !state.busy },
+            )
+        if (picking)
+            IntoSheet(preview, state, onDismiss = { picking = false }) { host ->
+                picking = false
+                if (host != target) actions.into(host)
+            }
+    }
     when {
         preview.problem == MeltProblem.NoMint ->
             if (preview.link.note != null) PrimaryButton(stringResource(R.string.claim_keep_for_later), actions.keep, busy = state.busy)
         target == null ->
-            preview.mints.forEach { mint ->
-                // A pick of mints like any other: each with its mark, its registered name bolder.
-                WalletButton(kind = ButtonKind.Secondary, onClick = { actions.into(mint) }, enabled = !state.busy) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        WalletMintMark(mint, home = mint == state.home, size = 24.dp)
-                        HostText(mint)
-                    }
-                }
+            WalletButton(kind = ButtonKind.Secondary, onClick = { picking = true }, enabled = !state.busy) {
+                Text(stringResource(DesignR.string.mint_choice_choose))
             }
         preview.amountMsat == null ->
             PrimaryButton(stringResource(R.string.claim_melt_ask, preview.link.host), actions.ask, busy = state.busy)
@@ -401,6 +406,29 @@ private fun MeltSection(preview: ClaimPreview.Melt, state: ClaimState, actions: 
                 busy = state.busy,
             )
     }
+}
+
+/** The mint picker for which of the account's mints a link received over Lightning goes into; the picked one is checked then. */
+@Composable
+private fun IntoSheet(preview: ClaimPreview.Melt, state: ClaimState, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
+    MintChoiceSheet(
+        title = stringResource(R.string.claim_melt_into_title),
+        options =
+            preview.mints.map { host ->
+                val changed = host in state.keyChanged
+                MintOption(
+                    host,
+                    host == state.home,
+                    stringResource(R.string.claim_melt_into_home_detail).takeIf { host == state.home && !changed },
+                    enabled = !changed,
+                    keyChanged = changed,
+                    answering = host !in state.silent,
+                )
+            },
+        selected = preview.target,
+        onSelect = { host -> host?.let(onSelect) },
+        onDismiss = onDismiss,
+    )
 }
 
 /** Why a link from [host] is received over Lightning rather than kept at its own mint ([reason] null: there is no note in it). */

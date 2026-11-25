@@ -57,7 +57,14 @@ data class ShownInvoice(val request: InvoiceRequest.Ready, val status: InvoiceSt
  * A mint the account can receive on: whether it is home, the Lightning address it has there, if any, and whether its signing key no longer
  * matches (nothing is received there then).
  */
-data class ReceiveMint(val host: String, val isHome: Boolean, val address: String?, val keyChanged: Boolean = false)
+/** [answering] false: it didn't answer the last time the wallet asked ([Wallet.mintsNotAnswering]). */
+data class ReceiveMint(
+    val host: String,
+    val isHome: Boolean,
+    val address: String?,
+    val keyChanged: Boolean = false,
+    val answering: Boolean = true,
+)
 
 data class ReceiveState(
     /**
@@ -239,15 +246,21 @@ constructor(
 
     /**
      * The home mint, and the mints the account can receive on: the wallet's mints it holds a key of (an invoice is minted to the account
-     * there), that the brand lets hold money; home first. Each with the address Receive shows there (the primary one first).
+     * there), that the brand lets hold money; home first. Each with the address Receive shows there (the primary one first), and whether it
+     * answered last time.
      */
     private fun receiveMints() =
-        combine(wallet.mints, addressChoice(), wallet.homeHost) { mints, choice, home ->
+        combine(wallet.mints, addressChoice(), wallet.homeHost, wallet.mintsNotAnswering) { mints, choice, home, silent ->
             home to
                 mints
                     .filter { it.pubkey != null && defaults.mintAllowed(it.host) }
                     .map { mint ->
-                        ReceiveMint(mint.host, mint.host == home, choice.all.firstOrNull { it.substringAfterLast('@') == mint.host })
+                        ReceiveMint(
+                            mint.host,
+                            mint.host == home,
+                            choice.all.firstOrNull { it.substringAfterLast('@') == mint.host },
+                            answering = mint.host !in silent,
+                        )
                     }
                     .sortedBy { !it.isHome }
         }

@@ -27,6 +27,7 @@ import whitewallet.brand.ui.ButtonKind
 /**
  * A mint [MintChoiceSheet] offers: its host, whether it is the [home] mint (its mark's colours), a line on what it has for this (money, an
  * address), and whether it can be picked. [keyChanged]: its signing key doesn't match, said with [MintKeyWarning] in place of the line.
+ * [answering] false: it didn't answer the last time the wallet asked, said under the line; it can still be picked, and is asked again then.
  */
 data class MintOption(
     val host: String,
@@ -34,6 +35,7 @@ data class MintOption(
     val detail: String?,
     val enabled: Boolean = true,
     val keyChanged: Boolean = false,
+    val answering: Boolean = true,
 )
 
 /**
@@ -85,6 +87,7 @@ fun MintChoiceSheet(
                         selected == option.host,
                         option.enabled,
                         keyChanged = option.keyChanged,
+                        answering = option.answering,
                         mark = { WalletMintMark(option.host, option.home, size = MARK_SIZE) },
                     ) {
                         onSelect(option.host)
@@ -102,6 +105,7 @@ private fun Choice(
     selected: Boolean,
     enabled: Boolean,
     keyChanged: Boolean = false,
+    answering: Boolean = true,
     mark: @Composable () -> Unit,
     onClick: () -> Unit,
 ) {
@@ -113,8 +117,18 @@ private fun Choice(
             }
         },
         headlineContent = name,
-        // A signing key that doesn't match is said as everywhere, in place of the line.
-        supportingContent = if (keyChanged) ({ MintKeyWarning() }) else line?.let { { Text(it) } },
+        // A signing key that doesn't match is said as everywhere, in place of the line; one not answering, as on the Mints page, under it.
+        supportingContent =
+            when {
+                keyChanged -> ({ MintKeyWarning() })
+                !answering -> ({
+                        Column {
+                            line?.let { Text(it) }
+                            Text(stringResource(R.string.mint_not_answering_short))
+                        }
+                    })
+                else -> line?.let { { Text(it) } }
+            },
         // One that can't be picked stays in the list, quieter: its line says why.
         modifier =
             Modifier.selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)

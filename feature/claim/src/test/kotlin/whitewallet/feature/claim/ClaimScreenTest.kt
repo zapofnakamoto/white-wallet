@@ -586,6 +586,46 @@ class ClaimScreenTest {
     }
 
     @Test
+    fun withoutAHomeMintThePickerOpensAtOnce() {
+        showMelt(melt(target = null, mints = listOf("a.example", "b.example")))
+        compose.onNodeWithText(text(R.string.claim_melt_into_title)).assertExists()
+    }
+
+    @Test
+    fun theMintALinkGoesIntoCanBeChanged() {
+        val picked = mutableListOf<String>()
+        showMelt(
+            melt(mints = listOf("home.example", "other.example")),
+            MeltActions(into = { picked += it }),
+            ClaimState(home = "home.example", silent = setOf("other.example")),
+        )
+        compose.onNodeWithText(text(R.string.claim_melt_into_title)).assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performScrollTo().performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering_short)).assertExists()
+        compose.onNodeWithText("other.example").performClick()
+        assertEquals(listOf("other.example"), picked)
+    }
+
+    @Test
+    fun withOneMintThereIsNothingToChange() {
+        showMelt(melt(), state = ClaimState(home = "home.example"))
+        compose.onNodeWithText(text(R.string.claim_melt_into_home, "home.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aMintWhoseKeyChangedCannotBeReceivedInto() {
+        val picked = mutableListOf<String>()
+        showMelt(
+            melt(target = null, mints = listOf("a.example", "b.example")),
+            MeltActions(into = { picked += it }),
+            ClaimState(keyChanged = setOf("b.example")),
+        )
+        compose.onNodeWithText("b.example").performClick()
+        assertEquals(emptyList<String>(), picked)
+    }
+
+    @Test
     fun withoutAnyMintTheLinkCanOnlyBeKeptIfItIsANote() {
         showMelt(melt(target = null, mints = emptyList(), problem = MeltProblem.NoMint))
         compose.onNodeWithText(text(R.string.claim_melt_no_mint)).assertExists()

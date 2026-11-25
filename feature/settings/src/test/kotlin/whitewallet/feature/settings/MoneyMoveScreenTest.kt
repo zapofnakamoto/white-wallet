@@ -254,4 +254,31 @@ class MoneyMoveScreenTest {
         compose.onNodeWithText(text(R.string.money_change_no_mints)).assertExists()
         compose.onNodeWithText(text(R.string.mints_add)).assertDoesNotExist()
     }
+
+    @Test
+    fun theTargetIsPickedWithTheMintPickerSayingWhatEachHolds() {
+        val picked = mutableListOf<String>()
+        val state =
+            MoneyMoveState(
+                mode = MoneyMoveMode.ChangeHome,
+                targets = listOf("a.example", "b.example"),
+                target = "a.example",
+                held = mapOf("b.example" to 10_000),
+                silent = setOf("a.example"),
+            )
+        compose.setContent { MoneyMoveScreen(state, {}, MoneyMoveActions(onTarget = { picked += it })) }
+        compose.onNodeWithText(text(R.string.money_review_to, "a.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
+        compose.onNodeWithText(text(DesignR.string.mint_not_answering_short)).assertExists()
+        compose.onNodeWithText(text(R.string.money_move_target_holds, "₿10")).assertExists()
+        compose.onNodeWithText("b.example").performClick()
+        assertEquals(listOf("b.example"), picked)
+    }
+
+    @Test
+    fun aTargetWhoseKeyChangedCannotBeContinuedWith() {
+        val state = MoneyMoveState(targets = listOf("a.example"), target = "a.example", keyChanged = setOf("a.example"))
+        assertEquals(false, state.canContinue)
+        assertEquals(true, state.copy(keyChanged = emptySet()).canContinue)
+    }
 }

@@ -157,7 +157,14 @@ fun ReceiveScreen(
                         title = stringResource(R.string.receive_on_title),
                         options =
                             state.mints.map {
-                                MintOption(it.host, it.isHome, mintDetail(it), enabled = !it.keyChanged, keyChanged = it.keyChanged)
+                                MintOption(
+                                    it.host,
+                                    it.isHome,
+                                    mintDetail(it),
+                                    enabled = !it.keyChanged,
+                                    keyChanged = it.keyChanged,
+                                    answering = it.answering,
+                                )
                             },
                         selected = state.receivingHost,
                         onSelect = { host ->

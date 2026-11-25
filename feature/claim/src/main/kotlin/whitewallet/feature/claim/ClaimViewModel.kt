@@ -49,6 +49,9 @@ data class ClaimState(
     val home: String? = null,
     /** The phone is offline: a note that can't be claimed is said to wait for the connection, not for its mint. */
     val offline: Boolean = false,
+    /** Mints that didn't answer the last time the wallet asked, and those whose signing key doesn't match: said where one is picked. */
+    val silent: Set<String> = emptySet(),
+    val keyChanged: Set<String> = emptySet(),
 ) {
     /** What was checked couldn't be asked: checked again once the phone is back. */
     val waitsForConnection: Boolean
@@ -81,6 +84,11 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
             }
         }
         viewModelScope.launch {
+            combine(wallet.mintsNotAnswering, wallet.mintsWithChangedKey, ::Pair).collect { (silent, changed) ->
+                _state.update { it.copy(silent = silent, keyChanged = changed) }
+            }
+        }
+        viewModelScope.launch {
             wallet.followOffline { offline, back ->
                 _state.update { it.copy(offline = offline) }
                 // Back online: what couldn't be asked is asked now, rather than leaving the user to check again.
@@ -109,6 +117,8 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
             loaded = from.loaded,
             home = from.home,
             offline = from.offline,
+            silent = from.silent,
+            keyChanged = from.keyChanged,
         )
 
     /** Developer: has the regtest faucet make a note on the local mint [mint], and checks it as if it was pasted. */

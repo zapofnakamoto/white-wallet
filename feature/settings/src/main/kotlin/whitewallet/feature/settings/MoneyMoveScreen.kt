@@ -9,11 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +33,7 @@ import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -47,7 +44,9 @@ import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
-import whitewallet.core.designsystem.HostText
+import whitewallet.core.designsystem.MintChoiceLine
+import whitewallet.core.designsystem.MintChoiceSheet
+import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.ResultScreen
@@ -58,8 +57,6 @@ import whitewallet.core.designsystem.SuccessScreen
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCheckbox
 import whitewallet.core.designsystem.WalletLinearProgress
-import whitewallet.core.designsystem.WalletMintMark
-import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
@@ -128,6 +125,11 @@ data class MoneyMoveState(
     val canAddMint: Boolean = false,
     /** The phone is offline: nothing can be asked or moved, and the page says so before the user tries. */
     val offline: Boolean = false,
+    /** What the account holds on each of [targets], said where one is picked. */
+    val held: Map<String, Long> = emptyMap(),
+    /** Of [targets], those that didn't answer the last time the wallet asked, and those whose signing key doesn't match (not picked). */
+    val silent: Set<String> = emptySet(),
+    val keyChanged: Set<String> = emptySet(),
 ) {
     /** Nothing to pick, and nothing picked yet: the page's empty state. */
     val nothingToPick: Boolean
@@ -159,7 +161,7 @@ data class MoneyMoveState(
 
     /** Offered at work ([busy]) too: the button locks itself then and keeps its look. */
     val canContinue: Boolean
-        get() = !offline && target != null
+        get() = !offline && target != null && target !in keyChanged
 }
 
 @HiltViewModel
@@ -178,6 +180,12 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
                 _state.update {
                     it.copy(offline = offline, error = it.error.takeUnless { (offline || back) && it == MoneyMoveError.Network })
                 }
+            }
+        }
+        viewModelScope.launch {
+            combine(wallet.accountMints, wallet.mintsNotAnswering, wallet.mintsWithChangedKey, ::Triple).collect { (mints, silent, changed)
+                ->
+                _state.update { it.copy(held = mints.associate { m -> m.host to m.balanceMsat }, silent = silent, keyChanged = changed) }
             }
         }
         viewModelScope.launch {
@@ -390,52 +398,49 @@ private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
     else if (state.mode == MoneyMoveMode.Move)
         state.from?.let { Text(stringResource(R.string.money_move_from, it), textAlign = TextAlign.Center) }
     else Text(stringResource(R.string.money_change_body), textAlign = TextAlign.Center)
-    MintPicker(state.targets, state.target, state.home, state.busy, actions.onTarget)
+    TargetLine(state, actions.onTarget)
     state.error?.let { ErrorText(it) }
     if (state.offline) Text(stringResource(R.string.money_offline), textAlign = TextAlign.Center)
     PrimaryButton(stringResource(R.string.money_continue), actions.onReview, enabled = state.canContinue, busy = state.busy)
 }
 
-/** The known mints to pick from; a new one is added on the Mints page first. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * "To mint.example.com · Change": the picked mint, and the mint picker over the known ones (a new one is added on the Mints page first).
+ */
 @Composable
-private fun MintPicker(targets: List<String>, selected: String?, home: String?, busy: Boolean, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (!busy) expanded = it }) {
-        WalletTextField(
-            value = selected.orEmpty(),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.money_move_target)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            singleLine = true,
-            enabled = !busy,
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+private fun TargetLine(state: MoneyMoveState, onSelect: (String) -> Unit) {
+    val target = state.target ?: return
+    var picking by rememberSaveable { mutableStateOf(false) }
+    MintChoiceLine(stringResource(R.string.money_review_to, target), { picking = true }.takeIf { state.targets.size > 1 && !state.busy })
+    if (picking) {
+        MintChoiceSheet(
+            title = stringResource(R.string.money_move_target_title),
+            options =
+                state.targets.map { host ->
+                    val held = state.held[host] ?: 0
+                    val detail =
+                        when {
+                            host == state.home && held > 0 -> stringResource(R.string.money_move_target_home, formatAmount(held))
+                            host == state.home -> stringResource(R.string.settings_home_mint)
+                            held > 0 -> stringResource(R.string.money_move_target_holds, formatAmount(held))
+                            else -> null
+                        }
+                    MintOption(
+                        host,
+                        host == state.home,
+                        detail,
+                        enabled = host !in state.keyChanged,
+                        keyChanged = host in state.keyChanged,
+                        answering = host !in state.silent,
+                    )
+                },
+            selected = target,
+            onSelect = { host ->
+                picking = false
+                host?.let(onSelect)
+            },
+            onDismiss = { picking = false },
         )
-        DropdownMenuItems(expanded, targets, home, { expanded = false }) { host ->
-            expanded = false
-            onSelect(host)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun androidx.compose.material3.ExposedDropdownMenuBoxScope.DropdownMenuItems(
-    expanded: Boolean,
-    targets: List<String>,
-    home: String?,
-    onDismiss: () -> Unit,
-    onSelect: (String) -> Unit,
-) {
-    ExposedDropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        targets.forEach { host ->
-            DropdownMenuItem(
-                text = { HostText(host) },
-                onClick = { onSelect(host) },
-                leadingIcon = { WalletMintMark(host, host == home) },
-            )
-        }
     }
 }
 

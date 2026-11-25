@@ -5,6 +5,7 @@
     <string name="onboarding_mint_address">Provider address</string>
     <string name="onboarding_mint_custody">Your funds are held by Acme. Keep amounts small.</string>
     <string name="settings_home_mint">Provider</string>
+    <string name="money_move_target_home">Your provider · %1$s here</string>
     <string name="addresses_home_mint">Provider: %1$s</string>
     <string name="claim_home_mint">On %1$s, your provider</string>
     <string name="notes_home_mint">Provider</string>
@@ -288,6 +289,7 @@
     <string name="money_change_body">Pick the new provider. Invoices are made there, and moving everything to it collects your banknotes there. Your addresses stay where they are.</string>
     <string name="claim_melt_not_a_note">%1$s doesn\'t answer for this as a banknote: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee.</string>
     <string name="claim_melt_into_home">Into %1$s, your provider</string>
+    <string name="claim_melt_into_home_detail">Your provider</string>
     <string name="claim_melt_pick">Your account has no provider of its own. Which provider should receive it?</string>
     <string name="claim_melt_no_mint">Add a provider first, then open this link again.</string>
     <string name="claim_kept_for_lightning">Receive it over Lightning once you\'ve added a provider.</string>

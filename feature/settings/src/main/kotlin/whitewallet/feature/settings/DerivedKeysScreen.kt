@@ -22,7 +22,10 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
@@ -54,11 +57,13 @@ import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.core.designsystem.LoadingIndicator
 import whitewallet.core.designsystem.LoadingPhase
+import whitewallet.core.designsystem.MintChoiceLine
+import whitewallet.core.designsystem.MintChoiceSheet
+import whitewallet.core.designsystem.MintOption
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
 import whitewallet.core.designsystem.WalletDialog
-import whitewallet.core.designsystem.WalletFilterChip
 import whitewallet.core.designsystem.WalletTextField
 import whitewallet.core.designsystem.WalletTopBar
 import whitewallet.core.designsystem.formatAmount
@@ -85,6 +90,8 @@ data class DerivedKeysState(
     val shares: List<AddressShare> = emptyList(),
     /** The mint of the account's primary address. */
     val homeHost: String? = null,
+    /** Of [hosts], those that didn't answer the last time the wallet asked. */
+    val silent: Set<String> = emptySet(),
     val host: String? = null,
     /** The tab: the keys one index counts. */
     val set: KeySet = KeySet.Wallet,
@@ -159,7 +166,8 @@ class DerivedKeysViewModel @Inject constructor(private val wallet: Wallet) : Vie
         viewModelScope.launch {
             val hosts = wallet.keyHosts()
             val home = wallet.homeHost.first()
-            _state.update { it.copy(hosts = hosts, homeHost = home, host = hosts.firstOrNull()) }
+            val silent = wallet.mintsNotAnswering.first()
+            _state.update { it.copy(hosts = hosts, homeHost = home, silent = silent, host = hosts.firstOrNull()) }
             reload()
         }
         // Stay in sync with changes made anywhere else (refresh, auto-rotate, claims, other screens):
@@ -337,6 +345,34 @@ fun DerivedKeysRoute(onBack: () -> Unit, viewModel: DerivedKeysViewModel = hiltV
     )
 }
 
+/** Whose keys are shown: "Keys on mint.example.com · Change", the mint picker as on Receive, once there is another to pick. */
+@Composable
+private fun KeysMintLine(state: DerivedKeysState, host: String, onHost: (String) -> Unit) {
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val home = host == state.homeHost
+    MintChoiceLine(
+        stringResource(if (home) R.string.keys_on_home else R.string.keys_on, host),
+        { picking = true }.takeIf { state.hosts.size > 1 },
+        Modifier.padding(horizontal = 16.dp),
+    )
+    if (picking) {
+        MintChoiceSheet(
+            title = stringResource(R.string.keys_on_title),
+            options =
+                state.hosts.map {
+                    val isHome = it == state.homeHost
+                    MintOption(it, isHome, stringResource(R.string.keys_home_detail).takeIf { isHome }, answering = it !in state.silent)
+                },
+            selected = host,
+            onSelect = { picked ->
+                picking = false
+                picked?.let(onHost)
+            },
+            onDismiss = { picking = false },
+        )
+    }
+}
+
 /** Developer page: the active account's derived note keys (public `Q`/`cp1` only), local indexes and lookups. */
 @Composable
 fun DerivedKeysScreen(
@@ -353,16 +389,7 @@ fun DerivedKeysScreen(
         val tabs = loadingPhase(loading = !state.tabsLoaded)
         val keys = loadingPhase(loading = !state.loaded)
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
-            if (state.hosts.size > 1) {
-                item {
-                    Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        state.hosts.forEach { h ->
-                            val label = if (h == state.homeHost) stringResource(R.string.keys_home_mint, h) else h
-                            WalletFilterChip(selected = h == state.host, onClick = { onHost(h) }, label = { Text(label) })
-                        }
-                    }
-                }
-            }
+            state.host?.let { host -> item { KeysMintLine(state, host, onHost) } }
             // Read from the phone (a moment): no tabs before the mint's shares are known, no keys before they are this tab's.
             if (tabs != LoadingPhase.Content) {
                 if (tabs == LoadingPhase.Indicator) item { LoadingIndicator(Modifier.fillMaxWidth().padding(24.dp)) }

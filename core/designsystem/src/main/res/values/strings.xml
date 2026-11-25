@@ -124,6 +124,7 @@
     <string name="received_receive">Receive</string>
     <!-- After "On mint.example.com" or "From mint.example.com": picks another mint -->
     <string name="mint_choice_change">Change</string>
+    <string name="mint_choice_choose">Choose</string>
     <string name="copy">Copy</string>
     <string name="share">Share</string>
     <!-- The rest of KeyChangedCard -->

@@ -162,6 +162,18 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun theKeyPageSaysWhoseKeysAndPicksAnotherMintWithTheMintPicker() {
+        val index = IndexActions({}, {}, {}, {}, {}, {}, {}, {})
+        val state = DerivedKeysState(hosts = listOf("a.example", "b.example"), homeHost = "a.example", host = "a.example")
+        val picked = mutableListOf<String>()
+        compose.setContent { DerivedKeysScreen(state, {}, { picked += it }, {}, {}, {}, index, RotateActions({}, {}, {}, {})) }
+        compose.onNodeWithText(text(R.string.keys_on_home, "a.example")).assertExists()
+        compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
+        compose.onNodeWithText("b.example").performClick()
+        assertEquals(listOf("b.example"), picked)
+    }
+
+    @Test
     fun theKeyPageAsksNothingOfAMintWhoseSigningKeyDoesNotMatch() {
         val index = IndexActions({}, {}, {}, {}, {}, {}, {}, {})
         val state = DerivedKeysState(hosts = listOf("mint.example"), host = "mint.example", keyChanged = true)

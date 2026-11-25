@@ -44,4 +44,13 @@ class MintChoiceTest {
         compose.onNode(hasText("Home mint · up to ₿5", substring = true)).assertExists()
         compose.onNode(hasText("a.example", substring = true)).assertIsEnabled()
     }
+
+    @Test
+    fun aMintThatDidntAnswerSaysSoUnderItsLineAndCanStillBePicked() {
+        show(MintOption("a.example", home = false, detail = "Up to ₿5", answering = false))
+        val notAnswering = RuntimeEnvironment.getApplication().getString(R.string.mint_not_answering_short)
+        compose.onNode(hasText("Up to ₿5", substring = true)).assertExists()
+        compose.onNode(hasText(notAnswering, substring = true)).assertExists()
+        compose.onNode(hasText("a.example", substring = true)).assertIsEnabled()
+    }
 }

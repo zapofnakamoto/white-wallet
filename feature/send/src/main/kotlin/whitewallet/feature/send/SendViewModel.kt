@@ -24,9 +24,15 @@ import whitewallet.core.wallet.Wallet
 
 /**
  * A mint a payment can be made from: whether it is home, the most one payment from it can be, and whether its signing key no longer matches
- * (nothing is sent from it then).
+ * (nothing is sent from it then). [answering] false: it didn't answer the last time the wallet asked ([Wallet.mintsNotAnswering]).
  */
-data class SendMint(val host: String, val isHome: Boolean, val maxMsat: Long, val keyChanged: Boolean = false)
+data class SendMint(
+    val host: String,
+    val isHome: Boolean,
+    val maxMsat: Long,
+    val keyChanged: Boolean = false,
+    val answering: Boolean = true,
+)
 
 /**
  * The mints a payment or note can be made from, home first; then those holding money whose signing key doesn't match, with what they hold
@@ -34,8 +40,10 @@ data class SendMint(val host: String, val isHome: Boolean, val maxMsat: Long, va
  */
 internal suspend fun Wallet.sendMints(): List<SendMint> {
     val home = homeHost.first()
-    val sendable = sendableByMint().map { (host, max) -> SendMint(host, host == home, max) }
-    val held = heldWhereKeyChanged().map { (host, msat) -> SendMint(host, host == home, msat, keyChanged = true) }
+    val silent = mintsNotAnswering.first()
+    val sendable = sendableByMint().map { (host, max) -> SendMint(host, host == home, max, answering = host !in silent) }
+    val held =
+        heldWhereKeyChanged().map { (host, msat) -> SendMint(host, host == home, msat, keyChanged = true, answering = host !in silent) }
     return inPickerOrder(sendable + held)
 }
 

@@ -26,6 +26,8 @@
     <string name="claim_kept_key_changed">Your wallet claims it once the mint\'s signing key matches again, or you accept the new key in its details.</string>
     <string name="claim_melt_not_a_note">%1$s doesn\'t answer for this as a note: it may be a withdraw link of another kind. It can be received over Lightning instead, for a fee.</string>
     <string name="claim_melt_into_home">Into %1$s, your home mint</string>
+    <!-- The home mint in the list of mints a link can be received into -->
+    <string name="claim_melt_into_home_detail">Home mint</string>
     <string name="claim_melt_pick">Your account has no home mint. Which mint should receive it?</string>
     <string name="claim_melt_no_mint">Add a mint first, then open this link again.</string>
     <string name="claim_kept_for_lightning">Receive it over Lightning once you\'ve added a mint.</string>
@@ -74,6 +76,7 @@
     <!-- %1$s: the link's service, %2$s: what it pays, %3$s: about what arrives after the receiving side's fee -->
     <string name="claim_melt_pays">%1$s pays %2$s; about %3$s arrive after the fee.</string>
     <string name="claim_melt_into">Into %1$s</string>
+    <string name="claim_melt_into_title">Receive into</string>
     <string name="claim_melt_ask_hint">To learn what it pays, your wallet has to show the link itself to %1$s. Only ask if the link came from %1$s.</string>
     <string name="claim_melt_ask">Ask %1$s</string>
     <!-- %1$s: what the link pays, %2$s: the receiving host, %3$s and %4$s: the least and most it takes -->

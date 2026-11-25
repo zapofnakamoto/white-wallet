@@ -110,6 +110,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `onboarding_add_elsewhere_title` | Address on another mint |
 | `onboarding_add_elsewhere_body` | A name for this account on another mint, with the same recovery phrase. Payments to it arrive as notes on that mint, in this account. Your primary address stays where it is. |
 | `settings_home_mint` | Home mint |
+| `money_move_target_home` | Home mint · %1$s here |
 | `settings_mints` | Mints |
 | `settings_scan` | Scan for notes |
 | `addresses_home_mint` | Home mint: %1$s |
@@ -199,6 +200,7 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `add_mint_added_body` | Your new wallet uses it from now on. |
 | `add_mint_found_none` | The mint is added. Nothing of your recovery phrase was found on it. |
 | `claim_melt_into_home` | Into %1$s, your home mint |
+| `claim_melt_into_home_detail` | Home mint |
 | `claim_melt_pick` | Your account has no home mint. Which mint should receive it? |
 | `claim_melt_no_mint` | Add a mint first, then open this link again. |
 | `claim_kept_for_lightning` | Receive it over Lightning once you've added a mint. |
