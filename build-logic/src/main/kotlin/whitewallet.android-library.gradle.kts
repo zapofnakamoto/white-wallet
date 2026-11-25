@@ -7,3 +7,5 @@ android {
 }
 
 configureTestJvms()
+
+configureKotlinWarnings()

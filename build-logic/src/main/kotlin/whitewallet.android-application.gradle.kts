@@ -19,6 +19,8 @@ tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.co
 
 configureTestJvms()
 
+configureKotlinWarnings()
+
 val brandDir = brandDir()
 val brand = brandProperties()
 
@@ -94,6 +96,8 @@ val buildLabel =
 
 android {
     configureAndroid()
+    // Lint looks at every module the app uses; lint.xml holds the project's exceptions.
+    lint { lintConfig = rootProject.file("lint.xml") }
     defaultConfig {
         applicationId = brand("app.id")
         targetSdk = COMPILE_SDK

@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
+    // Android lint's Kotlin checks, run with the app's lint (`just lint`), which looks at every module it uses.
+    id("com.android.lint")
     // Line and branch coverage of the tests that ran: `just coverage` (build/reports/jacoco/test/html).
     jacoco
 }
@@ -34,6 +36,8 @@ dependencies {
 }
 
 configureTestJvms()
+
+configureKotlinWarnings()
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()

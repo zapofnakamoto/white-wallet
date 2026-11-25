@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android lint's exceptions for the whole project (the app's lint looks at every module it uses). -->
+<lint>
+    <issue id="UnusedResources">
+        <!-- A brand's res/ (brandDir/res, beside no src/main) overrides the resources the core and feature modules read
+             through their own R: lint doesn't see that use and reports every brand value as unused. Stale string
+             overrides are dev/check-brand.sh's to catch. -->
+        <ignore regexp="(?&lt;!src/main)/res/" />
+    </issue>
+</lint>

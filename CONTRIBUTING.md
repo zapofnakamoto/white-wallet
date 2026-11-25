@@ -41,6 +41,9 @@ tagging.
 
 - **Code is formatted by ktfmt** (kotlinlang style, 140 wide): run `just format` before committing; `just check` and
   CI fail on code that isn't formatted.
+- **A Kotlin warning fails the build**, in every module but a brand's own code: fix it where it appears, or opt in where
+  an API asks for it (`@OptIn`). Lint (`just lint`) looks at every module the app uses, the plain Kotlin ones too; its
+  project-wide exceptions are in `lint.xml`.
 - **Every text works in other languages.** Use plural resources, whole sentences with placeholders, and no English
   built in Kotlin. A new string needs its German translation too; lint fails without one. Text only seen in developer
   mode (developer options once on, Derived keys, request log, local regtest, faucet buttons) is English only:
