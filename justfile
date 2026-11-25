@@ -127,7 +127,7 @@ lint:
 # detekt: the bug-finding rules of detekt.yml, with types, on the code and its tests (fails on any finding)
 [group('checks')]
 detekt:
-    ./gradlew detektMain detektTest
+    ./gradlew detektMain detektTest detektTestFixtures
 
 # Brand values outside the brand directory
 [group('checks')]
