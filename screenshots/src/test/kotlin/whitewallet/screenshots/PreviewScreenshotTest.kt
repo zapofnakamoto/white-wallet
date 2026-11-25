@@ -1,6 +1,6 @@
 package whitewallet.screenshots
 
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import java.io.File
@@ -63,7 +63,7 @@ class PreviewScreenshotTest(private val shot: Shot) {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
         fun shots(): List<Shot> {
-            val set = System.getProperty("screenshots.set", "check")
+            val set = System.getProperty("screenshots.set") ?: "check"
             return Previews.all
                 .filter { Previews.selected(it, set) }
                 .filter { appearance == "system" || it.previewInfo.name != "dark" }

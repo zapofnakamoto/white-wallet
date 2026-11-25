@@ -175,6 +175,8 @@ test-screenshots brand="":
 check: test
     ./gradlew spotlessCheck
     ./gradlew :app:assembleDebug
+    # The screenshot tests compile only when asked for: here, so a warning in them fails check, not verify.
+    ./gradlew -q :screenshots:compileDebugUnitTestKotlin -Pscreenshots=check
     ./gradlew :app:lintDebug
     just detekt
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done

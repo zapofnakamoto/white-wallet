@@ -52,14 +52,14 @@ object BrandDesigns {
         type.declaredFields
             .firstOrNull { it.name == "INSTANCE" && Modifier.isStatic(it.modifiers) }
             ?.let {
-                return type.cast(it.get(null))
+                return checkNotNull(type.cast(it.get(null))) { "${type.name} has no instance" }
             }
         type.enclosingClass
             ?.declaredFields
             ?.firstOrNull { it.type == type && Modifier.isStatic(it.modifiers) }
             ?.let {
                 it.isAccessible = true
-                return type.cast(it.get(null))
+                return checkNotNull(type.cast(it.get(null))) { "${type.name} has no instance" }
             }
         return type.getDeclaredConstructor().apply { isAccessible = true }.newInstance()
     }
