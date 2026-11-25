@@ -9,3 +9,5 @@ android {
 configureTestJvms()
 
 configureKotlinWarnings()
+
+if (path != ":brand-code") apply(plugin = "whitewallet.detekt")

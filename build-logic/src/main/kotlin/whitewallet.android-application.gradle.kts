@@ -21,6 +21,8 @@ configureTestJvms()
 
 configureKotlinWarnings()
 
+if (path != ":brand-code") apply(plugin = "whitewallet.detekt")
+
 val brandDir = brandDir()
 val brand = brandProperties()
 

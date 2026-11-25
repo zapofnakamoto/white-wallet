@@ -44,6 +44,10 @@ tagging.
 - **A Kotlin warning fails the build**, in every module but a brand's own code: fix it where it appears, or opt in where
   an API asks for it (`@OptIn`). Lint (`just lint`) looks at every module the app uses, the plain Kotlin ones too; its
   project-wide exceptions are in `lint.xml`.
+- **detekt finds nothing** (`just detekt`, part of `just check`): its bug-finding rules in `detekt.yml`, style left to
+  ktfmt. A deliberate case is suppressed where it is, with the reason: `@Suppress("RuleName") // why`. No baseline.
+  Suspend code catches with `runSuspendCatching`, not `runCatching`, so a cancellation goes on; a `when` over a sealed
+  type or enum lists its cases instead of an `else`.
 - **Every text works in other languages.** Use plural resources, whole sentences with placeholders, and no English
   built in Kotlin. A new string needs its German translation too; lint fails without one. Text only seen in developer
   mode (developer options once on, Derived keys, request log, local regtest, faucet buttons) is English only:

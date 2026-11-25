@@ -1,0 +1,55 @@
+# detekt (`just detekt`): the rule sets that find bugs, strict, on top of detekt's defaults. Style is ktfmt's and review's:
+# its rule sets are off. A finding fails the build; a deliberate case is suppressed where it is, with the reason
+# (`@Suppress("RuleName") // why`). No baseline.
+
+style:
+  active: false
+comments:
+  active: false
+complexity:
+  active: false
+naming:
+  active: false
+
+potential-bugs:
+  CastNullableToNonNullableType:
+    active: true
+  CharArrayToStringCall:
+    active: true
+  DontDowncastCollectionTypes:
+    active: true
+  # A new outcome or state lands in `else` without a word; listed out, it doesn't compile until it is handled.
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: true
+  MissingSuperCall:
+    active: true
+  UnnecessaryNotNullCheck:
+    active: true
+  # Left off on purpose: PropertyUsedBeforeDeclaration (functions using constants kept at the end of a class),
+  # NullableToStringCall ("null" is the honest value in toString and logs; stringResource takes no nullable),
+  # UnnamedParameterUse, ImplicitUnitReturnType and LateinitUsage (style), MissingUseCall (OkHttp interceptors
+  # return the response they get).
+
+coroutines:
+  # Tests may name a dispatcher: kotlinx-coroutines-test sets Main, and nothing injects into a test.
+  InjectDispatcher:
+    excludes: ['**/test/**', '**/androidTest/**']
+  GlobalCoroutineUsage:
+    active: true
+  # `catch (e: Exception)` and runCatching in suspend code catch the cancellation too: it must go on.
+  SuspendFunSwallowedCancellation:
+    active: true
+  SuspendFunWithCoroutineScopeReceiver:
+    active: true
+  CoroutineLaunchedInTestWithoutRunTest:
+    active: true
+
+exceptions:
+  # Off: the wallet turns a failure into a result (a mint not answering), on purpose.
+  SwallowedException:
+    active: false
+
+performance:
+  # Off: the copy it warns of costs nothing at this size.
+  SpreadOperator:
+    active: false

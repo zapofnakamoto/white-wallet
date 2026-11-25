@@ -124,6 +124,11 @@ format:
 lint:
     ./gradlew :app:lintDebug
 
+# detekt: the bug-finding rules of detekt.yml, with types, on the code and its tests (fails on any finding)
+[group('checks')]
+detekt:
+    ./gradlew detektMain detektTest
+
 # Brand values outside the brand directory
 [group('checks')]
 check-brand brand=brand:
@@ -165,12 +170,13 @@ test-screenshots brand="":
 # Lint runs on its own: beside a release build, its Kotlin analysis of the app's tests sometimes crashes (a lint bug).
 # Not the slow parts, which CI runs too: `just verify` adds the release builds (R8 takes minutes), the screenshots and the
 # regtest tests; `just test-device` is for a release.
-# What CI checks, but the slow parts: formatting, tests, debug build, lint, brand, design, flash, lookup and resource checks, scaffolder tests
+# What CI checks, but the slow parts: formatting, tests, debug build, lint, detekt, brand, design, flash, lookup and resource checks, scaffolder tests
 [group('checks')]
 check: test
     ./gradlew spotlessCheck
     ./gradlew :app:assembleDebug
     ./gradlew :app:lintDebug
+    just detekt
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
     dev/check-design.sh
     dev/check-flash.sh

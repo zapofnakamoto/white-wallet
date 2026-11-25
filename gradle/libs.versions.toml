@@ -34,10 +34,13 @@ preview-scanner = "0.10.0"
 classgraph = "4.8.184"
 spotless = "8.10.0"
 ktfmt = "0.64"
+# 2.x: the first detekt on the K2 compiler (Kotlin 2.4); 1.23 can't read this project with types.
+detekt = "2.0.0-alpha.6"
 
 [libraries]
 # Build logic
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+detekt-gradle-plugin = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 compose-compiler-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 kotlin-serialization-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
