@@ -14,9 +14,9 @@ Before opening a pull request, run:
 just check
 ```
 
-Before merging to main or a release, run `just verify`: `just check`, then the screenshots and contrast check
-(`just test-screenshots`) and the regtest tests (`just test-regtest`, on the local regtest stack, which it starts if it
-is down). CI runs all of them too, for pull requests and on main.
+Before merging to main or a release, run `just verify`: `just check`, then the release builds (minified with R8), the
+screenshots and contrast check (`just test-screenshots`) and the regtest tests (the `Regtest*` classes, on the local
+regtest stack, which it starts if it is down). CI runs all of them too, for pull requests and on main.
 
 ## Commit messages
 

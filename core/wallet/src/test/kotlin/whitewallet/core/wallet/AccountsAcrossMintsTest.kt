@@ -16,6 +16,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import whitewallet.core.model.MintScan
 import whitewallet.lnurlcash.Cp1
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -229,6 +231,8 @@ abstract class AccountsAcrossMintsTest {
     }
 }
 
+// The slowest class of the module, its tests one after another: each starts mock mints of its own, so they run at once.
+@Execution(ExecutionMode.CONCURRENT)
 class MockMintAccountsAcrossMintsTest : AccountsAcrossMintsTest() {
     private val mints = mutableListOf<MockMint>()
 

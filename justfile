@@ -162,13 +162,14 @@ screenshots brand=brand:
 test-screenshots brand="":
     for b in {{ if brand == "" { "brand brand-examples/*/" } else { brand } }}; do b="${b%/}"; ./gradlew -q :screenshots:renderScreenshots -Pscreenshots=check -PbrandDir="$b"; dev/screenshots.py screenshots/build/screenshots/check/"$(basename "$b")" --render screenshots/build/screenshots/render; done
 
-# Lint runs on its own: beside the release build, its Kotlin analysis of the app's tests sometimes crashes (a lint bug).
-# Not the slow suites, which CI runs too: `just verify` adds the screenshots and regtest ones; `just test-device` is for a release.
-# What CI checks, but the slow suites: formatting, tests, both builds, lint, brand, design, flash, lookup and resource checks, scaffolder tests
+# Lint runs on its own: beside a release build, its Kotlin analysis of the app's tests sometimes crashes (a lint bug).
+# Not the slow parts, which CI runs too: `just verify` adds the release builds (R8 takes minutes), the screenshots and the
+# regtest tests; `just test-device` is for a release.
+# What CI checks, but the slow parts: formatting, tests, debug build, lint, brand, design, flash, lookup and resource checks, scaffolder tests
 [group('checks')]
 check: test
     ./gradlew spotlessCheck
-    ./gradlew :app:assembleDebug :app:assembleRelease
+    ./gradlew :app:assembleDebug
     ./gradlew :app:lintDebug
     for b in brand brand-examples/*/; do dev/check-brand.sh "${b%/}"; done
     dev/check-design.sh
@@ -176,11 +177,11 @@ check: test
     dev/check-lookups.sh
     dev/check-resources.sh
     python3 -m unittest discover -s dev -p 'test_*.py'
-    ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
 
 # Docker and the regtest stack are checked first. A stack that is down is said so and left down until the regtest tests,
-# which start it: while it is up, `just check` would pass a regtest test that doesn't skip without it.
-# Before merging to main or a release: `just check`, then the screenshots and contrast check, then the regtest tests
+# which start it: while it is up, `just check` would pass a regtest test that doesn't skip without it. The regtest step
+# runs the Regtest* classes alone, as CI does (`just check` ran the others), and fails if any of them was skipped.
+# Before merging to main or a release: `just check`, the release builds of `brand` and acme, the screenshots and contrast check, the regtest tests
 [group('checks')]
 verify:
     #!/usr/bin/env bash
@@ -192,8 +193,17 @@ verify:
         echo "The regtest stack is up: a regtest test that doesn't skip without it passes 'just check' here, but not in CI." >&2
     fi
     just check
+    ./gradlew :app:assembleRelease
+    ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
     just test-screenshots
-    just test-regtest
+    dev/regtest/regtest.sh up >/dev/null
+    LNURLCASH_REGTEST=1 ./gradlew :core:wallet:test --tests '*Regtest*' :core:data:testDebugUnitTest --tests '*Regtest*' \
+        :feature:onboarding:testDebugUnitTest --tests '*Regtest*'
+    for dir in core/wallet/build/test-results/test core/data/build/test-results/testDebugUnitTest feature/onboarding/build/test-results/testDebugUnitTest; do
+        results=("$dir"/TEST-*Regtest*.xml)
+        [[ -e "${results[0]}" ]] || { echo "No regtest test results in $dir." >&2; exit 1; }
+        if grep -h '<skipped' "${results[@]}"; then echo "Regtest tests were skipped in $dir (above)." >&2; exit 1; fi
+    done
 
 # Create a new brand (e.g. just new-brand --name "Acme Cash" --id com.acme.cash --mint mint.acme.com --primary "#0B6E4F")
 [group('brands')]

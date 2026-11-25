@@ -14,8 +14,12 @@ val walletSettings =
 
 kotlin.sourceSets.named("main") { kotlin.srcDir(walletSettings.map { it.outputDir }) }
 
-// Test classes run side by side; the tests that share the third mint hold ThirdMintLock.
-tasks.named<Test>("test") { maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, 4) }
+// Test classes run side by side; the tests that share the third mint hold ThirdMintLock. Within a class, tests run one at a
+// time, but in a class marked @Execution(CONCURRENT) (each test on mock mints of its own).
+tasks.named<Test>("test") {
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, 4)
+    systemProperty("junit.jupiter.execution.parallel.enabled", "true")
+}
 
 dependencies {
     api(project(":core:model"))
