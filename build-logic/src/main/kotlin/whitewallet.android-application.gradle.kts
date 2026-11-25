@@ -17,6 +17,8 @@ val checkReleaseSettings =
 
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach { dependsOn(checkReleaseSettings) }
 
+configureTestJvms()
+
 val brandDir = brandDir()
 val brand = brandProperties()
 

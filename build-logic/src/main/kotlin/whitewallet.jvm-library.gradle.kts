@@ -33,6 +33,8 @@ dependencies {
     testRuntimeOnly(libs.findLibrary("junit-platform-launcher").get())
 }
 
+configureTestJvms()
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     // A test that hangs fails by its name, long before the run's own limit. The slowest take about a minute; a regtest key rotation waits

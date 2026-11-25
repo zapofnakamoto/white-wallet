@@ -5,3 +5,5 @@ plugins {
 android {
     configureAndroid()
 }
+
+configureTestJvms()

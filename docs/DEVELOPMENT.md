@@ -55,6 +55,15 @@ They are the proof for everything the wallet does with a mint: **a change that t
 
 The test classes of `core/wallet` run in up to four JVMs at once (`maxParallelForks`), and all of them share the stack. Each test makes its own wallets under random names, so they don't meet; a test that changes a mint must be the only one on it. `rotate-mint3` restarts the third mint, so every test on it holds `ThirdMintLock`.
 
+**Memory**: Gradle runs up to `org.gradle.workers.max` (6, in `gradle.properties`) tasks at once, and every test task, or each of `core/wallet`'s four JVMs, has a heap of its own: 512 MB (`configureTestJvms` in `build-logic`), beside the Gradle daemon's 4 GB and the Kotlin daemon's 2 GB. A whole `just test` peaks at about 3 GB for its test JVMs. On a machine with less memory, or one busy with other builds, lower either for that machine only, in `~/.gradle/gradle.properties` (which wins over the project's):
+
+```properties
+org.gradle.workers.max=3
+whitewallet.test.maxHeap=384m
+```
+
+or for one run: `just test --max-workers=3 -Pwhitewallet.test.maxHeap=384m`. Fewer workers is slower; a smaller heap makes the test JVMs collect garbage more often, and too small a one fails a test with an `OutOfMemoryError`.
+
 **Coverage**: `just coverage` runs the tests with the regtest stack and writes a JaCoCo report (lines and branches) for each protocol and wallet module, `core/wallet/build/reports/jacoco/test/html/index.html` for the wallet. A path that talks to a mint and shows up uncovered there needs a regtest test.
 
 `test` also runs the **screen tests** of every feature module: Compose UI tests under Robolectric on the JVM (`*ScreenTest`, `SettingsScreensTest`), in English and German (`@Config(qualifiers = "de")`). A test finds text by its string resource, `text(R.string.x, args)` (each module's `TestStrings.kt`), so rewording a string never breaks a test; only the German tests, which check that the translation is complete, and fragments matched with `substring = true` spell the words out. Robolectric emulates the SDK set in `build-logic/test-resources/robolectric.properties`, which can lag `compileSdk`.
