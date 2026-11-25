@@ -72,7 +72,8 @@ jobs:
   screenshots:
     # The previews drawn in each sample brand's design (docs/DEVELOPMENT.md, "Screenshots") and compared with the render
     # of the push before (or a pull request's base), kept in the Actions cache: never drawn again. It fails only when a
-    # preview can't be drawn; what changed is in the job summary and the screenshots artifact (index.html).
+    # preview can't be drawn or a text in it is hard to read (ContrastTest); what changed is in the job summary and the
+    # screenshots artifact (index.html). Locally: `just test-screenshots`.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:

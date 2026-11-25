@@ -9,7 +9,7 @@
 
 ## Shortcuts
 
-`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just test-device`, `just lint`, `just check` (everything CI checks), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` prepares the conformance suite in `.conformance/` first.
+`just` lists the everyday tasks from the `justfile`: `just build`, `just install`, `just run` (install and open), `just logcat`, `just test`, `just test-regtest`, `just test-device`, `just test-screenshots`, `just lint`, `just check` (what CI checks, but the slow suites: regtest, device, screenshots), `just new-brand …`, `just regtest up|status|connect|…`, `just note 500`, `just pay <address> 1000`. Tasks that take a brand default to `brand/`: `just run brand-examples/acme`, or `BRAND=… just …`. With several devices connected, set `ANDROID_SERIAL` (see `just devices`). `just test` prepares the conformance suite in `.conformance/` first.
 
 To install on a phone without a cable (Android 11+), open Developer options → Wireless debugging → "Pair device with pairing code" on the phone and run `just pair`: it asks for the pairing address and code, then for the address under "IP address & Port" to connect to. Later sessions only need `just connect <ip:port>`. `just phone` then builds the latest debug build, installs it on the connected phone (never an emulator) and opens it. `just regtest connect` forwards the local regtest mints over wireless debugging as well, for as long as the phone stays connected.
 
@@ -146,17 +146,19 @@ just screenshots brand-examples/acme     # the same in another brand directory
 It prints where its page is (`screenshots/build/screenshots/full/<brand>/index.html`): first what changed since the
 render before, before, after and a picture of what differs (in red), then every image by screen. A run that draws the
 same keeps showing the last change. Nothing is committed and
-nothing fails on a change: the images are for looking at. `just check` draws a small set for `brand/` and every
-`brand-examples/*` (`check/<brand>/`), and fails only when a preview can't be drawn, or its text is hard to read.
+nothing fails on a change: the images are for looking at. `just test-screenshots` draws a small set for `brand/` and
+every `brand-examples/*` (`check/<brand>/`; `just test-screenshots brand-examples/acme` for one), and fails only when a
+preview can't be drawn, or its text is hard to read. It is slow, so `just check` leaves it out: run it after a change to
+what a screen shows; CI runs it on every push.
 
 **Contrast**: `ContrastTest` draws every preview light and dark (a brand with a fixed `app.appearance` only its look), in
 the brand's design, and fails when a text stands out from what is drawn behind it by less than 4.5:1, or 3:1 for large
 text (WCAG AA); disabled controls are exempt. It reads the image, not the colour roles, so it catches a brand colour
 that clashes as well as a colour put on a background it wasn't made for (a button in the theme's `primary` on a
 coloured card or a snackbar). Of a dialog or sheet, only that window is read: what is under it is dimmed on purpose,
-and has its own preview. It runs with the screenshots (`-Pscreenshots=check|full`), so `just check` runs it for every
-sample brand, and a brand's own check (`:screenshots:renderScreenshots -PbrandDir=…`) for that brand: about two minutes
-each.
+and has its own preview. It runs with the screenshots (`-Pscreenshots=check|full`), so `just test-screenshots` and CI run it for
+every sample brand, and a brand's own screenshots (`:screenshots:renderScreenshots -PbrandDir=…`) for that brand: about
+two minutes each.
 
 **Previews** are ordinary Compose `@Preview`s in `main`, one file per module next to its screens
 (`SettingsPreviews.kt`, `SuccessPreviews.kt`, …), private, and drawn by Android Studio too. Every screen has one in its
@@ -169,7 +171,7 @@ it for reuse. A screen that shows the brand's own resources (the welcome screen'
 - `@WalletPreviews`: drawn light, dark, with a large font on a small phone, and in German;
 - `@Moment`: a success screen, drawn also 600 ms in, while its picture moves (a brand's celebration shows only then), not
   only after 3 s;
-- `@CheckAll`: drawn in every configuration by `just check`, not only light. For the few that tend to break: ScanDone
+- `@CheckAll`: drawn in every configuration by `just test-screenshots`, not only light. For the few that tend to break: ScanDone
   with money found, the empty state with a way forward.
 
 **How they are drawn**: the `screenshots` module finds every preview of the screen modules (ComposablePreviewScanner)
@@ -181,7 +183,7 @@ default), and the app name, release stage and amount unit of
 animations come out the same each time; screens are drawn in inspection mode (`LocalInspectionMode`), where a design
 that moves at random takes a fixed seed. Its tasks run only with `-Pscreenshots=check|full`; `./gradlew test`,
 `just test` and the builds never draw. The render lands in one folder, so the build cache keeps one per brand and set:
-an unchanged `just check` spends about 6 seconds on both brands, a cold one about 3 minutes.
+an unchanged `just test-screenshots` spends about 6 seconds on both brands, a cold one about 3 minutes.
 
 The same commit draws the same pixels on Fedora and on Ubuntu 24.04 with Temurin 21 (CI's runner); only the PNG
 compression differs, so `dev/screenshots.py` compares pixels, never bytes.
