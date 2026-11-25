@@ -67,6 +67,8 @@ fun ReceiveRoute(
     onNoHome: (NoHome) -> Unit = {},
     /** Opens a mint's details, where a new signing key is accepted. */
     onOpenMint: (String) -> Unit = {},
+    /** Opens the Lightning addresses, where one that doesn't reach the wallet any more is fixed. */
+    onOpenAddresses: () -> Unit = {},
     viewModel: ReceiveViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -84,6 +86,7 @@ fun ReceiveRoute(
             onFaucet = viewModel::payFromFaucet,
             onReceiveOn = viewModel::receiveOn,
             onOpenMint = onOpenMint,
+            onOpenAddresses = onOpenAddresses,
         ),
         onNoHome,
     )
@@ -105,6 +108,8 @@ class InvoiceActions(
     val onReceiveOn: (String) -> Unit = {},
     /** Opens a mint's details (its signing key changed). */
     val onOpenMint: (String) -> Unit = {},
+    /** Opens the Lightning addresses (the one shown doesn't reach the wallet any more). */
+    val onOpenAddresses: () -> Unit = {},
 )
 
 @Composable
@@ -236,7 +241,15 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
     QrCode("LIGHTNING:${address.uppercase()}")
     Text(address, style = MaterialTheme.typography.titleMedium)
     // The address still shows: the mint may be back by the time someone pays it, and the screen keeps asking.
-    if (state.addressKeyChanged) {
+    if (state.addressLost) {
+        Text(
+            stringResource(R.string.receive_address_lost),
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        WalletButton(onClick = actions.onOpenAddresses) { Text(stringResource(R.string.receive_address_fix)) }
+    } else if (state.addressKeyChanged) {
         KeyChanged(
             state,
             if (state.mintsVisible) stringResource(R.string.receive_address_key_changed, state.addressHost.orEmpty())

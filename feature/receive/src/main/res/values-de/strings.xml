@@ -7,6 +7,8 @@
     <string name="receive_no_home">Dieses Konto hat keine Haupt-Mint. Wähle eine deiner Mints, um dort zu empfangen.</string>
     <string name="receive_no_home_action">Haupt-Mint wählen</string>
     <string name="receive_claim">Stattdessen einen Schein einlösen</string>
+    <string name="receive_address_lost">Zahlungen an diese Adresse erreichen deine Wallet nicht mehr.</string>
+    <string name="receive_address_fix">Beheben</string>
     <string name="receive_address_mint_silent">%1$s antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
     <string name="receive_address_mint_silent_unnamed">Deine Mint antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
     <string name="receive_invoice_mint_silent">%1$s antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>

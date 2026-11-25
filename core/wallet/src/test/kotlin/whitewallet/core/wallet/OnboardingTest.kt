@@ -31,6 +31,8 @@ class OnboardingTest {
     private class FakeMint(private val server: MockWebServer, private val registrationEnabled: Boolean = true) : Dispatcher() {
         val registered = ConcurrentHashMap<String, String>()
         var posts = 0
+        /** Signed statements that this phone holds a name: each check of an address sends one per share. */
+        var proofs = 0
         var deletes = 0
         /** When false, unregister requests are refused (the name stays registered). */
         var unregisterEnabled = true
@@ -51,6 +53,7 @@ class OnboardingTest {
                             """{"tag":"withdrawRequest","callback":"$base/w","minWithdrawable":0,"maxWithdrawable":1000,"mintPubkey":"034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"}"""
                     )
                 request.method == "PUT" && path.startsWith("/.well-known/lnurlp/") -> {
+                    proofs++
                     val held = registered[path.substringAfterLast('/')] ?: return error("Unknown user.")
                     error(if (field(request, "cx1") == held) "cx1 already used" else "Invalid ownership signature.")
                 }
@@ -510,6 +513,47 @@ class OnboardingTest {
             listOf(AddressStatus.Ours, AddressStatus.Available, AddressStatus.Taken),
             wallet.addresses.first().map { it.status },
         )
+    }
+
+    @Test
+    fun `a refresh never checks an address`() = withMint { mint, host ->
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", host))
+        val before = mint.proofs
+        wallet.refresh()
+        assertEquals(before, mint.proofs, "a check tells the mint, signed, that this phone holds the name")
+    }
+
+    @Test
+    fun `the address shown is checked again only once the check interval is over, also after a restart`() = withMint { mint, host ->
+        var clock = 1_000L
+        val store = InMemoryWalletStore()
+        val seeds = InMemorySeedStore()
+        val checks = AddressChecks.InMemory()
+        val wallet = Wallet(store, seeds, LnurlcashClient(), addressChecks = checks, now = { clock })
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", host))
+        val claimed = mint.proofs
+        wallet.checkShownAddress("alice@$host")
+        assertEquals(claimed, mint.proofs, "just confirmed when it was claimed")
+        val restarted = Wallet(store, seeds, LnurlcashClient(), addressChecks = checks, now = { clock })
+        assertEquals(AddressStatus.Ours, restarted.addressStatus.first(), "the answer is kept")
+        clock += WalletSettings().addressCheckIntervalMillis - 1
+        restarted.checkShownAddress("alice@$host")
+        assertEquals(claimed, mint.proofs)
+        mint.registered["alice"] = SOMEONE_ELSE
+        clock += 1
+        restarted.checkShownAddress("alice@$host")
+        assertTrue(mint.proofs > claimed)
+        assertEquals(AddressStatus.Taken, restarted.addressStatus.first())
+    }
+
+    @Test
+    fun `a check that fails leaves the last answer`() = withMint { _, host ->
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", host))
+        val alice = wallet.addresses.first().single().address
+        wallet.setAddressStatus(wallet.activeId(), alice.address, AddressStatus.CheckFailed("no answer"))
+        assertEquals(AddressStatus.Ours, wallet.addressStatus.first())
     }
 
     @Test

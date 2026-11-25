@@ -95,6 +95,54 @@ class AddressesScreenTest {
     }
 
     @Test
+    fun anAddressNoLongerRegisteredCanBeRegisteredAgain() {
+        val registered = mutableListOf<RegisteredAddress>()
+        compose.setContent {
+            AddressesScreen(
+                AddressesState(listOf(home.copy(status = AddressStatus.Available)), homeHost = "home.example"),
+                {},
+                {},
+                {},
+                {},
+                AddressActions({}, {}, {}, onRegisterAgain = { registered += it }),
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.addresses_status_free)).assertExists()
+        compose.onNodeWithText(text(R.string.addresses_remove)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_register_again)).performClick()
+        assertEquals(listOf(home.address), registered)
+    }
+
+    @Test
+    fun anAddressOfSomeoneElseCanBeRemoved() {
+        val removed = mutableListOf<RegisteredAddress>()
+        compose.setContent {
+            AddressesScreen(
+                AddressesState(listOf(home.copy(status = AddressStatus.Taken)), homeHost = "home.example"),
+                {},
+                {},
+                {},
+                {},
+                AddressActions({}, {}, {}, onRemoveTaken = { removed += it }),
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText(text(R.string.addresses_register_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_remove)).performClick()
+        assertEquals(listOf(home.address), removed)
+    }
+
+    @Test
+    fun anActiveAddressHasNoFix() {
+        show(AddressesState(listOf(home), homeHost = "home.example"))
+        compose.onNodeWithText(text(R.string.addresses_register_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_remove)).assertDoesNotExist()
+    }
+
+    @Test
     fun aCheckThatFailedShowsNoSystemWords() {
         show(AddressesState(listOf(home.copy(status = AddressStatus.CheckFailed("timeout"))), homeHost = "home.example"))
         compose.onNodeWithText(text(R.string.addresses_status_failed)).assertExists()

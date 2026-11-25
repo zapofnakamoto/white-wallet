@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import whitewallet.core.model.AmountUnit
+import whitewallet.core.wallet.AddressCheckRecord
+import whitewallet.core.wallet.AddressChecks
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.MintKey
 import whitewallet.core.wallet.MintTrustStore
@@ -25,7 +27,7 @@ internal class DataStorePreferences(
     private val prefs: DataStore<Preferences>,
     private val developerModeByDefault: Boolean = false,
     private val appLockByDefault: Boolean = false,
-) : AppPreferences, NotePolicies, MintTrustStore {
+) : AppPreferences, NotePolicies, MintTrustStore, AddressChecks {
     override val developerMode: Flow<Boolean> = prefs.data.map { it[DEVELOPER_MODE] ?: developerModeByDefault }
 
     override suspend fun setDeveloperMode(enabled: Boolean) {
@@ -105,6 +107,27 @@ internal class DataStorePreferences(
             val hosts = it[changedKeysKey(walletId)].orEmpty()
             it[changedKeysKey(walletId)] = if (changed) hosts + host else hosts - host
         }
+    }
+
+    override fun checks(accountId: String): Flow<Map<String, AddressCheckRecord>> =
+        prefs.data.map { prefs -> prefs[addressChecksKey(accountId)].orEmpty().mapNotNull(AddressChecks::decode).toMap() }
+
+    override suspend fun record(accountId: String, address: String, check: AddressCheckRecord) {
+        val entry = AddressChecks.encode(address, check) ?: return
+        prefs.edit {
+            it[addressChecksKey(accountId)] =
+                it[addressChecksKey(accountId)].orEmpty().filterNot { e -> e.startsWith("$address ") }.toSet() + entry
+        }
+    }
+
+    override suspend fun forget(accountId: String, address: String) {
+        prefs.edit {
+            it[addressChecksKey(accountId)] = it[addressChecksKey(accountId)].orEmpty().filterNot { e -> e.startsWith("$address ") }.toSet()
+        }
+    }
+
+    override suspend fun forgetAccount(accountId: String) {
+        prefs.edit { it.remove(addressChecksKey(accountId)) }
     }
 
     /** Stored as "host pubkey" (a host never contains a space). */
@@ -204,6 +227,9 @@ internal class DataStorePreferences(
 
         /** The hosts of the wallet's mints whose signing key differed from the pinned one when last compared. */
         internal fun changedKeysKey(walletId: String) = stringSetPreferencesKey("changed_key_mints_$walletId")
+
+        /** An account's address checks ([AddressChecks.encode]). */
+        internal fun addressChecksKey(accountId: String) = stringSetPreferencesKey("address_checks_$accountId")
 
         /**
          * Keys changed since v0.3.0: an installed app keeps the value under the new name. Trust choices were the device's until each wallet

@@ -76,7 +76,6 @@ class HomeScreenTest {
             onSettings = {},
             onBackup = {},
             onDismissBackup = {},
-            onOpenAddresses = {},
             accountActions = AccountActions({}, {}, {}),
             onToggleBalance = onToggle,
             onOpenMint = onOpenMint,
@@ -98,7 +97,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onScan = { scans++ },
             )
@@ -123,7 +121,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onAddMint = { added++ },
             )
@@ -139,8 +136,8 @@ class HomeScreenTest {
 
     @Test
     fun severalAlertsShowTheMostImportantAndCountTheOthers() {
-        show(HomeState(activeAccountId = "a", inactiveAddress = "me@mint.example", showBackupPrompt = true, showScanPrompt = true))
-        compose.onNodeWithText(text(R.string.home_address_inactive_title)).assertExists()
+        show(HomeState(activeAccountId = "a", showAddMintPrompt = true, showBackupPrompt = true, showScanPrompt = true))
+        compose.onNodeWithText(text(R.string.home_add_mint_title)).assertExists()
         compose.onNodeWithText(text(R.string.home_backup_title)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.home_scan_title)).assertDoesNotExist()
         // The others open in a sheet over Home.
@@ -151,7 +148,7 @@ class HomeScreenTest {
 
     @Test
     fun theSheetOfOtherAlertsClosesOnceOnlyOneIsLeft() {
-        var state by mutableStateOf(HomeState(activeAccountId = "a", inactiveAddress = "me@mint.example", showBackupPrompt = true))
+        var state by mutableStateOf(HomeState(activeAccountId = "a", showAddMintPrompt = true, showBackupPrompt = true))
         compose.setContent {
             HomeScreen(
                 "Wallet",
@@ -162,16 +159,15 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
             )
         }
         compose.onNodeWithText(plural(R.plurals.home_alerts_more, 1, 1)).performClick()
         compose.onNodeWithText(text(R.string.home_backup_title)).assertExists()
-        // Put off: the address is the only alert left, on Home, and the sheet is gone.
+        // Put off: adding a mint is the only alert left, on Home, and the sheet is gone.
         state = state.copy(showBackupPrompt = false)
         compose.onNodeWithText(text(R.string.home_backup_title)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.home_address_inactive_title)).assertExists()
+        compose.onNodeWithText(text(R.string.home_add_mint_title)).assertExists()
         // Another alert later is counted again, not opened by itself.
         state = state.copy(showScanPrompt = true)
         compose.onNodeWithText(plural(R.plurals.home_alerts_more, 1, 1)).assertExists()
@@ -198,7 +194,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onScanMints = { scans++ },
             )
@@ -228,7 +223,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onToggleBalance = { hidden = !hidden },
             )
@@ -267,7 +261,6 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                 )
             }
@@ -305,7 +298,6 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                     onToggleBalance = {},
                 )
@@ -327,7 +319,6 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                     onToggleBalance = {},
                 )
@@ -350,7 +341,6 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                     onToggleBalance = {},
                 )
@@ -428,7 +418,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
             )
         }
@@ -759,7 +748,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }),
             )
@@ -780,7 +768,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 notesTab = NotesTabSlot(refreshing = false, onRefresh = {}, content = { Text("the notes") }),
             )
@@ -809,7 +796,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onRecheckUnknown = { asked++ },
             )
@@ -842,7 +828,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onNoticeShown = { shown = true },
             )
@@ -870,7 +855,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
             )
         }
@@ -1044,7 +1028,6 @@ class HomeScreenTest {
                     onSettings = {},
                     onBackup = {},
                     onDismissBackup = {},
-                    onOpenAddresses = {},
                     accountActions = AccountActions({}, {}, {}),
                 )
             }
@@ -1212,7 +1195,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 mintRow = MintRowActions(onSend = { sent += it }, onReceive = { received += it }),
             )
@@ -1346,7 +1328,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 onOpenMints = { opened++ },
             )
@@ -1439,7 +1420,6 @@ class HomeScreenTest {
                 onSettings = {},
                 onBackup = {},
                 onDismissBackup = {},
-                onOpenAddresses = {},
                 accountActions = AccountActions({}, {}, {}),
                 received = ReceivedNoteActions(remove = { dismissed = it }),
             )

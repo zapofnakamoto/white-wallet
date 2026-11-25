@@ -96,6 +96,8 @@ class Wallet(
     internal val maxAddressFeeMsat: Long? = null,
     /** The user's trust choices for mints (see [mints]). */
     private val trust: MintTrustStore = MintTrustStore.InMemory(),
+    /** When each address was last checked with its mint, and its answer (see [checkShownAddress]). */
+    private val addressChecks: AddressChecks = AddressChecks.InMemory(),
     /** Mints the brand ships as trusted, each with its key (brand `mints.trusted`). */
     private val brandTrusted: List<MintKey> = emptyList(),
     /**
@@ -120,7 +122,7 @@ class Wallet(
     internal var payWaitMillis = payWaitMillis
     /** Each account's keys by (account id, mint domain): mints on one hostname share them. */
     private val keySets = ConcurrentHashMap<Pair<String, String>, AccountKeys>()
-    /** The last check of each address, by (account id, address). In memory; see [refresh] and [checkAddresses]. */
+    /** The last check of each address, by (account id, address), failed ones too; answers are also saved in [addressChecks]. */
     private val addressStatuses = MutableStateFlow<Map<Pair<String, String>, AddressStatus>>(emptyMap())
 
     private val onboarding = Onboarding(this)
@@ -344,18 +346,27 @@ class Wallet(
     }
     val backupVerified: Flow<Boolean> = ofActive(false) { id -> flow { emitAll(seeds.backupVerified(walletOf(id))) } }
 
-    /** The last known status of the active account's primary address; null until checked. Refreshed by [refresh]. */
+    /**
+     * The last known status of the active account's primary address; null until checked. A refresh never checks it: it is checked where the
+     * user shows it ([checkShownAddress]) or looks at the addresses ([checkAddresses]).
+     */
     val addressStatus: Flow<AddressStatus?> =
-        combine(store.activeAccountId, primaryAddress, addressStatuses) { id, primary, statuses ->
-            if (id == null || primary == null) null else statuses[id to primary.address]
+        ofActive(null) { id ->
+            combine(store.primaryAddress(id), addressStatusesOf(id)) { primary, statuses -> primary?.let { statuses[it.address] } }
         }
 
     /** Every Lightning address of the active account, oldest first, with its last check. */
     val addresses: Flow<List<AddressEntry>> =
         ofActive(emptyList()) { id ->
-            combine(store.addresses(id), store.primaryAddress(id), addressStatuses) { list, primary, statuses ->
-                list.map { AddressEntry(it, primary?.username == it.username && primary.host == it.host, statuses[id to it.address]) }
+            combine(store.addresses(id), store.primaryAddress(id), addressStatusesOf(id)) { list, primary, statuses ->
+                list.map { AddressEntry(it, primary?.username == it.username && primary.host == it.host, statuses[it.address]) }
             }
+        }
+
+    /** [accountId]'s addresses' last answers by address; a failed check only where nothing was ever answered (it says nothing). */
+    private fun addressStatusesOf(accountId: String): Flow<Map<String, AddressStatus>> =
+        combine(addressChecks.checks(accountId), addressStatuses) { saved, latest ->
+            latest.filterKeys { it.first == accountId }.mapKeys { it.key.second } + saved.mapValues { it.value.status }
         }
 
     /** The active account's auto-rotate setting: whether notes on Lightning address keys (purpose 2) move to wallet keys. */
@@ -670,6 +681,18 @@ class Wallet(
         store.addresses(id).first().firstOrNull { it.username == address.username && it.host == address.host }
     }
 
+    /**
+     * Checks [shown], an address of the active account, with its mint as it is shown to be handed out (Receive), unless its last answer is
+     * younger than `address.check.interval.millis`: each check tells the mint, signed, that this phone holds the name.
+     */
+    suspend fun checkShownAddress(shown: String) {
+        val id = activeId()
+        val address = store.addresses(id).first().firstOrNull { it.address == shown && it.feeInvoice == null } ?: return
+        val last = addressChecks.checks(id).first()[address.address]
+        if (last != null && now() - last.atMillis < settings.addressCheckIntervalMillis) return
+        setAddressStatus(id, address.address, addressCheck.check(address.username, address.host, id))
+    }
+
     /** Checks every address of the active account, or only [address], against its mint. */
     suspend fun checkAddresses(address: RegisteredAddress? = null) {
         val id = activeId()
@@ -741,6 +764,27 @@ class Wallet(
     /** Frees one of the active account's addresses at its mint. Freeing the primary one leaves the account without one. */
     suspend fun unregisterAddress(address: RegisteredAddress): UnregisterResult = lock.withLock {
         onboarding.unregister(activeId(), address)
+    }
+
+    /** Registers [address] again, once its mint says the name is free: it is one of the account's, so the limit doesn't apply. */
+    suspend fun registerAgain(address: RegisteredAddress): OnboardResult = lock.withLock {
+        onboarding.addAddress(address.username, limit = Int.MAX_VALUE, address.host)
+    }
+
+    /**
+     * Removes [address] from the account if its mint says, checked now, that it is someone else's: payments to it never reach this wallet
+     * again. Whether it was removed.
+     */
+    suspend fun removeTakenAddress(address: RegisteredAddress): Boolean = lock.withLock {
+        val id = activeId()
+        val status = addressCheck.check(address.username, address.host, id)
+        if (status != AddressStatus.Taken) {
+            setAddressStatus(id, address.address, status)
+            return@withLock false
+        }
+        store.deleteAddress(id, address.username, address.host)
+        setAddressStatus(id, address.address, null)
+        true
     }
 
     suspend fun switchAccount(accountId: String) = lock.withLock {
@@ -1457,7 +1501,7 @@ class Wallet(
             val addresses = store.addresses(id).first().filter { it.feeInvoice == null }
             // Every address is paid at its own mint (same recovery phrase, that mint's own keys), and a restored account's at the home
             // mint, or a mint it added, before the phone knows their names.
-            MintAsks(id, addresses, (addresses.map { it.host } + listOfNotNull(homeOf(id)) + hostsPaidAt(id)).distinct())
+            MintAsks(id, (addresses.map { it.host } + listOfNotNull(homeOf(id)) + hostsPaidAt(id)).distinct())
         }
         val pinged = active?.let { mintsToAsk(it) }.orEmpty()
         val run = LookupRun(settings.scanLookupsAtOnce)
@@ -1478,8 +1522,8 @@ class Wallet(
         return result
     }
 
-    /** What a refresh asks for [accountId]: its [addresses] checked, and payments looked for on each of [hosts]. */
-    private class MintAsks(val accountId: String, val addresses: List<RegisteredAddress>, val hosts: List<String>)
+    /** What a refresh asks for [accountId]: payments looked for on each of [hosts]. Its addresses aren't checked ([checkShownAddress]). */
+    private class MintAsks(val accountId: String, val hosts: List<String>)
 
     /**
      * One mint domain's part of a refresh, beside the others: its mints' signing keys compared first (once per app session), then each
@@ -1505,11 +1549,6 @@ class Wallet(
         for (ask in asks) {
             // Read for each account: a note found with another key ends that mint's part of the refresh for the accounts after it too.
             val changed = trust.changedKeys(walletId).first()
-            for (address in ask.addresses.filter { it.host in hosts && it.host !in changed }) {
-                addressCheck.check(address.username, address.host, ask.accountId).let { status ->
-                    if (status !is AddressStatus.CheckFailed) setAddressStatus(ask.accountId, address.address, status)
-                }
-            }
             for (host in ask.hosts.filter { it in hosts }) {
                 val scanned = if (host in changed) RefreshResult(0, 0, setOf(host)) else scanner.scanAll(ask.accountId, host, run)
                 result += if (ask.accountId == active) scanned else scanned.keyChangedOnly()
@@ -1680,6 +1719,7 @@ class Wallet(
             collectBlocks.update { blocks -> blocks.filterKeys { it.first != id } }
             keySets.keys.removeAll { it.first == id }
             addressStatuses.update { statuses -> statuses.filterKeys { it.first != id } }
+            addressChecks.forgetAccount(id)
             failedProbes.update { probes -> probes.filterKeys { it.accountId != id } }
         }
         if (wholeWallet) {
@@ -1909,8 +1949,14 @@ class Wallet(
         return store.accounts.first().map { it.account }.filter { it.walletId == walletId }
     }
 
-    internal fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) = addressStatuses.update {
-        if (status == null) it - (accountId to address) else it + ((accountId to address) to status)
+    /** Sets [address]'s last check; an answer is saved with the time, null drops it (the address isn't the account's any more). */
+    internal suspend fun setAddressStatus(accountId: String, address: String, status: AddressStatus?) {
+        addressStatuses.update { if (status == null) it - (accountId to address) else it + ((accountId to address) to status) }
+        when (status) {
+            null -> addressChecks.forget(accountId, address)
+            is AddressStatus.CheckFailed -> Unit
+            else -> addressChecks.record(accountId, address, AddressCheckRecord(now(), status))
+        }
     }
 
     /** Stores a fresh recovery phrase for the wallet [walletId]. */

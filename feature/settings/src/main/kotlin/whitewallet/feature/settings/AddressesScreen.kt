@@ -68,6 +68,7 @@ import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.NoHome
+import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.UnregisterResult
 import whitewallet.core.wallet.Wallet
@@ -131,6 +132,9 @@ sealed interface AddressesMessage {
 
     /** Its fee could not be paid from the balance; it stays held. */
     data class FeeNotPaid(val address: String) : AddressesMessage
+
+    /** Its name, free at the mint, couldn't be registered again. */
+    data class NotRegisteredAgain(val address: String) : AddressesMessage
 }
 
 private data class AddressesUi(
@@ -201,6 +205,23 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
         if (wallet.payAddressFee(address) !is PayResult.Paid) ui.update { it.copy(message = AddressesMessage.FeeNotPaid(address.address)) }
     }
 
+    /** Its mint says the name is free: registers it again (a mint with a fee holds it, as when it was added). */
+    fun registerAgain(address: RegisteredAddress) = act {
+        when (wallet.registerAgain(address)) {
+            is OnboardResult.Ready,
+            is OnboardResult.AwaitingFee -> Unit
+            else -> {
+                wallet.checkAddresses(address)
+                ui.update { it.copy(message = AddressesMessage.NotRegisteredAgain(address.address)) }
+            }
+        }
+    }
+
+    /** Its mint says it is someone else's: off the list, once a check now says so too. */
+    fun removeTaken(address: RegisteredAddress) = act {
+        if (wallet.removeTakenAddress(address)) ui.update { it.copy(message = AddressesMessage.NotOurs(address.address)) }
+    }
+
     fun askUnregister(address: RegisteredAddress) = ui.update { it.copy(confirm = address, message = null) }
 
     fun messageShown(message: AddressesMessage) = ui.update { if (it.message == message) it.copy(message = null) else it }
@@ -247,6 +268,9 @@ class AddressActions(
     val onPayFee: (RegisteredAddress) -> Unit = {},
     val onToggleWatchOnly: (RegisteredAddress) -> Unit = {},
     val onCopyWatchOnly: (String) -> Unit = {},
+    /** The fix for an address that doesn't reach the wallet any more: register its free name again, or take someone else's off the list. */
+    val onRegisterAgain: (RegisteredAddress) -> Unit = {},
+    val onRemoveTaken: (RegisteredAddress) -> Unit = {},
 )
 
 @Composable
@@ -274,6 +298,8 @@ fun AddressesRoute(
                 viewModel::payFee,
                 viewModel::toggleWatchOnly,
                 onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key, viewModel.clipboardClearMillis) },
+                onRegisterAgain = viewModel::registerAgain,
+                onRemoveTaken = viewModel::removeTaken,
             ),
         onConfirmUnregister = viewModel::confirmUnregister,
         onDismissUnregister = viewModel::dismissUnregister,
@@ -406,6 +432,20 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
             }
             if (checking) Text(stringResource(R.string.addresses_checking), style = MaterialTheme.typography.bodySmall)
             else StatusLine(entry.status)
+            // The one fix for an address that doesn't reach the wallet any more, first.
+            if (!checking) {
+                when (entry.status) {
+                    AddressStatus.Available ->
+                        WalletButton(onClick = { actions.onRegisterAgain(a) }, enabled = !state.busy) {
+                            Text(stringResource(R.string.addresses_register_again))
+                        }
+                    AddressStatus.Taken ->
+                        WalletButton(onClick = { actions.onRemoveTaken(a) }, enabled = !state.busy) {
+                            Text(stringResource(R.string.addresses_remove))
+                        }
+                    else -> Unit
+                }
+            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 WalletButton(kind = ButtonKind.Text, onClick = { actions.onCheck(a) }, enabled = !checking) {
                     Text(stringResource(R.string.addresses_check))
@@ -474,6 +514,7 @@ private fun messageText(message: AddressesMessage): String =
                 ?: stringResource(R.string.addresses_unregister_failed_plain, message.address)
         is AddressesMessage.Unknown -> stringResource(R.string.addresses_unregister_unknown, message.address)
         is AddressesMessage.PrimaryChanged -> stringResource(R.string.addresses_primary_changed, message.address)
+        is AddressesMessage.NotRegisteredAgain -> stringResource(R.string.addresses_not_registered_again, message.address)
     }
 
 /** What went wrong (or isn't known), on the page until the next action. */

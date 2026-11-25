@@ -79,3 +79,8 @@ private fun ReceiveAddressMintSilentPreview() = ReceiveScreen(receiveState.copy(
 @WalletPreviews
 @Composable
 private fun ReceiveAddressKeyChangedPreview() = ReceiveScreen(receiveState.copy(addressKeyChanged = true), onBack = {}, onClaim = {})
+
+/** The address shown, its mint saying it doesn't reach this wallet any more: the way to fix it. */
+@WalletPreviews
+@Composable
+private fun ReceiveAddressLostPreview() = ReceiveScreen(receiveState.copy(addressLost = true), onBack = {}, onClaim = {})

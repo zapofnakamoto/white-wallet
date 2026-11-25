@@ -11,11 +11,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.Connection
 import whitewallet.core.wallet.FaucetState
@@ -82,6 +86,8 @@ data class ReceiveState(
     val addressMintNotAnswering: Boolean = false,
     /** The signing key of the [address]'s mint doesn't match the pinned one: payments to it wait there until it does. */
     val addressKeyChanged: Boolean = false,
+    /** The [address]'s mint said, when last asked, that it doesn't route the name to this wallet: payments to it don't arrive. */
+    val addressLost: Boolean = false,
     /** The mints whose signing key is being asked for: nothing is made on them until the answer is back. */
     val keyChecking: Set<String> = emptySet(),
     /** The brand names mints (brand `mints.visible`). */
@@ -213,6 +219,12 @@ constructor(
                     mints = state.mints.map { it.copy(keyChanged = it.host in changed) },
                 )
             }
+            .combine(wallet.addresses) { state, entries ->
+                val status = entries.firstOrNull { it.address.address == state.address }?.status
+                state.copy(
+                    addressLost = status == AddressStatus.Taken || status == AddressStatus.Available || status is AddressStatus.Invalid
+                )
+            }
             .combine(wallet.offline) { state, offline -> state.copy(offline = offline) }
             .combine(checking) { state, asking -> asking?.let { state.copy(keyChecking = it) } ?: state.copy(loaded = false) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState(loaded = false))
@@ -256,6 +268,17 @@ constructor(
                     }
                 }
             }
+        }
+        viewModelScope.launch {
+            // Each address as it is shown: the screen doesn't wait for it, and a check that fails says nothing. At most once per
+            // `address.check.interval.millis`: each check tells the mint, signed, that this phone holds the name.
+            state
+                .map { it.address.takeIf { _ -> it.loaded && !it.offline } }
+                .distinctUntilChanged()
+                .filterNotNull()
+                .collect { address ->
+                    runCatching { wallet.checkShownAddress(address) }
+                }
         }
         viewModelScope.launch {
             // Back online, an invoice that failed for being offline is no news: the form says what it is now.

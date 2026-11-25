@@ -26,6 +26,8 @@
     <string name="receive_key_checking_unnamed">Checking your mint…</string>
     <string name="receive_invoice_key_changed_unnamed">The signing key of your mint doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
 
+    <string name="receive_address_lost">Payments to this address don\'t reach your wallet anymore.</string>
+    <string name="receive_address_fix">Fix</string>
     <string name="receive_address_mint_silent">%1$s isn\'t answering, so payments to this address can\'t arrive right now.</string>
     <string name="receive_invoice_mint_silent">%1$s isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <string name="receive_title">Receive</string>

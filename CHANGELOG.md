@@ -146,6 +146,14 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- A Lightning address is no longer checked with its mint on every refresh: each check tells the mint, signed, that
+  this phone holds the name, which would tie the name to the phone's network and times. It is checked as Receive
+  shows it, at most once a day (`address.check.interval.millis` in `wallet.properties`; the answer is kept across
+  restarts), and whenever the Lightning addresses page opens or an address changes. Receive never waits for it.
+  An address that doesn't reach the wallet any more says so on Receive, with "Fix" leading to the Lightning
+  addresses, where it has its fix: "Register again" for a name the mint freed, "Remove" for one now someone else's.
+  Home's "An address isn't active" card is gone. New strings `receive_address_lost`, `receive_address_fix`,
+  `addresses_register_again`, `addresses_remove`, `addresses_not_registered_again`.
 - A message at the bottom of the screen can be swiped away, to either side.
 - For developers: `just check` leaves out the slow suites, which CI still runs on every push: the screenshots with the
   contrast check are `just test-screenshots` now, beside `just test-regtest` and `just test-device`.
@@ -319,6 +327,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Removed
 
+- For brands: the strings `home_address_inactive_title`, `home_address_inactive_body` and
+  `home_address_inactive_action`.
 - For developers and brands: the strings `receive_copy`, `receive_share` (now `copy`, `share` in the design system),
   `claimed_copy` and `scan_done`.
 - For brands: the brand term `mints_intro` is `mint_trusted_hint`, about one mint ("Notes from a trusted mint are marked with

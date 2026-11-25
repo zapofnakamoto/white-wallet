@@ -14,6 +14,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import whitewallet.core.wallet.AddressChecks
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.MintTrustStore
@@ -71,4 +72,6 @@ object DataModule {
     @Provides internal fun notePolicies(preferences: DataStorePreferences): NotePolicies = preferences
 
     @Provides internal fun mintTrust(preferences: DataStorePreferences): MintTrustStore = preferences
+
+    @Provides internal fun addressChecks(preferences: DataStorePreferences): AddressChecks = preferences
 }

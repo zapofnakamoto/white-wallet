@@ -436,7 +436,6 @@ private fun WalletApp(
                 onReceive = { nav.navigate(Routes.RECEIVE) },
                 onSettings = { nav.navigate(Routes.SETTINGS) },
                 onBackup = { nav.navigate(Routes.BACKUP) },
-                onOpenAddresses = { nav.navigate(Routes.ADDRESSES) },
                 onManageWallets = { nav.navigate(Routes.WALLETS) },
                 onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
                 onAddMint = { nav.navigate(Routes.ADD_MINT) },
@@ -548,6 +547,7 @@ private fun WalletApp(
                     nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) { popUpTo(Routes.HOME) }
                 },
                 onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+                onOpenAddresses = { nav.navigate(Routes.ADDRESSES) },
             )
         }
         composable(

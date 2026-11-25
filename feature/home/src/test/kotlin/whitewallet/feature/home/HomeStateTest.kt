@@ -141,7 +141,6 @@ class HomeStateTest {
             HomeState(
                 keyChangedHost = "k.example",
                 unknownNotes = listOf(unknown),
-                inactiveAddress = "me@mint.example",
                 showAddMintPrompt = true,
                 showBackupPrompt = true,
                 showScanPrompt = true,
@@ -150,7 +149,6 @@ class HomeStateTest {
             listOf(
                 HomeAlert.KeyChanged("k.example"),
                 HomeAlert.UnknownNotes(unknown),
-                HomeAlert.AddressInactive("me@mint.example"),
                 HomeAlert.AddMint,
                 HomeAlert.Backup,
                 HomeAlert.Scan,

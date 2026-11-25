@@ -89,6 +89,9 @@
     <string name="addresses_status_free">Not registered anymore: payments to it fail</string>
     <string name="addresses_status_failed">Couldn\'t check it right now.</string>
     <string name="addresses_status_invalid">Not a valid address.</string>
+    <string name="addresses_register_again">Register again</string>
+    <string name="addresses_remove">Remove</string>
+    <string name="addresses_not_registered_again">Couldn\'t register %1$s again. Try again in a moment.</string>
     <string name="addresses_add">Add address</string>
     <string name="addresses_add_elsewhere_hint">Same recovery phrase. Payments to it arrive in this account.</string>
     <string name="addresses_over_limit">More addresses than the current limit (%1$d). They keep working; unregister ones you don\'t use.</string>

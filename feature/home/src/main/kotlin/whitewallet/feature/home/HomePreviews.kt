@@ -90,7 +90,6 @@ private fun HomePreview() =
         onSettings = {},
         onBackup = {},
         onDismissBackup = {},
-        onOpenAddresses = {},
         accountActions = AccountActions(onSwitch = {}, onManage = {}, onMove = {}),
     )
 
@@ -107,7 +106,6 @@ private fun HomeNoticePreview() =
         onSettings = {},
         onBackup = {},
         onDismissBackup = {},
-        onOpenAddresses = {},
         accountActions = AccountActions(onSwitch = {}, onManage = {}, onMove = {}),
     )
 
@@ -157,7 +155,6 @@ private fun HomeWith(state: HomeState) =
         onSettings = {},
         onBackup = {},
         onDismissBackup = {},
-        onOpenAddresses = {},
         accountActions = AccountActions(onSwitch = {}, onManage = {}, onMove = {}),
     )
 
@@ -210,7 +207,6 @@ private fun HomeUnknownNotesPreview() =
 private fun HomeIncomingPreview() = HomeWith(homeState.copy(received = listOf(received("r1", OTHER, 1_000_000, ReceivedState.Waiting))))
 
 /** An address of the account that its mint no longer routes to this wallet: a card says so and leads to the addresses. */
-@WalletPreviews @Composable private fun HomeAddressInactivePreview() = HomeWith(homeState.copy(inactiveAddress = "satoshi@$HOME"))
 
 /** The move did not happen as asked: the amount is more than the account holds. */
 @WalletPreviews

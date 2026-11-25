@@ -139,7 +139,6 @@ fun HomeRoute(
     onReceive: () -> Unit,
     onSettings: () -> Unit,
     onBackup: () -> Unit,
-    onOpenAddresses: () -> Unit,
     /** Opens Settings → Wallets, where wallets and accounts are added, renamed and removed. */
     onManageWallets: () -> Unit,
     onMoveFunds: () -> Unit,
@@ -189,7 +188,6 @@ fun HomeRoute(
         onSettings,
         onBackup,
         onDismissBackup = viewModel::dismissBackupPrompt,
-        onOpenAddresses,
         accountActions = AccountActions(viewModel::switchAccount, onManageWallets, onMoveFunds),
         onOpenNote,
         onToggleBalance = viewModel::toggleBalanceHidden,
@@ -242,7 +240,6 @@ fun HomeScreen(
     onSettings: () -> Unit,
     onBackup: () -> Unit,
     onDismissBackup: () -> Unit,
-    onOpenAddresses: () -> Unit,
     accountActions: AccountActions,
     onOpenNote: (String) -> Unit = {},
     onToggleBalance: () -> Unit = {},
@@ -383,7 +380,6 @@ fun HomeScreen(
                                 onAccounts = { showAccounts = true },
                                 onBackup,
                                 onDismissBackup,
-                                onOpenAddresses,
                                 onToggleBalance,
                                 onOpenMint,
                                 mintRow,
@@ -572,7 +568,6 @@ private fun WalletTab(
     onAccounts: () -> Unit,
     onBackup: () -> Unit,
     onDismissBackup: () -> Unit,
-    onOpenAddresses: () -> Unit,
     onToggleBalance: () -> Unit,
     onOpenMint: (String) -> Unit,
     mintRow: MintRowActions,
@@ -624,7 +619,6 @@ private fun WalletTab(
                             checking = state.refreshing,
                             onCheck = onRefresh,
                         )
-                    is HomeAlert.AddressInactive -> AddressInactive(alert.address, onOpenAddresses)
                     HomeAlert.AddMint -> AddMintPrompt(onAddMint)
                     HomeAlert.Backup -> BackupPrompt(onBackup, onDismissBackup)
                     HomeAlert.Scan -> ScanPrompt(onScanMints)
@@ -1279,17 +1273,6 @@ private fun NotAnsweringCard(title: String, body: String, checking: Boolean, onC
             WalletButton(kind = ButtonKind.Secondary, onClick = onCheck, enabled = !checking) {
                 Text(stringResource(DesignR.string.check_again))
             }
-        }
-    }
-}
-
-@Composable
-private fun AddressInactive(address: String, onOpenAddresses: () -> Unit) {
-    WalletCard(tone = Tone.Warning, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.home_address_inactive_title), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.home_address_inactive_body, address), style = MaterialTheme.typography.bodyMedium)
-            WalletButton(onClick = onOpenAddresses) { Text(stringResource(R.string.home_address_inactive_action)) }
         }
     }
 }

@@ -224,6 +224,25 @@ class ReceiveScreenTest {
     }
 
     @Test
+    fun anAddressThatDoesntReachTheWalletSaysSoWithTheWayToFixIt() {
+        var opened = 0
+        compose.setContent {
+            ReceiveScreen(
+                ReceiveState("alice@home.example", addressLost = true),
+                onBack = {},
+                onClaim = {},
+                InvoiceActions(onOpenAddresses = { opened++ }),
+            )
+        }
+        // The address still shows: what is wrong is said on it.
+        compose.onNodeWithText("alice@home.example").assertExists()
+        compose.onNodeWithText(text(R.string.receive_address_lost)).assertExists()
+        compose.onNodeWithText(text(R.string.receive_hint)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_address_fix)).performScrollTo().performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
     fun anAddressOnAMintWhoseKeyChangedSaysPaymentsWaitThere() {
         val opened = mutableListOf<String>()
         compose.setContent {

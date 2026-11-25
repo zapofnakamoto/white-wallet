@@ -15,6 +15,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.StateFlow
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.AmountUnit
+import whitewallet.core.wallet.AddressChecks
 import whitewallet.core.wallet.AddressFeeChoice
 import whitewallet.core.wallet.AddressPolicy
 import whitewallet.core.wallet.AppDefaults
@@ -79,6 +80,7 @@ object WalletModule {
         policies: NotePolicies,
         strategies: NoteStrategies,
         trust: MintTrustStore,
+        addressChecks: AddressChecks,
         connection: ConnectionState,
     ): Wallet =
         Wallet(
@@ -88,6 +90,7 @@ object WalletModule {
             policies = policies,
             strategies = strategies,
             trust = trust,
+            addressChecks = addressChecks,
             brandTrusted = TrustedMints.parse(BuildConfig.TRUSTED_MINTS),
             maxAccounts = AppDefaults.limit(BuildConfig.MAX_ACCOUNTS),
             maxWallets = AppDefaults.limit(BuildConfig.MAX_WALLETS),

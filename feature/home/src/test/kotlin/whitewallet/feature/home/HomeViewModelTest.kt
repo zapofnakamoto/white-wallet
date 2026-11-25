@@ -88,12 +88,12 @@ class HomeViewModelTest {
     }
 
     /**
-     * Home for an account whose home mint is [host], with a Lightning address there (which every refresh checks, whatever the network), its
-     * first refresh (at the start, offline) done.
+     * Home for an account whose home mint is [host], with a Lightning address there held for its fee (which every refresh asks about,
+     * whatever the network), its first refresh (at the start, offline) done.
      */
     private suspend fun TestScope.home(): HomeViewModel {
         store.addAccount("a", "Main", null, host)
-        store.saveAddress("a", RegisteredAddress("alice", host, addedAtMillis = 0, share = 0))
+        store.saveAddress("a", RegisteredAddress("alice", host, addedAtMillis = 0, share = 0, feeInvoice = "lnbc1fee"))
         val factory = viewModelFactory {
             initializer {
                 HomeViewModel(wallet, AppPreferences.InMemory(), AppDefaults(emptyList(), allowMintChange = true)) { currentTime }

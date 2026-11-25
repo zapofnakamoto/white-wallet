@@ -25,7 +25,6 @@ import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.isShared
 import whitewallet.core.wallet.AccountMint
-import whitewallet.core.wallet.AddressStatus
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.AppPreferences
 import whitewallet.core.wallet.HistoryFilterOption
@@ -66,8 +65,6 @@ data class HomeState(
     val showAddMintPrompt: Boolean = false,
     /** A mint's keys weren't looked through to the end: the wallet may hold more than it shows, until a scan is through. */
     val showScanPrompt: Boolean = false,
-    /** An address of the active account that its mint no longer routes to this wallet (checked on refresh); null if none. */
-    val inactiveAddress: String? = null,
     val backupPromptDismissed: Boolean = false,
     /** The balance shows as dots until tapped (kept across launches). */
     val balanceHidden: Boolean = false,
@@ -163,7 +160,6 @@ data class HomeState(
                     else others.forEach { add(HomeAlert.MintNotAnswering(it)) }
                 }
             }
-            inactiveAddress?.let { add(HomeAlert.AddressInactive(it)) }
             if (showAddMintPrompt) add(HomeAlert.AddMint)
             if (showBackupPrompt) add(HomeAlert.Backup)
             if (showScanPrompt) add(HomeAlert.Scan)
@@ -196,8 +192,6 @@ sealed interface HomeAlert {
 
     /** Several [mints], none the home mint, didn't answer: until they do, the money there can't be spent. */
     data class MintsNotAnswering(val mints: List<AccountMint>) : HomeAlert
-
-    data class AddressInactive(val address: String) : HomeAlert
 
     data object AddMint : HomeAlert
 
@@ -259,14 +253,9 @@ class HomeViewModel(
     /** Whether Home is on screen, as the screen says ([setVisible]). */
     private var visible = false
 
-    private val inactiveAddress =
-        wallet.addresses.map { entries ->
-            entries.firstOrNull { it.status == AddressStatus.Taken || it.status == AddressStatus.Available }?.address?.address
-        }
     private val walletFlags =
         combine(
             wallet.backupVerified,
-            inactiveAddress,
             preferences.balanceHidden,
             wallet.hasMint,
             wallet.unscannedMints.map { it.isNotEmpty() },
@@ -282,7 +271,7 @@ class HomeViewModel(
         combine(accountInfo, wallet.activity, walletFlags, status) {
                 (choice, active, work),
                 activity,
-                (backedUp, inactive, hidden, hasMint, unscanned),
+                (backedUp, hidden, hasMint, unscanned),
                 s ->
                 val balance = active?.balanceMsat ?: 0
                 s.copy(
@@ -290,7 +279,6 @@ class HomeViewModel(
                     strategyText = work.second,
                     accounts = choice.accounts,
                     activeAccountId = active?.account?.id,
-                    inactiveAddress = inactive,
                     balanceMsat = balance,
                     activity = activity,
                     showBackupPrompt = defaults.remindBackup(balance) && !backedUp && !s.backupPromptDismissed,
@@ -468,7 +456,6 @@ class HomeViewModel(
 
 private data class WalletFlags(
     val backedUp: Boolean,
-    val inactiveAddress: String?,
     val hidden: Boolean,
     val hasMint: Boolean,
     val unscanned: Boolean,
