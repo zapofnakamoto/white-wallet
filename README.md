@@ -21,7 +21,8 @@ Requirements: JDK 21 and the Android SDK (details in [docs/DEVELOPMENT.md](docs/
 just build        # debug APK
 just run          # install on a connected device or emulator and open it
 just test         # unit, protocol, wallet and screen tests
-just check        # everything CI checks
+just check        # what CI checks, but the slow suites
+just verify       # before a merge: check, screenshots and regtest tests
 ```
 
 ## Make your own brand

@@ -178,15 +178,18 @@ check: test
     python3 -m unittest discover -s dev -p 'test_*.py'
     ./gradlew -q :app:assembleRelease -PbrandDir=brand-examples/acme
 
-# The regtest stack is checked first: if it is down, this says so and starts it (stop it again with `just regtest-down`).
+# Docker and the regtest stack are checked first. A stack that is down is said so and left down until the regtest tests,
+# which start it: while it is up, `just check` would pass a regtest test that doesn't skip without it.
 # Before merging to main or a release: `just check`, then the screenshots and contrast check, then the regtest tests
 [group('checks')]
 verify:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [[ -z "$(docker compose -p whitewallet-regtest ps -q mint 2>/dev/null)" ]]; then
-        echo "The regtest stack is down: starting it for the regtest tests at the end (stop it again with 'just regtest-down')." >&2
-        dev/regtest/regtest.sh up
+    docker info >/dev/null 2>&1 || { echo "Docker isn't running, and the regtest tests need it." >&2; exit 1; }
+    if [[ -z "$(docker compose -p whitewallet-regtest ps -q mint)" ]]; then
+        echo "The regtest stack is down: the regtest tests at the end start it (stop it again with 'just regtest-down')." >&2
+    else
+        echo "The regtest stack is up: a regtest test that doesn't skip without it passes 'just check' here, but not in CI." >&2
     fi
     just check
     just test-screenshots
