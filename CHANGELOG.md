@@ -143,6 +143,7 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- The notes view's total is drawn like the balance on the wallet tab, as large, through the brand's `Amount`.
 - One Mints page instead of two (Settings → Mints for the wallet, Account → Your mints for the account): the account's
   home mint is a card on top, in the home notes' colour, with ✓ when trusted as on the other cards, its money large,
   its notes and addresses, and "Change home mint" inside (only where it can change: the brand lets users change it,

@@ -49,6 +49,7 @@ import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
 import whitewallet.brand.ui.Tone
 import whitewallet.brand.ui.walletColors
+import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.PrimaryButton
@@ -105,7 +106,8 @@ internal class OverviewState(
 private fun Summary(state: NotesState) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         WalletStatusScope(notesStatus(state)) { BrandDecoration(Anchor.NotesHeader) }
-        Text(formatAmount(state.totalMsat), style = MaterialTheme.typography.headlineMedium)
+        // The balance as the wallet tab shows it, the brand's amount.
+        AmountText(state.totalMsat)
         // What the balance holds: no "0 notes" while every note is set aside (they are in the needs-attention card).
         if (state.balanceNoteCount > 0) {
             val count = state.balanceNoteCount
