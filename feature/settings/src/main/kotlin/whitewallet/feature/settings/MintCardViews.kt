@@ -85,7 +85,7 @@ internal fun HomeMintCard(card: MintCard, onOpen: (String) -> Unit, onChangeHome
             Text(
                 stringResource(R.string.settings_home_mint).toUpperCase(Locale.current),
                 style = MaterialTheme.typography.labelMedium,
-                color = colors.ink.copy(alpha = 0.8f),
+                color = colors.ink,
             )
             Spacer(Modifier.height(8.dp))
             HostWithTrust(card, MaterialTheme.typography.titleMedium, colors)
@@ -212,7 +212,7 @@ private fun CardDetails(card: MintCard, colors: NoteColors) {
         Text(
             parts.joinToString(stringResource(DesignR.string.notes_detail_separator)),
             style = style,
-            color = colors.ink.copy(alpha = 0.8f),
+            color = colors.ink,
         )
 }
 

@@ -16,6 +16,7 @@ import whitewallet.core.model.ActivityStatus
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.wallet.AccountMint
+import whitewallet.core.wallet.MaintenanceNotice
 import whitewallet.core.wallet.MoveCheck
 import whitewallet.core.wallet.MoveFailure
 import whitewallet.core.wallet.MovePending
@@ -83,6 +84,23 @@ private fun HomePreview() =
     HomeScreen(
         LocalAppName.current,
         homeState,
+        onSend = {},
+        onReceive = {},
+        onRefresh = {},
+        onSettings = {},
+        onBackup = {},
+        onDismissBackup = {},
+        onOpenAddresses = {},
+        accountActions = AccountActions(onSwitch = {}, onManage = {}, onMove = {}),
+    )
+
+/** A note the wallet looked after by itself: the short message at the bottom, with its Details button. */
+@WalletPreviews
+@Composable
+private fun HomeNoticePreview() =
+    HomeScreen(
+        LocalAppName.current,
+        homeState.copy(notice = MaintenanceNotice.Combined(notes = 2, into = 1, amountMsat = 63_000, balanceChangeMsat = 1_000)),
         onSend = {},
         onReceive = {},
         onRefresh = {},

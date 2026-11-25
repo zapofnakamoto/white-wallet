@@ -59,6 +59,7 @@ class PreviewsTest {
                 "ScanForNotesPreview",
                 "AccountNamePreview",
                 "HomePreview",
+                "HomeNoticePreview",
                 "MoveFundsPreview",
                 "NotesPreview",
                 "ArchivePreview",

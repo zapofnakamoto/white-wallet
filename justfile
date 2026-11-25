@@ -156,7 +156,7 @@ screenshots brand=brand:
     dev/screenshots.py screenshots/build/screenshots/full/"$(basename {{ brand }})" --render screenshots/build/screenshots/render
 
 # Lint runs on its own: beside the release build, its Kotlin analysis of the app's tests sometimes crashes (a lint bug).
-# Screenshots: a small set for every brand, failing only if a preview can't be drawn.
+# Screenshots: a small set for every brand, failing only if a preview can't be drawn or a text in it is hard to read.
 # Everything CI checks: formatting, tests, both builds, lint, brand, design, flash, lookup and resource checks, scaffolder tests, screenshots
 [group('checks')]
 check: test

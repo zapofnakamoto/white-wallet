@@ -406,7 +406,10 @@ as `@Provides fun design(): BrandDesign` without parameters, or with `@Binds` (s
 in inspection mode, as Android Studio's previews are: if your design moves at random (a blink at a random moment), take
 its `Random` from a fixed seed when `LocalInspectionMode.current` is true, or every run shows a change. In your own CI,
 keep each render (`screenshots/build/screenshots/<set>/<brand>/current/`, e.g. in the Actions cache) and pass it to the
-next run's `dev/screenshots.py --previous`, as White Wallet's `.github/workflows/ci.yml` does.
+next run's `dev/screenshots.py --previous`, as White Wallet's `.github/workflows/ci.yml` does. The same run fails when
+a text in your design is hard to read, light or dark (less than 4.5:1 against what is behind it, 3:1 for large text),
+and names the screen, the text and both colours: usually a pair of your colour roles that don't go together
+(docs/DEVELOPMENT.md, "Screenshots").
 
 Install it next to the original: a different `app.id` installs as a separate app with your name, icon and colors. To build another brand directory without touching `brand/`, pass `-PbrandDir=path`, e.g. `./gradlew :app:assembleDebug -PbrandDir=brand-examples/acme` (and `dev/check-brand.sh brand-examples/acme`). In Android Studio, the shared run configuration "Acme Cash" (`.run/`) installs and opens it (`:app:openDebug -PbrandDir=brand-examples/acme`); copy it for another brand.
 

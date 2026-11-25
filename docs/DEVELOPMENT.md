@@ -147,7 +147,16 @@ It prints where its page is (`screenshots/build/screenshots/full/<brand>/index.h
 render before, before, after and a picture of what differs (in red), then every image by screen. A run that draws the
 same keeps showing the last change. Nothing is committed and
 nothing fails on a change: the images are for looking at. `just check` draws a small set for `brand/` and every
-`brand-examples/*` (`check/<brand>/`), and fails only when a preview can't be drawn.
+`brand-examples/*` (`check/<brand>/`), and fails only when a preview can't be drawn, or its text is hard to read.
+
+**Contrast**: `ContrastTest` draws every preview light and dark (a brand with a fixed `app.appearance` only its look), in
+the brand's design, and fails when a text stands out from what is drawn behind it by less than 4.5:1, or 3:1 for large
+text (WCAG AA); disabled controls are exempt. It reads the image, not the colour roles, so it catches a brand colour
+that clashes as well as a colour put on a background it wasn't made for (a button in the theme's `primary` on a
+coloured card or a snackbar). Of a dialog or sheet, only that window is read: what is under it is dimmed on purpose,
+and has its own preview. It runs with the screenshots (`-Pscreenshots=check|full`), so `just check` runs it for every
+sample brand, and a brand's own check (`:screenshots:renderScreenshots -PbrandDir=…`) for that brand: about two minutes
+each.
 
 **Previews** are ordinary Compose `@Preview`s in `main`, one file per module next to its screens
 (`SettingsPreviews.kt`, `SuccessPreviews.kt`, …), private, and drawn by Android Studio too. Every screen has one in its

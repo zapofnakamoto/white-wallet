@@ -7,6 +7,9 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Added
 
+- For brands and developers: a contrast check. Every preview is drawn light and dark in the brand's design, and a text
+  that stands out from what is behind it by less than 4.5:1 (3:1 when large) fails `just check` and a brand's
+  screenshot run, naming the screen, the text and both colours (docs/DEVELOPMENT.md, "Screenshots").
 - The notes view is simpler. At the top the balance and "N notes · M mints" (they add up), then a "Needs attention"
   card only when something does, one short line each: notes their mint doesn't know, notes waiting for an answer, a
   mint not answering or whose signing key doesn't match, received links the wallet can't claim on its own; "Show all"
@@ -265,6 +268,10 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- Text that was hard to read: the button of a message at the bottom of the screen ("Details") was in the theme's
+  primary on the message's inverse surface, now in its inverse primary, as Material's; buttons and grey text on a
+  coloured card (the regtest page's "Check again") take the card's text colour; the selected tab's name is in the bar's
+  text colour, not Material's accent; the home mint card's small lines are no longer faded.
 - A split, merge or renewal the mint refused as already in use, because another phone with the phrase spent one of its
   notes first, was sent again up to 20 times on fresh keys. The notes are looked up first now: a spent one ends it at
   once and is set aside; only a new key the mint holds already is tried again.

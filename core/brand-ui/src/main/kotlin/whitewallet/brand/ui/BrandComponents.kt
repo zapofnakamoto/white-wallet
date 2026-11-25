@@ -47,11 +47,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -60,7 +62,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -584,6 +588,8 @@ object DefaultComponents : BrandComponents {
         }
         val danger = params.tone == Tone.Danger
         val error = MaterialTheme.colorScheme.error
+        // A text button in the text colour of a coloured card it is on (see card()), else in the theme's primary.
+        val textColor = LocalCardText.current ?: MaterialTheme.colorScheme.primary
         when (params.kind) {
             ButtonKind.Primary ->
                 Button(
@@ -610,7 +616,7 @@ object DefaultComponents : BrandComponents {
                     params.onClick,
                     modifier,
                     enabled,
-                    colors = if (danger) ButtonDefaults.textButtonColors(contentColor = error) else ButtonDefaults.textButtonColors(),
+                    colors = ButtonDefaults.textButtonColors(contentColor = if (danger) error else textColor),
                     content = content,
                 )
         }
@@ -809,7 +815,14 @@ object DefaultComponents : BrandComponents {
                     }
                 Tone.Danger -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
             }
-        Card(modifier, colors = colors, content = params.content)
+        // On a coloured card, its text colour stands in for the colours made for the page, which can be the card's own: onSurfaceVariant
+        // (an outline button's label too) and outline here, and a text button's primary (see button()).
+        val scheme = MaterialTheme.colorScheme
+        val text = colors.contentColor.takeIf { params.tone != Tone.Neutral }
+        val onCard = text?.let { scheme.copy(onSurfaceVariant = it, outline = it) } ?: scheme
+        Card(modifier, colors = colors) {
+            CompositionLocalProvider(LocalCardText provides text) { MaterialTheme(colorScheme = onCard) { params.content(this) } }
+        }
     }
 
     @Composable
@@ -828,7 +841,18 @@ object DefaultComponents : BrandComponents {
     fun snackbar(params: SnackbarParams, modifier: Modifier) {
         Snackbar(
             modifier = modifier.padding(12.dp),
-            action = params.actionLabel?.let { label -> { TextButton(onClick = params.onAction) { Text(label) } } },
+            // The button in the snackbar's own action colour, as Material's: the theme's primary is made for the page, not the snackbar.
+            action =
+                params.actionLabel?.let { label ->
+                    {
+                        TextButton(
+                            onClick = params.onAction,
+                            colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionColor),
+                        ) {
+                            Text(label)
+                        }
+                    }
+                },
         ) {
             Text(params.message)
         }
@@ -893,7 +917,10 @@ object DefaultComponents : BrandComponents {
     @Composable
     fun navigationBar(params: NavigationBarParams, modifier: Modifier) {
         NavigationBar(modifier) {
-            params.items.forEach { item -> NavigationBarItem(item.selected, item.onClick, item.icon, label = item.label) }
+            // The selected tab's name in the bar's text colour, as its others: Material's accent (secondary) needn't stand out from the
+            // bar.
+            val colors = NavigationBarItemDefaults.colors(selectedTextColor = MaterialTheme.colorScheme.onSurface)
+            params.items.forEach { item -> NavigationBarItem(item.selected, item.onClick, item.icon, label = item.label, colors = colors) }
         }
     }
 
@@ -1656,3 +1683,6 @@ private fun rose(center: Offset, radius: Float, amplitude: Float, petals: Int, p
         }
         close()
     }
+
+/** The text colour of the coloured card drawn around, or null on the page (see [DefaultComponents.card]). */
+private val LocalCardText = compositionLocalOf<Color?> { null }
