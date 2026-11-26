@@ -146,6 +146,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- The app is about 3.7 MB smaller: it no longer carries its native libraries for 32-bit x86, which nothing with
+  Android 13 or later runs. Phones (ARM, 32- and 64-bit) and emulators (x86_64, arm64) are as before.
 - From a walk through the app: choosing a home mint when the account has none is titled "Choose home mint", no
   longer picks a mint for the user (unless they came from that mint or there is only one: the picker opens at once,
   "Choose" opens it again), says "New home: …" instead of "To …" and titles its picker "Home mint"; the button that

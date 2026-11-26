@@ -198,6 +198,8 @@ android {
     }
     // Lists the app's languages for the per-app language setting (from res/resources.properties).
     androidResources.generateLocaleConfig = true
+    // No 32-bit x86: nothing with Android 13 or later runs it, phones are ARM and emulators x86_64 or arm64.
+    packaging.jniLibs.excludes += "lib/x86/**"
     buildFeatures.buildConfig = true
     buildFeatures.resValues = true
     buildTypes {
