@@ -212,6 +212,8 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
     val several = state.mints.size > 1
     // One scale for every mint's bills: a big note looks big next to another mint's small ones.
     val largest = state.mints.maxOf { mint -> mint.notes.maxOfOrNull { it.amountMsat } ?: 0 }
+    // Room for why none counts on a mint (a long line), on every card so they stay as high; else the one line a mint's labels take.
+    val labelLines = if (state.mints.any { it.inBalance.isEmpty() }) 2 else 1
     HorizontalPager(
         pager,
         contentPadding = PaddingValues(horizontal = if (several) 28.dp else 16.dp),
@@ -233,6 +235,7 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
             mint = mint.host.takeIf { state.showMints },
             host = mint.host,
             labels = summary.labels,
+            labelLines = labelLines,
             totalMsat = summary.totalMsat,
             range = range,
             outsideBalance = summary.outsideBalance,

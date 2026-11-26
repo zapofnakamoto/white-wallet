@@ -520,6 +520,11 @@ class NotePileParams(
      */
     val labels: String,
     /**
+     * How many lines [labels] get, the same on every mint's card so they stay as high: 2 while any mint has none in the balance (its why is
+     * long), else 1.
+     */
+    val labelLines: Int,
+    /**
      * What its notes count in the balance, formatted; with none in the balance, what is held up there (waiting for an answer, or unknown to
      * the mint: [outsideBalance] says so); null when nothing is, as while its only notes are being paid.
      */
@@ -1100,10 +1105,10 @@ object DefaultComponents : BrandComponents {
     }
 
     /**
-     * A card: the mint's name, labels and total, then its bills fanned out, the biggest in front with its amount, each drawn to one scale
-     * across the mints ([NotePileParams.largestMsat]), and the range below. Bills out of the balance are greyed out, behind the others;
-     * with none in the balance the total is muted and "Not in your balance" takes the range's line. Always the same height, so swiping
-     * between mints keeps the page still.
+     * A card: the mint's name and total, its labels below at the card's width, then its bills fanned out, the biggest in front with its
+     * amount, each drawn to one scale across the mints ([NotePileParams.largestMsat]), and the range below. Bills out of the balance are
+     * greyed out, behind the others; with none in the balance the total is muted and "Not in your balance" takes the range's line. Always
+     * the same height, so swiping between mints keeps the page still.
      */
     @Composable
     fun notePile(params: NotePileParams, modifier: Modifier) {
@@ -1117,30 +1122,22 @@ object DefaultComponents : BrandComponents {
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Its mark, as beside its name in lists; "Trusted" is in its labels.
-                        if (params.mint != null)
-                            LocalBrandDesign.current.components.MintMark(
-                                MintMarkParams(params.pattern, params.colors, params.home, 24.dp),
-                                Modifier,
-                            )
-                        Text(
-                            params.mint ?: params.labels,
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (params.mint != null)
-                        Text(
-                            params.labels,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                }
+                // Its mark, as beside its name in lists; "Trusted" is in its labels.
+                if (params.mint != null)
+                    LocalBrandDesign.current.components.MintMark(
+                        MintMarkParams(params.pattern, params.colors, params.home, 24.dp),
+                        Modifier,
+                    )
+                // Without a name, the labels head the card, in as many lines.
+                val lines = if (params.mint == null) params.labelLines else 1
+                Text(
+                    params.mint ?: params.labels,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = lines,
+                    minLines = lines,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 params.total?.let { total ->
                     Text(
                         total,
@@ -1150,6 +1147,16 @@ object DefaultComponents : BrandComponents {
                 }
                 Icon(params.openIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            // Below, the card's whole width: why none counts is a long line.
+            if (params.mint != null)
+                Text(
+                    params.labels,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = params.labelLines,
+                    minLines = params.labelLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
             BillFan(params, Modifier.fillMaxWidth().padding(top = 8.dp).height(160.dp))
             // Always a line, empty or not: every mint's card is as high as the others.
             Text(

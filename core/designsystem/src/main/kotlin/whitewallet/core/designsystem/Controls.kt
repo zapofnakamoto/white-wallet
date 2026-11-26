@@ -312,15 +312,16 @@ fun WalletNoteGroupHeader(
 /**
  * One mint's notes as a pile of bills ([whitewallet.brand.ui.BrandComponents.NotePile]): [bills] are the amounts of its notes, those in the
  * balance first, then those out of it ([statuses]), each the biggest first, drawn to the scale of [largestMsat] (the biggest on any mint).
- * [totalMsat]: what counts in the balance, or with [outsideBalance] what is held up out of it; null for none. [frontIcon]: the front bill's
- * status mark when it is out of the balance. Read out as one: the mint, its labels, total and range or [outsideBalance]. [host]: the
- * mint's, for its pattern, also where [mint] isn't named.
+ * [labelLines]: the same on every mint's card. [totalMsat]: what counts in the balance, or with [outsideBalance] what is held up out of it;
+ * null for none. [frontIcon]: the front bill's status mark when it is out of the balance. Read out as one: the mint, its labels, total and
+ * range or [outsideBalance]. [host]: the mint's, for its pattern, also where [mint] isn't named.
  */
 @Composable
 fun WalletNotePile(
     mint: String?,
     host: String,
     labels: String,
+    labelLines: Int,
     totalMsat: Long?,
     range: String?,
     outsideBalance: String?,
@@ -342,6 +343,7 @@ fun WalletNotePile(
         NotePileParams(
             mint,
             labels,
+            labelLines,
             total = totalMsat?.let { formatAmount(it) },
             totalMsat ?: 0,
             range,
