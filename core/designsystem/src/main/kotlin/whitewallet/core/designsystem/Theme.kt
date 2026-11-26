@@ -1,7 +1,9 @@
 package whitewallet.core.designsystem
 
+import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.graphics.Typeface
 import android.provider.Settings
 import android.util.TypedValue
 import androidx.annotation.ColorRes
@@ -22,7 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.AndroidFont
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontLoadingStrategy
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -320,9 +326,34 @@ internal object BrandTokens {
     fun Resources.font(@FontRes id: Int): FontFamily? {
         val value = TypedValue()
         getValue(id, value, true)
-        // A font file or font-family XML is a path. Loaded as a typeface, a family keeps its weights (Typeface.create
-        // picks the weight).
-        return if (value.type == TypedValue.TYPE_STRING) FontFamily(getFont(id)) else null
+        // A font file or font-family XML is a path.
+        return if (value.type == TypedValue.TYPE_STRING) family(getFont(id)) else null
+    }
+
+    /**
+     * [typeface] as a family that keeps its weights: one font per weight and slant, each asking the typeface for that weight, so a
+     * font-family XML's entries are used. Compose's own `FontFamily(typeface)` draws every text with the typeface as it is, whatever weight
+     * the text asks for.
+     */
+    fun family(typeface: Typeface): FontFamily =
+        FontFamily(
+            (MIN_WEIGHT..MAX_WEIGHT step WEIGHT_STEP).flatMap { weight ->
+                listOf(FontStyle.Normal, FontStyle.Italic).map { style -> WeightOfTypeface(typeface, FontWeight(weight), style) }
+            }
+        )
+
+    private const val MIN_WEIGHT = 100
+    private const val MAX_WEIGHT = 900
+    private const val WEIGHT_STEP = 100
+
+    private class WeightOfTypeface(val typeface: Typeface, override val weight: FontWeight, override val style: FontStyle) :
+        AndroidFont(FontLoadingStrategy.Blocking, WeightOfTypefaceLoader, FontVariation.Settings())
+
+    private object WeightOfTypefaceLoader : AndroidFont.TypefaceLoader {
+        override fun loadBlocking(context: Context, font: AndroidFont): Typeface? =
+            (font as? WeightOfTypeface)?.let { Typeface.create(it.typeface, it.weight.weight, it.style == FontStyle.Italic) }
+
+        override suspend fun awaitLoad(context: Context, font: AndroidFont): Typeface? = loadBlocking(context, font)
     }
 
     private fun Resources.dp(@DimenRes id: Int) = (getDimension(id) / displayMetrics.density).dp

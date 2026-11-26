@@ -307,6 +307,8 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Fixed
 
+- For brands: a font family's weights are used. Every text was drawn in the family's regular weight, whatever
+  `brand_text_<style>_weight` or the style itself asked for, so a brand's bold headline came out regular.
 - Moving money between mints said contradicting fees: the preview "₿997 arrives after a fee of ₿-1", the result "after
   a fee of ₿2", for the same ₿996. Both now measure from the notes as they were (the result measured from them after
   the merge the mint paid back), and a move that costs nothing or less says what arrives without a fee; the fee total
