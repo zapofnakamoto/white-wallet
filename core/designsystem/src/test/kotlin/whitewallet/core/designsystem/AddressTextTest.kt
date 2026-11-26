@@ -64,10 +64,9 @@ class AddressTextTest {
         compose.onNodeWithText(address).assertExists()
     }
 
-    @Test
-    fun aRowsArrowStaysBesideALongAddress() {
+    private fun arrowBeside(address: String) {
         compose.setContent {
-            Box(Modifier.width(300.dp)) {
+            Box(Modifier.width(411.dp)) {
                 WalletListItem(
                     leadingContent = { Box(Modifier.size(40.dp)) },
                     headlineContent = { Text("Main") },
@@ -82,4 +81,14 @@ class AddressTextTest {
         val arrow = placed(hasTestTag("arrow"))
         assertTrue("$arrow beside $text", arrow.top < text.bottom && arrow.left >= text.right)
     }
+
+    @Test fun aRowsArrowStaysBesideALongAddress() = arrowBeside(address)
+
+    // The longest name the wallet lets a user choose.
+    @Test fun aRowsArrowStaysBesideTheLongestName() = arrowBeside("abcdefghijklmnopqrstuvwxyz012345@mint.lnurlcash.com")
+
+    // An onion mint's name fits no line of a phone: below the text the arrow wouldn't keep it whole either.
+    @Test
+    fun aRowsArrowStaysBesideAnOnionMint() =
+        arrowBeside("abcdefghijklmnopqrstuvwxyz012345@2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion")
 }

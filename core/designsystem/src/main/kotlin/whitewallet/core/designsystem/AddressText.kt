@@ -6,7 +6,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.getTextLayoutResult
 import androidx.compose.ui.semantics.text
@@ -17,6 +23,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 
 /**
  * A Lightning address, its name bolder and the mint ("@mint.example") quieter. Too long for its line, the mint goes below the name, "@"
@@ -50,9 +57,34 @@ fun AddressText(address: String, modifier: Modifier = Modifier, style: TextStyle
                 this.text = AnnotatedString(address)
                 getTextLayoutResult { results -> layouts[drawn[0]]?.let(results::add) != null }
             },
-    ) { (whole, broken), constraints ->
-        drawn[0] = if (whole.maxIntrinsicWidth(constraints.maxHeight) <= constraints.maxWidth) 0 else 1
-        val line = (if (drawn[0] == 0) whole else broken).measure(constraints)
-        layout(line.width, line.height) { line.place(0, 0) }
+        measurePolicy = remember { AddressLines { drawn[0] = it } },
+    )
+}
+
+/**
+ * Of an address written whole and with its mint on a line of its own, the one that fits its line. As narrow as the second can be: a row
+ * asking how little room the address needs is told its longest part, not the whole address.
+ */
+private class AddressLines(private val onDrawn: (Int) -> Unit) : MeasurePolicy {
+    private fun fitting(lines: List<IntrinsicMeasurable>, width: Int) =
+        if (lines[0].maxIntrinsicWidth(Constraints.Infinity) <= width) 0 else 1
+
+    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+        val drawn = fitting(measurables, constraints.maxWidth)
+        onDrawn(drawn)
+        val line = measurables[drawn].measure(constraints)
+        return layout(line.width, line.height) { line.place(0, 0) }
     }
+
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int) =
+        measurables[1].minIntrinsicWidth(height)
+
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int) =
+        measurables[0].maxIntrinsicWidth(height)
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int) =
+        measurables[fitting(measurables, width)].minIntrinsicHeight(width)
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int) =
+        measurables[fitting(measurables, width)].maxIntrinsicHeight(width)
 }

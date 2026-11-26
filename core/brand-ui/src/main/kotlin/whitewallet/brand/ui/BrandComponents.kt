@@ -765,7 +765,7 @@ object DefaultComponents : BrandComponents {
 
     /**
      * A Material list item, whose right-hand side ([ListRowParams.trailing]) goes below the text when beside it the text's longest word
-     * wouldn't fit (a large font, a long action): the text is then never split mid-word.
+     * wouldn't fit (a large font, a long action), but would on a line of its own: the text is then not split mid-word.
      */
     @Composable
     fun listRow(params: ListRowParams, modifier: Modifier) {
@@ -783,21 +783,25 @@ object DefaultComponents : BrandComponents {
                         // Only measured, never drawn: kept out of what a screen reader (or a test) finds.
                         fun probe(slot: ListRowSlot, content: @Composable () -> Unit) =
                             subcompose(slot) { Box(Modifier.clearAndSetSemantics {}) { content() } }
-                        val beside = probe(ListRowSlot.Trailing, trailing).maxOfOrNull { it.maxIntrinsicWidth(any) } ?: 0
+                        // Each part in the size the list item draws it in: a word is as wide as it will be there.
+                        val beside =
+                            probe(ListRowSlot.Trailing) { ProvideTextStyle(MaterialTheme.typography.labelSmall, trailing) }
+                                .maxOfOrNull { it.maxIntrinsicWidth(any) } ?: 0
                         val leading = params.leading?.let { l -> probe(ListRowSlot.Leading, l).maxOfOrNull { it.maxIntrinsicWidth(any) } }
                         val word =
                             probe(ListRowSlot.Text) {
                                     Column {
-                                        params.overline?.invoke()
-                                        params.headline()
-                                        params.supporting?.invoke()
+                                        params.overline?.let { ProvideTextStyle(MaterialTheme.typography.labelSmall, it) }
+                                        ProvideTextStyle(MaterialTheme.typography.bodyLarge, params.headline)
+                                        params.supporting?.let { ProvideTextStyle(MaterialTheme.typography.bodyMedium, it) }
                                     }
                                 }
                                 .maxOfOrNull { it.minIntrinsicWidth(any) } ?: 0
                         // Material's paddings: 16 dp at each end, and between the leading part, the text and the right-hand side.
                         val gap = 16.dp.roundToPx()
-                        val room = constraints.maxWidth - 2 * gap - (leading?.let { it + gap } ?: 0) - beside - gap
-                        room < word
+                        val alone = constraints.maxWidth - 2 * gap - (leading?.let { it + gap } ?: 0)
+                        // A word too long even for a line of its own is split either way: the right-hand side stays where it is.
+                        word in (alone - beside - gap + 1)..alone
                     }
             val row =
                 subcompose(if (below) ListRowSlot.Below else ListRowSlot.Beside) {
