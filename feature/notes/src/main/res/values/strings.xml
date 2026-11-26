@@ -122,6 +122,15 @@
     <string name="notes_mint_position">Mint %1$d of %2$d</string>
     <!-- On the page of what needs the user, with mints not named: a mint that wasn't answering, while the phone is offline. -->
     <string name="notes_attention_offline_unnamed">Your mint didn\'t answer, and you\'re offline. It\'s asked again when you\'re back online.</string>
+    <!-- Under a mint's name on its pile of bills, when none of its notes is in the balance: why, the most important first. -->
+    <plurals name="notes_pile_unknown">
+        <item quantity="one">%d note unknown to the mint</item>
+        <item quantity="other">%d notes unknown to the mint</item>
+    </plurals>
+    <plurals name="notes_pile_paying">
+        <item quantity="one">%d note being paid</item>
+        <item quantity="other">%d notes being paid</item>
+    </plurals>
 
     <string name="notes_sort_largest">Largest first</string>
     <string name="notes_sort_newest">Newest first</string>
@@ -218,6 +227,11 @@
     <string name="notes_outside_title">Not in your balance</string>
     <!-- A mint's smallest and biggest note, under its pile of bills: "From 1,000 sats to 21,000 sats". -->
     <string name="notes_range">From %1$s to %2$s</string>
+    <!-- After notes_pile_unknown, notes_attention_waiting or notes_pile_paying under a mint's pile: how many more notes are out of the balance for another reason. -->
+    <plurals name="notes_pile_more">
+        <item quantity="one">%d more</item>
+        <item quantity="other">%d more</item>
+    </plurals>
     <!-- Read out on a section of the notes view that opens and closes. -->
     <string name="notes_section_open">Expanded</string>
     <string name="notes_section_closed">Collapsed</string>

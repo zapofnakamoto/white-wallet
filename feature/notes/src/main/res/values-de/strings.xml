@@ -157,6 +157,18 @@
     </plurals>
     <string name="notes_outside_title">Nicht in deinem Guthaben</string>
     <string name="notes_range">Von %1$s bis %2$s</string>
+    <plurals name="notes_pile_unknown">
+        <item quantity="one">%d Schein der Mint unbekannt</item>
+        <item quantity="other">%d Scheine der Mint unbekannt</item>
+    </plurals>
+    <plurals name="notes_pile_paying">
+        <item quantity="one">%d Schein wird bezahlt</item>
+        <item quantity="other">%d Scheine werden bezahlt</item>
+    </plurals>
+    <plurals name="notes_pile_more">
+        <item quantity="one">%d weiterer</item>
+        <item quantity="other">%d weitere</item>
+    </plurals>
     <string name="notes_section_open">Ausgeklappt</string>
     <string name="notes_section_closed">Eingeklappt</string>
     <plurals name="notes_attention_waiting">

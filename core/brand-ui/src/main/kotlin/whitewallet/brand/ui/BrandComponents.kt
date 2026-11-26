@@ -514,18 +514,36 @@ val NoteStatus.inBalance: Boolean
 class NotePileParams(
     /** The mint's host; null where mints aren't named (brand `mints.visible=false`). */
     val mint: String?,
-    /** Home mint, trusted and how many notes, in words ("Home mint · Trusted · 84 notes"). */
+    /**
+     * Home mint, trusted and how many notes, in words ("Home mint · Trusted · 84 notes"); with none in the balance, why first, then home
+     * and trusted ("2 notes unknown to the mint · 1 more · Home mint").
+     */
     val labels: String,
-    /** What its notes count in the balance, formatted. */
-    val total: String,
+    /**
+     * What its notes count in the balance, formatted; with none in the balance, what is held up there (waiting for an answer, or unknown to
+     * the mint: [outsideBalance] says so); null when nothing is, as while its only notes are being paid.
+     */
+    val total: String?,
     val totalMsat: Long,
     /** From its smallest note to its biggest, in words ("From 1,000 sats to 21,000 sats"); null with one note or all alike. */
     val range: String?,
-    /** The notes on top of the pile, the biggest first (a few at most), formatted and in msat; empty when none counts in the balance. */
+    /**
+     * "Not in your balance", when [total] isn't counted in it: the default draws the total muted and says this where the range goes; null
+     * when the total is the balance's.
+     */
+    val outsideBalance: String?,
+    /**
+     * The notes on top of the pile (a few at most), formatted and in msat: those in the balance first, the biggest first, then those out of
+     * it ([billsStatus]), the biggest first.
+     */
     val bills: List<String>,
     val billsMsat: List<Long>,
     /** Whether each of [bills] is certified ([NoteFaceParams.certified]), in the same order; a bill without one is drawn plain. */
     val billsCertified: List<Boolean>,
+    /** How each of [bills] stands, in the same order: a bill out of the balance ([NoteStatus.inBalance]) is drawn greyed out. */
+    val billsStatus: List<NoteStatus>,
+    /** The mark of the front bill's status when it is out of the balance ([NoteFaceParams.statusIcon]); null when it is in it. */
+    val frontIcon: Painter?,
     /** The biggest note on any of the user's mints: bills are drawn to one scale across the mints. */
     val largestMsat: Long,
     val colors: NoteColors,
@@ -1077,8 +1095,9 @@ object DefaultComponents : BrandComponents {
 
     /**
      * A card: the mint's name, labels and total, then its bills fanned out, the biggest in front with its amount, each drawn to one scale
-     * across the mints ([NotePileParams.largestMsat]), and the range below. Always the same height, so swiping between mints keeps the page
-     * still.
+     * across the mints ([NotePileParams.largestMsat]), and the range below. Bills out of the balance are greyed out, behind the others;
+     * with none in the balance the total is muted and "Not in your balance" takes the range's line. Always the same height, so swiping
+     * between mints keeps the page still.
      */
     @Composable
     fun notePile(params: NotePileParams, modifier: Modifier) {
@@ -1116,13 +1135,19 @@ object DefaultComponents : BrandComponents {
                             overflow = TextOverflow.Ellipsis,
                         )
                 }
-                Text(params.total, style = MaterialTheme.typography.titleMedium)
+                params.total?.let { total ->
+                    Text(
+                        total,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (params.outsideBalance != null) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
+                    )
+                }
                 Icon(params.openIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             BillFan(params, Modifier.fillMaxWidth().padding(top = 8.dp).height(160.dp))
             // Always a line, empty or not: every mint's card is as high as the others.
             Text(
-                params.range.orEmpty(),
+                params.outsideBalance ?: params.range.orEmpty(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -1332,7 +1357,7 @@ private fun NoteFaceParams.billColors(): NoteColors =
 
 /**
  * Up to seven bills, the biggest in front in the mint's colours and the others behind it in a lighter tint, each a little to the right and
- * slightly turned. Without a note in the balance, one blank bill, greyed out.
+ * slightly turned; those out of the balance greyed out, the front one with its status's mark. Without a bill, one blank bill, greyed out.
  */
 @Composable
 private fun BillFan(params: NotePileParams, modifier: Modifier) {
@@ -1354,11 +1379,20 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
         val front = width(shown.first())
         val step = if (shown.size > 1) minOf(56.dp, (maxWidth - front) / (shown.size - 1)) else 0.dp
         val tint = NoteColors(lerp(params.colors.paper, MaterialTheme.colorScheme.surface, 0.7f), MaterialTheme.colorScheme.onSurface)
+        val greyed = greyedBill()
+        val greyedTint = NoteColors(lerp(greyed.paper, MaterialTheme.colorScheme.surface, 0.5f), greyed.ink)
         for (r in shown.indices.reversed()) {
             val w = width(shown[r])
             val h = w * 0.52f
+            val inBalance = params.billsStatus.getOrElse(r) { NoteStatus.Ready }.inBalance
+            val colors =
+                when {
+                    !inBalance -> if (r == 0) greyed else greyedTint
+                    r == 0 -> params.colors
+                    else -> tint
+                }
             Bill(
-                if (r == 0) params.colors else tint,
+                colors,
                 params.pattern,
                 Modifier.offset(x = front - w + step * r, y = (maxHeight - h) / 2)
                     .size(w, h)
@@ -1375,16 +1409,26 @@ private fun BillFan(params: NotePileParams, modifier: Modifier) {
                 elevation = 2.dp,
             ) {
                 // Decorative: the card is read out by its mint, labels, total and range, not by its biggest note.
-                if (r == 0)
+                if (r == 0) {
                     BillAmount(
                         params.bills.first(),
                         MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        params.colors,
+                        colors,
                         Modifier.align(Alignment.TopStart)
                             .fillMaxWidth(BILL_TEXT_WIDTH)
                             .padding(start = 14.dp, top = 12.dp, end = 6.dp)
                             .clearAndSetSemantics {},
                     )
+                    // Decorative too: the labels say why it is out of the balance.
+                    params.frontIcon?.let { icon ->
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = colors.ink,
+                            modifier = Modifier.align(Alignment.BottomStart).padding(start = 14.dp, bottom = 12.dp).size(20.dp),
+                        )
+                    }
+                }
             }
         }
     }

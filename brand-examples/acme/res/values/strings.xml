@@ -345,6 +345,14 @@
         <item quantity="one">%d banknote waiting for an answer</item>
         <item quantity="other">%d banknotes waiting for an answer</item>
     </plurals>
+    <plurals name="notes_pile_unknown">
+        <item quantity="one">%d banknote unknown to the provider</item>
+        <item quantity="other">%d banknotes unknown to the provider</item>
+    </plurals>
+    <plurals name="notes_pile_paying">
+        <item quantity="one">%d banknote being paid</item>
+        <item quantity="other">%d banknotes being paid</item>
+    </plurals>
     <plurals name="notes_attention_received">
         <item quantity="one">%d received banknote needs you</item>
         <item quantity="other">%d received banknotes need you</item>

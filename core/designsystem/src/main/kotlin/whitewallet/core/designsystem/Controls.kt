@@ -307,19 +307,24 @@ fun WalletNoteGroupHeader(
 }
 
 /**
- * One mint's notes as a pile of bills ([whitewallet.brand.ui.BrandComponents.NotePile]): [bills] are the amounts of the notes in the
- * balance, the biggest first, drawn to the scale of [largestMsat] (the biggest on any mint). Read out as one: the mint, its labels, total
- * and range. [host]: the mint's, for its pattern, also where [mint] isn't named.
+ * One mint's notes as a pile of bills ([whitewallet.brand.ui.BrandComponents.NotePile]): [bills] are the amounts of its notes, those in the
+ * balance first, then those out of it ([statuses]), each the biggest first, drawn to the scale of [largestMsat] (the biggest on any mint).
+ * [totalMsat]: what counts in the balance, or with [outsideBalance] what is held up out of it; null for none. [frontIcon]: the front bill's
+ * status mark when it is out of the balance. Read out as one: the mint, its labels, total and range or [outsideBalance]. [host]: the
+ * mint's, for its pattern, also where [mint] isn't named.
  */
 @Composable
 fun WalletNotePile(
     mint: String?,
     host: String,
     labels: String,
-    totalMsat: Long,
+    totalMsat: Long?,
     range: String?,
+    outsideBalance: String?,
     bills: List<Long>,
     certified: List<Boolean>,
+    statuses: List<NoteStatus>,
+    @DrawableRes frontIcon: Int?,
     largestMsat: Long,
     colors: NoteColors,
     home: Boolean,
@@ -334,12 +339,15 @@ fun WalletNotePile(
         NotePileParams(
             mint,
             labels,
-            total = formatAmount(totalMsat),
-            totalMsat,
+            total = totalMsat?.let { formatAmount(it) },
+            totalMsat ?: 0,
             range,
+            outsideBalance,
             bills = shown.map { formatAmount(it) },
             billsMsat = shown,
             billsCertified = certified.take(shown.size),
+            billsStatus = statuses.take(shown.size),
+            frontIcon = frontIcon?.let { painterResource(it) },
             largestMsat = largestMsat,
             colors,
             home,

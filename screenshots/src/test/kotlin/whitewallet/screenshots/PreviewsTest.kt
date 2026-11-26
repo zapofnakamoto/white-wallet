@@ -84,6 +84,7 @@ class PreviewsTest {
                 "MoveFundsPartialPreview",
                 "NotesOfflinePreview",
                 "NotesNoteProblemsPreview",
+                "NotesNoneInBalancePreview",
                 "NotesMintPagePreview",
                 "NotesAttentionPagePreview",
                 "NotesSelectingPreview",

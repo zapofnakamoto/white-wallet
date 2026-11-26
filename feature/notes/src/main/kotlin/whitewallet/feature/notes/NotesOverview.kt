@@ -46,6 +46,7 @@ import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.NoteFacePlace
 import whitewallet.brand.ui.NoteFaceSize
 import whitewallet.brand.ui.NoteStatus
+import whitewallet.brand.ui.inBalance
 import whitewallet.brand.ui.walletColors
 import whitewallet.core.designsystem.AmountText
 import whitewallet.core.designsystem.AttentionCard
@@ -64,6 +65,7 @@ import whitewallet.core.designsystem.recentTime
 import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.designsystem.waitsFor
 import whitewallet.core.model.Note
+import whitewallet.core.model.NoteState
 
 /**
  * All mints at a glance: the balance; what needs the user, only when anything does; each mint's notes as a pile of bills, swiped through
@@ -209,7 +211,7 @@ private fun Attention(state: NotesState, onOpen: () -> Unit) {
 private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerState) {
     val several = state.mints.size > 1
     // One scale for every mint's bills: a big note looks big next to another mint's small ones.
-    val largest = state.mints.maxOf { mint -> mint.inBalance.firstOrNull()?.amountMsat ?: 0 }
+    val largest = state.mints.maxOf { mint -> mint.notes.maxOfOrNull { it.amountMsat } ?: 0 }
     HorizontalPager(
         pager,
         contentPadding = PaddingValues(horizontal = if (several) 28.dp else 16.dp),
@@ -218,26 +220,39 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
         key = { state.mints[it].host },
     ) { page ->
         val mint = state.mints[page]
-        val bills = mint.inBalance
+        val counted = mint.inBalance
+        // Behind those in the balance, greyed out: the notes out of it (unknown to the mint, waiting for an answer, being paid).
+        val bills = counted + mint.notes.filter { it.state != NoteState.Outstanding }.sortedByDescending { it.amountMsat }
+        val statuses = bills.map(::noteStatus)
         val range =
-            bills
+            counted
                 .takeIf { it.size > 1 && it.first().amountMsat != it.last().amountMsat }
                 ?.let { stringResource(R.string.notes_range, formatAmount(it.last().amountMsat), formatAmount(it.first().amountMsat)) }
-        // Without named mints, nothing tells one mint from the other: no labels but the count.
-        val labels =
+        // With none in the balance: what is held up there, out of it (not what is being paid: that is on its way out), and why.
+        val heldMsat = bills.filter { it.state == NoteState.Unknown || it.state == NoteState.Ambiguous }.sumOf { it.amountMsat }
+        val total = if (counted.isNotEmpty()) mint.totalMsat else heldMsat.takeIf { it > 0 }
+        val outsideBalance = stringResource(R.string.notes_outside_title).takeIf { counted.isEmpty() && total != null }
+        // Without named mints, nothing tells one mint from the other: no labels but the count, or why none counts. Why comes first, so
+        // a narrow card cuts the home and trusted labels (its mark says home) rather than it.
+        val kind =
             listOfNotNull(
                 stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
                 stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted && state.showMints },
-                pluralStringResource(DesignR.plurals.notes_count, bills.size, bills.size),
             )
+        val labels =
+            if (counted.isNotEmpty()) kind + pluralStringResource(DesignR.plurals.notes_count, counted.size, counted.size)
+            else listOfNotNull(outsideReason(bills), outsideMore(bills)) + kind
         WalletNotePile(
             mint = mint.host.takeIf { state.showMints },
             host = mint.host,
             labels = labels.joinToString(stringResource(DesignR.string.notes_detail_separator)),
-            totalMsat = mint.totalMsat,
+            totalMsat = total,
             range = range,
+            outsideBalance = outsideBalance,
             bills = bills.map { it.amountMsat },
             certified = bills.map { it.certificate != null },
+            statuses = statuses,
+            frontIcon = statuses.firstOrNull()?.takeIf { !it.inBalance }?.let(::noteStatusIcon),
             largestMsat = largest,
             colors = MaterialTheme.walletColors.note(mint.isHome),
             home = mint.isHome,
@@ -248,6 +263,31 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
         )
     }
     if (several) PageControls(pager, state.mints.size)
+}
+
+/**
+ * The notes out of the balance, by why, the most important first, as the needs-attention card has them: unknown to the mint, waiting for an
+ * answer, being paid; each with how it is said with how many ("2 notes unknown to the mint").
+ */
+private fun outsideGroups(notes: List<Note>): List<Pair<Int, List<Note>>> =
+    listOf(
+            R.plurals.notes_pile_unknown to NoteState.Unknown,
+            R.plurals.notes_attention_waiting to NoteState.Ambiguous,
+            R.plurals.notes_pile_paying to NoteState.Paying,
+        )
+        .map { (words, s) -> words to notes.filter { it.state == s } }
+        .filter { it.second.isNotEmpty() }
+
+/** Why the first of [outsideGroups] is out of the balance, with how many; null without any. */
+@Composable
+private fun outsideReason(notes: List<Note>): String? =
+    outsideGroups(notes).firstOrNull()?.let { (words, group) -> pluralStringResource(words, group.size, group.size) }
+
+/** How many more notes are out of the balance for another reason ("1 more"); null without any. */
+@Composable
+private fun outsideMore(notes: List<Note>): String? {
+    val more = outsideGroups(notes).drop(1).sumOf { it.second.size }
+    return if (more > 0) pluralStringResource(R.plurals.notes_pile_more, more, more) else null
 }
 
 /** Arrows to the previous and next mint, and a dot per mint; the dots are read out as "Mint 2 of 3". */

@@ -155,6 +155,8 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `notes_mint_next` | Next mint |
 | `notes_mint_position` | Mint %1$d of %2$d |
 | `notes_attention_offline_unnamed` | Your mint didn't answer, and you're offline. It's asked again when you're back online. |
+| `notes_pile_unknown` | %d note unknown to the mint / %d notes unknown to the mint (plural) |
+| `notes_pile_paying` | %d note being paid / %d notes being paid (plural) |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
 | `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
 | `notice_unknown_back` | The mint knows a note again: you can spend it. / The mint knows %1$d notes again: you can spend them. (plural) |

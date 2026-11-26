@@ -346,6 +346,14 @@
         <item quantity="one">%d Geldschein wartet auf eine Antwort</item>
         <item quantity="other">%d Geldscheine warten auf eine Antwort</item>
     </plurals>
+    <plurals name="notes_pile_unknown">
+        <item quantity="one">%d Geldschein dem Anbieter unbekannt</item>
+        <item quantity="other">%d Geldscheine dem Anbieter unbekannt</item>
+    </plurals>
+    <plurals name="notes_pile_paying">
+        <item quantity="one">%d Geldschein wird bezahlt</item>
+        <item quantity="other">%d Geldscheine werden bezahlt</item>
+    </plurals>
     <plurals name="notes_attention_received">
         <item quantity="one">%d empfangener Geldschein braucht dich</item>
         <item quantity="other">%d empfangene Geldscheine brauchen dich</item>
