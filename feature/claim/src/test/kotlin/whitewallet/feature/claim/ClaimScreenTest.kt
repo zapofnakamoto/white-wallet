@@ -140,15 +140,6 @@ class ClaimScreenTest {
     }
 
     @Test
-    fun withoutMintsOnlyWhatNeedsTheUserIsShown() {
-        show(ClaimState(input = "x", preview = ready.copy(certified = false), showMints = false))
-        compose.onNodeWithText(text(R.string.claim_mint, "other.example")).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.claim_trusted)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.claim_other_mint, "other.example")).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.claim_not_certified)).assertExists()
-    }
-
-    @Test
     fun checkNeedsALink() {
         show(ClaimState())
         compose.onNodeWithText(text(R.string.claim_check)).assertIsNotEnabled()

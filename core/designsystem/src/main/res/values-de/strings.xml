@@ -33,7 +33,6 @@
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
     <string name="mint_key_changed">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Dort wird nichts gesendet und keine Rechnung erstellt, bis er wieder passt oder du den neuen Schlüssel annimmst. Zahlungen an deine Adressen dort warten bis dahin.</string>
     <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel der Mint passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details der Mint den neuen Schlüssel annimmst, wird nichts dorthin gesendet.</string>
-    <string name="mint_not_answering_unnamed">Deine Mint antwortet nicht. Versuche es später erneut.</string>
     <string name="own_claim_refused">Die Mint hat das nicht angenommen. Versuche es später erneut.</string>
     <string name="mint_key_accept_body">Tu das nur, wenn du weißt, warum %1$s den Schlüssel geändert hat, etwa weil der Betreiber es angekündigt hat. Antwortet jemand anderes an seiner Stelle, können deine Scheine dort und alles, was du dorthin sendest, verloren gehen.</string>
     <string name="take_back_done_title">Eingelöst</string>
@@ -90,8 +89,6 @@
         <item quantity="other">Seine Mint hat %d Tage lang nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</item>
     </plurals>
     <string name="received_unreachable">Seine Mint hat nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
-    <!-- A received note waits for its mint, which didn't answer the last time (mints not named). -->
-    <string name="received_waiting_mint_unnamed">Wird eingelöst, sobald seine Mint antwortet.</string>
     <string name="received_lightning_no_key">Seine Mint veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_not_a_note">Seine Mint antwortet darauf nicht wie auf einen Schein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_receive">Empfangen</string>

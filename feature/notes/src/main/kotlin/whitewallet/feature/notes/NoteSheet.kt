@@ -78,7 +78,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 status = noteStatus(note),
                 statusText = noteStatusText(noteStatus(note), handedOut = note.handedOut != null),
                 age = recentTime(note.updatedAtMillis),
-                mint = note.host.takeIf { state.showMints },
+                mint = note.host,
                 host = note.host,
                 trusted = state.openTrusted,
                 enabled = NotesViewModel.selectable(note) && !state.busy,
@@ -86,11 +86,10 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
                 certified = note.certificate != null,
             )
             Text(
-                if (state.showMints) stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis))
-                else recentTime(note.updatedAtMillis),
+                stringResource(R.string.notes_sheet_where, note.host, recentTime(note.updatedAtMillis)),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            if (state.showMints && state.openTrusted) {
+            if (state.openTrusted) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TrustedIcon()
                     Text(
@@ -160,7 +159,7 @@ internal fun NoteSheet(note: Note, state: NotesState, actions: NotesActions) {
             }
             if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth())
             state.outcome?.let {
-                Box(Modifier.bringIntoViewRequester(outcomeView)) { Outcome(it, state.showMints, actions.dismissOutcome) }
+                Box(Modifier.bringIntoViewRequester(outcomeView)) { Outcome(it, actions.dismissOutcome) }
             }
             if (archivable) {
                 Text(

@@ -8,7 +8,6 @@
     <string name="send_problem_own_mint_invoice">Diese Rechnung stammt von deiner eigenen Mint, die sich nicht selbst über Lightning bezahlen kann. Frag stattdessen nach einer Lightning-Adresse.</string>
     <string name="send_problem_invoice_used">Diese Rechnung wurde schon verwendet. Frag nach einer neuen.</string>
     <string name="send_from_detail_home">Haupt-Mint · bis zu %1$s</string>
-    <string name="send_key_changed_held_unnamed">%1$s bei deiner Mint lässt sich erst senden, wenn ihr Signaturschlüssel wieder passt.</string>
     <string name="note_create_title">Als Schein senden</string>
     <string name="note_create_body">Erstelle einen Schein über einen Betrag und gib ihn als QR-Code oder Link weiter. Wer ihn bekommt, kann das Geld in einer kompatiblen Wallet einlösen.</string>
     <string name="note_available">Du kannst einen Schein über bis zu %1$s erstellen.</string>

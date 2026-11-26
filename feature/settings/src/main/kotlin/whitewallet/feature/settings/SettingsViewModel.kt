@@ -55,10 +55,10 @@ data class SettingsState(
 )
 
 /**
- * The pages a brand's configuration leaves out: the note list unless it lives in settings (`notes.view`), the mint pages without
- * `mints.visible`, Amounts when the unit is fixed (`amounts.unit.changeable`), Developer options unless the brand shows them
- * (`developer.options`), and Note settings when there is nothing to choose (one strategy that also renews the address's notes, and no
- * switch for collecting or for being told what the wallet did by itself).
+ * The pages a brand's configuration leaves out: the note list unless it lives in settings (`notes.view`), Amounts when the unit is fixed
+ * (`amounts.unit.changeable`), Developer options unless the brand shows them (`developer.options`), and Note settings when there is nothing
+ * to choose (one strategy that also renews the address's notes, and no switch for collecting or for being told what the wallet did by
+ * itself).
  */
 internal fun hiddenPages(
     defaults: AppDefaults,
@@ -69,7 +69,6 @@ internal fun hiddenPages(
 ): Set<SettingsTarget> = buildSet {
     if (!defaults.developerOptionsVisible(developer, unlocked)) add(SettingsTarget.Developer)
     if (defaults.notesView != NotesView.Settings) add(SettingsTarget.NoteList)
-    if (!defaults.showMints) add(SettingsTarget.Mints)
     if (!defaults.allowUnitChange) add(SettingsTarget.Display)
     val nothingToChoose =
         wallet.noteStrategies.size <= 1 &&

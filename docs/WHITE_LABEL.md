@@ -9,7 +9,7 @@ look in code, its own pages, its own note strategy) adds a `code/` module there 
 dev/new-brand.sh --name "Acme Cash" --id com.acme.cash --mint mint.acme.com --primary "#0B6E4F" --logo logo.svg
 ```
 
-This writes a complete brand directory, by default `brands/<name>/`, which git ignores so a generated brand never lands in this repository. Keep a real brand in its own repository (`--out ../acme-brand`) and build it with `-PbrandDir=../acme-brand`; `--out brand --force` replaces the default brand instead. `brand-examples/` holds only the committed samples. The script then checks the brand and builds a debug APK that installs next to the original. `--help` lists every option (`--unit sats`, `--lock-unit`, `--lock`, `--no-address`, `--max-accounts`, `--max-addresses`, `--note-strategy`, `--no-strategy-choice`, `--collect-at-home`, `--collect-fee-cap`, `--notes-view`, `--hide-mints`, `--developer-options`, `--trusted-mint`, `--suggest`, `--support-url`, `--secondary`/`--tertiary`, `--no-mint-check`, `--no-build`). It:
+This writes a complete brand directory, by default `brands/<name>/`, which git ignores so a generated brand never lands in this repository. Keep a real brand in its own repository (`--out ../acme-brand`) and build it with `-PbrandDir=../acme-brand`; `--out brand --force` replaces the default brand instead. `brand-examples/` holds only the committed samples. The script then checks the brand and builds a debug APK that installs next to the original. `--help` lists every option (`--unit sats`, `--lock-unit`, `--lock`, `--no-address`, `--max-accounts`, `--max-addresses`, `--note-strategy`, `--no-strategy-choice`, `--collect-at-home`, `--collect-fee-cap`, `--notes-view`, `--developer-options`, `--trusted-mint`, `--suggest`, `--support-url`, `--secondary`/`--tertiary`, `--no-mint-check`, `--no-build`). It:
 
 - refuses an invalid application ID or the original one, and warns about `com.example.*`, which app stores refuse;
 - checks that `--mint` answers as an LNURLcash mint (a payRequest with `withdrawLink`, as the app does);
@@ -34,8 +34,7 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `app.supportUrl` | Exposed as `BuildConfig.SUPPORT_URL` |
 | `mints.suggestions` | The LNURLcash mints offered at setup and restore, comma-separated (`host` or `host:port`); the first is preselected. Empty: users bring their own mint (needs `mints.custom=true`). Only for bootstrapping: after setup, users choose among the mints they know (see "Which mints users can use") |
 | `mints.custom` | `true` (default): users may also use mints you don't suggest: type one at setup ("Custom…"), add one under Settings → Mints, make it their home. `false`: only the suggested mints can be a home, hold an address or receive moved money; users add a missing one from your list under Settings → Mints. Notes from any mint can still be claimed. `false` with no suggestions fails the build |
-| `mints.changeable` | After setup: `true` lets users add a Lightning address on another mint (same recovery phrase), change their home mint (from Settings → Mints and the mint pages) and move money between the mints they know, which needs `mints.visible=true` (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose). `false`: each account stays on the mint it was set up with. With `true` (and `mints.visible=true`, and `addresses.lightning` not `required`), setup and restore also offer to go on without a mint: Home then asks for one until it is added |
-| `mints.visible` | `false` hides everything about mints from users: Settings → Mints (the account's home mint and the wallet's other mints, also on the account's page) and the mint pages, on Claim which mint a note is on and whether it's trusted (a note whose amount can't be verified is still flagged), and in the notes view the mints' names, labels and totals: one mint's notes are a plain list, several mints' are only separated by a line. Default `true`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`), `notes.collect.atHomeMint` `hidden` or `always`, and `notes.maintenance.notices` `hidden` or `always` |
+| `mints.changeable` | After setup: `true` lets users add a Lightning address on another mint (same recovery phrase), change their home mint (from Settings → Mints and the mint pages) and move money between the mints they know (when the home changes, an account that collects at its home mint takes along what the fee cap allows; others choose). `false`: each account stays on the mint it was set up with. With `true` (and `addresses.lightning` not `required`), setup and restore also offer to go on without a mint: Home then asks for one until it is added |
 | `mints.trusted` | Mints shown as trusted from the start (Settings → Mints; a check mark on their notes, a hint when claiming), comma-separated `host:pubkey` with the mint's signing key (66 hex characters). Trust names the key: a mint presenting another key isn't trusted. Users can untrust them. Each account's home mint is trusted by default anyway. Default empty |
 | `accounts.max` | How many accounts one recovery phrase may hold. `0` = no limit. With `wallets.max=1`, `1` hides the account switcher (on Home, the Mints page and a mint's page), and Settings → Wallets (the same pages in every app: the wallets, a wallet's page, an account's page) offers no "Add wallet" or "Add account". Set both for an app of one account: `wallets.max` has no limit by default |
 | `wallets.max` | How many recovery phrases the app holds, each backed up and deleted as one. `0` = no limit |
@@ -46,8 +45,8 @@ Keys are grouped by what they concern, the group first: `app.*`, `mints.*`, `acc
 | `amounts.unit.default` | How amounts are shown (until the user picks another unit under Settings → Amounts, if allowed): `bitcoin` (default, [BIP-177](https://github.com/bitcoin/bips/blob/master/bip-0177.mediawiki): the smallest unit as a whole number with the sign, `₿1,000`) or `sats` (`1,000 sats`). The numbers are the same either way |
 | `amounts.unit.changeable` | Whether users may switch the unit under Settings → Amounts (default `true`). With `false` the page is gone and every amount shows in `amounts.unit.default` |
 | `notes.view` | Where users see and manage their notes (share one as a QR code, split, combine, move, recheck, renew): `tab` (default) = a **Notes** tab next to Wallet and History, `settings` = a page under Settings → Account, `hidden` = nowhere; the note strategy keeps the notes by itself and users only see their balance and history |
-| `notes.actions` | What users can do with their notes in the notes view, and with a handed-out one, comma-separated: `share` (the whole note as a QR code), `split`, `combine`, `move` (to another mint, and "Move anyway" when collecting skipped one; needs `mints.visible=true`), `recheck`, `renew`, `print` (a handed-out note on its page: its face, QR code and bearer warning on white paper, in the brand's light theme). Without `combine`, `move` and `recheck`, which work on several notes, there is no selecting. Unset (the default) = all of them, without `move` when `mints.visible=false`; empty = the notes are only shown. An unknown action, or `move` with `mints.visible=false`, stops the app at its first start |
-| `notes.strategies` | The note strategies users can choose from under Settings → Wallets → the account → Note settings, in this order: `single` (keep only one note per mint), `manual` (keep notes as they arrive), and any your code module adds (see "Custom code"). One entry hides the choice. Default `single,manual` |
+| `notes.actions` | What users can do with their notes in the notes view, and with a handed-out one, comma-separated: `share` (the whole note as a QR code), `split`, `combine`, `move` (to another mint, and "Move anyway" when collecting skipped one), `recheck`, `renew`, `print` (a handed-out note on its page: its face, QR code and bearer warning on white paper, in the brand's light theme). Without `combine`, `move` and `recheck`, which work on several notes, there is no selecting. Unset (the default) = all of them; empty = the notes are only shown. An unknown action stops the app at its first start |
+| `notes.strategies` | The note strategies users can choose from under Settings → Wallets → the account → Note settings, in this order: `single` (keep only one note per mint), `manual` (keep notes as they arrive), and any your code module adds (see "Custom code"). One entry hides the choice. Default `single,manual`. Note settings disappear by themselves when there is nothing to choose: one strategy that renews the address's notes itself (`single`), `notes.collect.atHomeMint` `hidden` or `always`, and `notes.maintenance.notices` `hidden` or `always` |
 | `notes.strategy.default` | The strategy a new account starts with; one of `notes.strategies`. Default `manual` |
 | `notes.collect.atHomeMint` | "Move everything to the home mint" in Settings → Wallets → the account → Note settings: notes on other mints (claimed notes, or an old home mint) are moved to the account's home mint automatically, for the active account, over Lightning, when the move costs at most the fee cap. `hidden` = not offered, `off` = offered and starts off (default), `on` = offered and starts on (users can switch it per wallet), `always` = every wallet collects and users have no switch. When users change their home mint, a summary shows what moves and its fee first; with `on` or `always` the cap decides, otherwise they choose per mint |
 | `notes.collect.feeCap` | The default fee cap for those moves, in percent of what is moved (default `2`). Users pick 1, 2, 5 or 10 % |
@@ -83,6 +82,17 @@ Three keys decide it. At setup and restore, the mint picker shows only when ther
 | Our mints; users may switch among them | several | `false` | `true` |
 | Users bring their own, then keep it | empty | `true` | `false` |
 | Open, our mint suggested | ours (and others) | `true` | `true` |
+
+#### One mint of your own
+
+A brand that offers only its own mint sets two keys:
+
+```properties
+mints.suggestions=mint.acme.com
+mints.custom=false
+```
+
+Setup then has no mint picker, and no other mint can be added, become a home, hold an address or receive moved money (`mints.changeable=false` also drops what is left to change). Mints are always shown, and users can still claim a note from any other mint and hold it: it is in their balance, the notes view shows it under its mint, they can pay from it, hand it out, and move it to your mint (or let the wallet do so, `notes.collect.atHomeMint`).
 
 ### Naming the custodian and its notes, in any language
 
@@ -147,18 +157,15 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `archive_note_remove_body` | Its mint doesn't know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase. |
 | `notes_attention_unknown_at` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
 | `notes_attention_unknown` | Your mints don't know %d of your notes / Your mints don't know %d of your notes (plural) |
-| `notes_attention_unknown_unnamed` | Your mint doesn't know %d of your notes / Your mint doesn't know %d of your notes (plural) |
 | `notes_attention_waiting` | %d note waiting for an answer / %d notes waiting for an answer (plural) |
 | `notes_attention_received` | %d received note needs you / %d received notes need you (plural) |
 | `notes_mint_open` | Show its notes |
 | `notes_mint_previous` | Previous mint |
 | `notes_mint_next` | Next mint |
 | `notes_mint_position` | Mint %1$d of %2$d |
-| `notes_attention_offline_unnamed` | Your mint didn't answer, and you're offline. It's asked again when you're back online. |
 | `notes_pile_unknown` | %d note unknown to the mint / %d notes unknown to the mint (plural) |
 | `notes_pile_paying` | %d note being paid / %d notes being paid (plural) |
 | `home_unknown_title` | %2$s doesn't know %1$d of your notes / %2$s doesn't know %1$d of your notes (plural) |
-| `home_unknown_title_unnamed` | Your mint doesn't know %1$d of your notes / Your mint doesn't know %1$d of your notes (plural) |
 | `notice_unknown_back` | The mint knows a note again: you can spend it. / The mint knows %1$d notes again: you can spend them. (plural) |
 | `notice_unknown_still` | Asked just now: the mint still doesn't know your note. / Asked just now: the mint still doesn't know your notes. (plural) |
 | `notice_unknown_unreachable_unnamed` | Your mint isn't answering. Your wallet asks again later. |
@@ -176,7 +183,6 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `home_mint_is_home_not_answering` | Home mint · not answering |
 | `home_mint_is_home_key_changed` | Home mint · signing key doesn't match |
 | `home_mint_silent_title_home` | Your home mint, %1$s, isn't answering |
-| `home_mint_silent_title_unnamed` | Your mint isn't answering |
 | `home_mints_silent_title` | %1$d mint isn't answering / %1$d mints aren't answering (plural) |
 | `home_more_mints` | %1$d more mint / %1$d more mints (plural) |
 | `receive_no_mint` | This wallet has no mint yet. Add one to receive. |
@@ -216,11 +222,9 @@ Keys say `mint` where the text does (`<screen>_<what it says>`):
 | `received_refused_days` | Its mint kept refusing it for %d day, so your wallet stopped trying. / Its mint kept refusing it for %d days, so your wallet stopped trying. (plural) |
 | `received_unreachable` | Its mint didn't answer, so your wallet stopped trying. |
 | `mint_key_changed_nothing_sent` | The signing key of the mint doesn't match the one your wallet knows. Until it matches again, or you accept the new key in the mint's details, nothing is sent there. |
-| `mint_not_answering_unnamed` | Your mint isn't answering. Try again later. |
 | `own_claim_refused` | Its mint didn't accept that. Try again later. |
 | `received_unreachable_hours` | Its mint didn't answer for %d hour, so your wallet stopped trying. / Its mint didn't answer for %d hours, so your wallet stopped trying. (plural) |
 | `received_unreachable_days` | Its mint didn't answer for %d day, so your wallet stopped trying. / Its mint didn't answer for %d days, so your wallet stopped trying. (plural) |
-| `received_waiting_mint_unnamed` | Claimed when its mint answers. |
 | `received_lightning_no_key` | Its mint publishes no signing key, so it can only be received over Lightning, for a fee. |
 | `received_lightning_not_a_note` | Its mint doesn't answer for it as a note, so it can only be received over Lightning, for a fee. |
 
@@ -289,20 +293,14 @@ German calls it "Schein". `brand-examples/acme/` says "banknote" and "Geldschein
 | `onboarding_tagline` | Bearer notes on Lightning. Ready in one tap. |
 | `receive_hint` | Anyone can pay this address from any Lightning wallet. Payments arrive as notes in this wallet. |
 | `receive_claim` | Claim a note instead |
-| `receive_address_mint_silent_unnamed` | Your mint isn't answering, so payments to this address can't arrive right now. |
-| `receive_invoice_mint_silent_unnamed` | Your mint isn't answering, so no invoice can be created right now. Try again later. |
 | `receive_on_home` | On %1$s, your home mint |
 | `receive_on_home_detail` | Home mint · %1$s |
-| `receive_address_key_changed_unnamed` | The signing key of your mint doesn't match the one your wallet knows, so payments to this address wait there for now. |
-| `receive_key_checking_unnamed` | Checking your mint… |
-| `receive_invoice_key_changed_unnamed` | The signing key of your mint doesn't match the one your wallet knows, so no invoice can be created right now. |
 | `send_create_note` | Create a note |
 | `send_problem_refused` | The mint refused this payment. |
 | `send_problem_mint_silent_unnamed` | Your mint isn't answering. Nothing was paid. Try again later. |
 | `send_problem_own_mint_invoice` | This invoice is from your own mint, which can't pay itself over Lightning. Ask for a Lightning address instead. |
 | `send_problem_invoice_used` | This invoice was already used. Ask for a new one. |
 | `send_from_detail_home` | Home mint · up to %1$s |
-| `send_key_changed_held_unnamed` | %1$s on your mint can't be sent until its signing key matches. |
 | `note_create_title` | Send as a note |
 | `note_create_body` | Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet. |
 | `note_available` | You can make a note of up to %1$s. |
@@ -493,8 +491,7 @@ and the CHANGELOG says so for each.
   (the notes list and a note's details), `Claim` (someone's note before the user claims it), `Shared` (a
   handed-out note: its page, and its row in the notes view, under the handed-out heading) or `Paper` (printed). `params` has the amount
   (formatted and in msat), the `status` (`NoteStatus`: `Ready`, `Paying`, `Unclear`, `Uncertified`, `Waiting`,
-  `Spent`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null with
-  `mints.visible=false`), whether it is trusted, `selected` while the user selects (null otherwise) and `colors`, its
+  `Spent`, `TakenBack`, `Unknown`; give a `when` an `else`), its words and mark, the age, the mint (null where it isn't shown), whether it is trusted, `selected` while the user selects (null otherwise) and `colors`, its
   mint's bill colours (`WalletColors.homeMintNote` or `otherMintsNote`; a status out of the balance, `!status.inBalance`, is drawn greyed out by
   default), `certified` when its mint's certificate for its amount verified (a certificate that
   doesn't verify is never kept; the default draws a foil stripe with engraved lines on a certified bill, and the
@@ -504,13 +501,12 @@ and the CHANGELOG says so for each.
   doesn't move the page. The default is a card with the bills fanned out. Make the whole pile clickable with
   `onClick` and `onClickLabel` inside its own shape (so the ripple keeps its corners); what a tap does (it opens the
   mint's page) and the swiping, arrows and dots stay the app's. `NoteGroupHeader`
-  heads that page: the mint (null with `mints.visible=false`), its total and labels (home, trusted, how many notes, in the pile's order), its
+  heads that page: the mint, its total and labels (home, trusted, how many notes, in the pile's order), its
   `pattern` and `colors`; by default with the mint's mark.
 - **A mint's design:** `MintPattern.of(host)` gives each mint a design from its host alone, the same on every phone:
   `border` (`BillBorder`), `waveFrequency` and `wavePhase`, `engravingAngle` (of a certified bill's stripe), and its
   seal, `sealShape` (`SealShape`) around `sealMotif` (`SealMotif`) with `petals` and `depth`. New values may come: give
-  a `when` an `else`. It reaches `NoteFace`, `NotePile` and `NoteGroupHeader` as `params.pattern`, also with
-  `mints.visible=false`. The default bills draw all of it; a brand may use only some traits, or none, but if it draws
+  a `when` an `else`. It reaches `NoteFace`, `NotePile` and `NoteGroupHeader` as `params.pattern`. The default bills draw all of it; a brand may use only some traits, or none, but if it draws
   a seal, keep its outline and motif, which tell mints apart most. To draw the seal as the default bills do, over a
   brand's own notes, call `mintSeal(pattern, center, radius, width)` in a `drawWithCache`; it gives back what draws it
   in a colour. `MintMark(params, modifier)` draws the mint's mark beside its name in lists and pickers of mints (never

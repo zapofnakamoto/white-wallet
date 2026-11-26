@@ -75,12 +75,11 @@ class HomeStateTest {
         AccountMint(host, home, msat, 1, 0, trusted = true, answering = answering)
 
     @Test
-    fun `mints that don't answer are warned about, one card where mints don't show, none while offline`() {
+    fun `mints that don't answer are warned about, none while offline`() {
         val silent = listOf(mint("a.example", 6_000, home = true, answering = false), mint("b.example", 2_000, answering = false))
         val state = HomeState(activeAccountId = "a", mints = silent + mint("c.example", 1_000))
         assertEquals(silent.map(HomeAlert::MintNotAnswering), state.alerts)
         assertEquals(WalletStatus.Problem(ProblemKind.MintNotAnswering), state.status)
-        assertEquals(listOf(HomeAlert.MintNotAnswering(silent.first())), state.copy(mintsVisible = false).alerts)
         assertEquals(emptyList(), state.copy(offline = true).alerts)
         assertEquals(WalletStatus.Problem(ProblemKind.Offline), state.copy(offline = true).status)
         assertEquals(WalletStatus.Problem(ProblemKind.Other), HomeState(activeAccountId = "a", refreshFailed = true).status)
@@ -93,15 +92,13 @@ class HomeStateTest {
         val state = HomeState(activeAccountId = "a", mints = listOf(home) + others + mint("d.example", 500))
         assertEquals(listOf(HomeAlert.MintNotAnswering(home), HomeAlert.MintsNotAnswering(others)), state.alerts)
         assertEquals(listOf(HomeAlert.MintsNotAnswering(others)), state.copy(mints = others).alerts)
-        assertEquals(listOf(HomeAlert.MintNotAnswering(home)), state.copy(mintsVisible = false).alerts)
     }
 
     @Test
-    fun `the balance is told per mint only once it is on several, and where mints and the balance show`() {
+    fun `the balance is told per mint only once it is on several, and where the balance shows`() {
         val two = listOf(mint("a.example", 6_000, home = true), mint("b.example", 2_000))
         assertEquals(two, HomeState(mints = two).balanceByMint)
         assertEquals(emptyList(), HomeState(mints = two.take(1)).balanceByMint)
-        assertEquals(emptyList(), HomeState(mints = two, mintsVisible = false).balanceByMint)
         assertEquals(emptyList(), HomeState(mints = two, balanceHidden = true).balanceByMint)
     }
 

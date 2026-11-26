@@ -182,11 +182,11 @@ fun ReceiveScreen(
     }
 }
 
-/** "On mint.example.com · Change": shown where mints are named and there is a mint to pick, or one was picked. */
+/** "On mint.example.com · Change": shown where there is a mint to pick, or one was picked. */
 @Composable
 private fun MintLine(state: ReceiveState, onChange: (() -> Unit)?) {
     val host = state.receivingHost ?: return
-    if (!state.mintsVisible || !(state.canPickMint || state.on != null)) return
+    if (!(state.canPickMint || state.on != null)) return
     MintChoiceLine(
         if (host == state.homeHost) stringResource(R.string.receive_on_home, host) else stringResource(R.string.receive_on, host),
         onChange.takeIf { state.canPickMint },
@@ -261,18 +261,15 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
         WalletButton(onClick = actions.onOpenAddresses) { Text(stringResource(R.string.receive_address_fix)) }
     } else if (state.addressKeyChanged) {
         KeyChanged(
-            state,
-            if (state.mintsVisible) stringResource(R.string.receive_address_key_changed, state.addressHost.orEmpty())
-            else stringResource(R.string.receive_address_key_changed_unnamed),
+            stringResource(R.string.receive_address_key_changed, state.addressHost.orEmpty()),
             state.addressHost,
             actions.onOpenMint,
         )
     } else if (state.addressHost in state.keyChecking) {
-        Checking(state, state.addressHost.orEmpty())
+        Checking(state.addressHost.orEmpty())
     } else if (state.addressMintNotAnswering) {
         Text(
-            if (state.mintsVisible) stringResource(R.string.receive_address_mint_silent, state.addressHost.orEmpty())
-            else stringResource(R.string.receive_address_mint_silent_unnamed),
+            stringResource(R.string.receive_address_mint_silent, state.addressHost.orEmpty()),
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodyMedium,
@@ -289,23 +286,22 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
 
 /** The mint's signing key is being asked for, so nothing is made there yet. */
 @Composable
-private fun Checking(state: ReceiveState, host: String) {
+private fun Checking(host: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         WalletCircularProgress(Modifier.size(16.dp))
         Text(
-            if (state.mintsVisible) stringResource(R.string.receive_key_checking, host)
-            else stringResource(R.string.receive_key_checking_unnamed),
+            stringResource(R.string.receive_key_checking, host),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-/** Why nothing is received on [host] now, with the way to its details where the new key is accepted (where the brand names mints). */
+/** Why nothing is received on [host] now, with the way to its details where the new key is accepted. */
 @Composable
-private fun KeyChanged(state: ReceiveState, message: String, host: String?, onOpenMint: (String) -> Unit) {
+private fun KeyChanged(message: String, host: String?, onOpenMint: (String) -> Unit) {
     Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-    if (state.mintsVisible && host != null) {
+    if (host != null) {
         WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(host) }) { Text(stringResource(DesignR.string.details)) }
     }
 }
@@ -325,17 +321,11 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @
         modifier = Modifier.fillMaxWidth(),
     )
     // Being offline is said as it is, before the user tries, and not as an error once the phone is back.
-    if (!state.receivingChecked) Checking(state, state.receivingHost.orEmpty())
+    if (!state.receivingChecked) Checking(state.receivingHost.orEmpty())
     // Known before the user tries, said up front; else as the mint's answer to the attempt.
     val keyChanged = state.receivingHost.takeIf { state.receivingKeyChanged } ?: (state.problem as? InvoiceProblem.KeyChanged)?.host
     keyChanged?.let { host ->
-        KeyChanged(
-            state,
-            if (state.mintsVisible) stringResource(R.string.receive_invoice_key_changed, host)
-            else stringResource(R.string.receive_invoice_key_changed_unnamed),
-            host,
-            actions.onOpenMint,
-        )
+        KeyChanged(stringResource(R.string.receive_invoice_key_changed, host), host, actions.onOpenMint)
     }
     state.problem
         ?.takeUnless { it == InvoiceProblem.Offline || it is InvoiceProblem.KeyChanged }
@@ -344,9 +334,7 @@ private fun AmountForm(state: ReceiveState, actions: InvoiceActions, mintLine: @
                 when (problem) {
                     is InvoiceProblem.OutOfRange ->
                         stringResource(R.string.receive_invoice_range, formatAmount(problem.minMsat), formatAmount(problem.maxMsat))
-                    is InvoiceProblem.MintNotAnswering ->
-                        if (state.mintsVisible) stringResource(R.string.receive_invoice_mint_silent, problem.host)
-                        else stringResource(R.string.receive_invoice_mint_silent_unnamed)
+                    is InvoiceProblem.MintNotAnswering -> stringResource(R.string.receive_invoice_mint_silent, problem.host)
                     InvoiceProblem.Offline,
                     InvoiceProblem.NoAnswer,
                     InvoiceProblem.Refused,

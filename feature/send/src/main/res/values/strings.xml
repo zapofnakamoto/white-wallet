@@ -14,8 +14,6 @@
     <string name="send_problem_invoice_used">This invoice was already used. Ask for a new one.</string>
     <!-- The home mint in the Send from list. %1$s: the most one payment from it can be. -->
     <string name="send_from_detail_home">Home mint · up to %1$s</string>
-    <!-- As send_key_changed_held, where the brand doesn't name mints. %1$s: what is held on all such mints. -->
-    <string name="send_key_changed_held_unnamed">%1$s on your mint can\'t be sent until its signing key matches.</string>
     <string name="note_create_title">Send as a note</string>
     <string name="note_create_body">Make a note worth an amount and hand it over as a QR code or link. Whoever gets it can claim the money in a compatible wallet.</string>
     <string name="note_available">You can make a note of up to %1$s.</string>

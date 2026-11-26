@@ -35,41 +35,37 @@ class MaintenanceNoticeTest {
     fun `the one thing that best says what happened`() {
         assertEquals(
             MaintenanceNotice.Combined(11, 1, 63_000, 1_000),
-            MaintenanceNotice.of(run(merged = 12, replaced = 11, made = 1, madeMsat = 63_000, change = 1_000), true, true),
+            MaintenanceNotice.of(run(merged = 12, replaced = 11, made = 1, madeMsat = 63_000, change = 1_000), true),
         )
         assertEquals(
             MaintenanceNotice.Split(1, 4, -3_000),
-            MaintenanceNotice.of(run(split = 3, replaced = 1, made = 4, change = -3_000), true, true),
+            MaintenanceNotice.of(run(split = 3, replaced = 1, made = 4, change = -3_000), true),
         )
         assertEquals(
             MaintenanceNotice.Rearranged(3, 2, null),
-            MaintenanceNotice.of(run(merged = 2, split = 1, replaced = 3, made = 2), true, true),
+            MaintenanceNotice.of(run(merged = 2, split = 1, replaced = 3, made = 2), true),
         )
-        assertEquals(MaintenanceNotice.Renewed(2, null), MaintenanceNotice.of(run(rotated = 2, replaced = 2, made = 2), true, true))
+        assertEquals(MaintenanceNotice.Renewed(2, null), MaintenanceNotice.of(run(rotated = 2, replaced = 2, made = 2), true))
         // A move home says so, merged or not; one still under way is not told yet.
         val home = listOf(Collected("other", 5_000, 100), Collected("third", 7_000, 0, pending = true))
         assertEquals(
             MaintenanceNotice.MovedHome(5_000, null),
-            MaintenanceNotice.of(run(merged = 2, collected = home, replaced = 2, made = 1, change = null), true, true),
+            MaintenanceNotice.of(run(merged = 2, collected = home, replaced = 2, made = 1, change = null), true),
         )
     }
 
     @Test
-    fun `without notes or mints to see, only the balance`() {
+    fun `without notes to see, only the balance`() {
         assertEquals(
             MaintenanceNotice.BalanceChanged(1_000),
-            MaintenanceNotice.of(run(merged = 2, replaced = 2, made = 1, change = 1_000), false, true),
+            MaintenanceNotice.of(run(merged = 2, replaced = 2, made = 1, change = 1_000), false),
         )
-        assertNull(MaintenanceNotice.of(run(rotated = 1, replaced = 1, made = 1), false, true), "the balance stayed the same")
-        assertEquals(
-            MaintenanceNotice.BalanceChanged(-100),
-            MaintenanceNotice.of(run(collected = listOf(Collected("other", 5_000, 100)), change = -100), true, false),
-        )
+        assertNull(MaintenanceNotice.of(run(rotated = 1, replaced = 1, made = 1), false), "the balance stayed the same")
     }
 
     @Test
     fun `a run that only tried tells nothing`() {
-        assertNull(MaintenanceNotice.of(PolicyRun(0, 0, failed = 1, stoppedEarly = "no answer", atMillis = 0), true, true))
+        assertNull(MaintenanceNotice.of(PolicyRun(0, 0, failed = 1, stoppedEarly = "no answer", atMillis = 0), true))
     }
 
     @Test

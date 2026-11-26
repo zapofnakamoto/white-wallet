@@ -130,7 +130,7 @@ class RegtestNotesTest {
             val run = assertNotNull(alice.wallet.lastPolicyRun.first())
             assertEquals(
                 MaintenanceNotice.Combined(2, 1, before, 1_000),
-                MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true),
+                MaintenanceNotice.of(run, notesVisible = true),
             )
         }
 
@@ -273,7 +273,7 @@ class RegtestNotesTest {
             // paid back; here they cancel out, which is no news).
             val run = assertNotNull(alice.wallet.lastPolicyRun.first())
             assertEquals(home.amountMsat - before - claimed.amountMsat, run.balanceChangeMsat)
-            val moved = assertIs<MaintenanceNotice.MovedHome>(MaintenanceNotice.of(run, notesVisible = true, mintsVisible = true))
+            val moved = assertIs<MaintenanceNotice.MovedHome>(MaintenanceNotice.of(run, notesVisible = true))
             assertEquals(run.collected.single().arrivedMsat, moved.arrivedMsat)
             assertEquals(run.balanceChangeMsat?.takeIf { it != 0L }, moved.balanceChangeMsat)
         }

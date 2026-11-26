@@ -35,19 +35,14 @@ fun ReceivedNote.waitsFor(offline: Boolean, notAnswering: Set<String>): Received
         else -> ReceivedWait.NextRefresh
     }
 
-/**
- * Where a received note stands, in the user's language: why it isn't claimed yet ([wait], naming its mint where [mintNamed]), or why it
- * can't be.
- */
+/** Where a received note stands, in the user's language: why it isn't claimed yet ([wait]), or why it can't be. */
 @Composable
-fun receivedNoteStatus(note: ReceivedNote, wait: ReceivedWait = ReceivedWait.NextRefresh, mintNamed: Boolean = true): String =
+fun receivedNoteStatus(note: ReceivedNote, wait: ReceivedWait = ReceivedWait.NextRefresh): String =
     when (note.state) {
         ReceivedState.Waiting ->
             when (wait) {
                 ReceivedWait.Offline -> stringResource(R.string.received_waiting_offline)
-                ReceivedWait.MintNotAnswering ->
-                    if (mintNamed) stringResource(R.string.received_waiting_mint, note.host)
-                    else stringResource(R.string.received_waiting_mint_unnamed)
+                ReceivedWait.MintNotAnswering -> stringResource(R.string.received_waiting_mint, note.host)
                 ReceivedWait.NextRefresh -> stringResource(R.string.received_waiting)
             }
         ReceivedState.Locked ->
@@ -112,27 +107,25 @@ class ReceivedNoteActions(
 @Composable
 fun ReceivedNoteRow(
     note: ReceivedNote,
-    showMint: Boolean,
     amountHidden: Boolean,
     actions: ReceivedNoteActions,
     modifier: Modifier = Modifier,
     wait: ReceivedWait = ReceivedWait.NextRefresh,
-) = ReceivedNoteRow(note, showMint, amountHidden, modifier, wait = wait, trailing = receivedNoteAction(note, actions))
+) = ReceivedNoteRow(note, amountHidden, modifier, wait = wait, trailing = receivedNoteAction(note, actions))
 
 /**
- * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint ([showMint]), and where it stands
- * (what it [wait]s for), with [trailing] actions of the caller's own (the archive's).
+ * A received note in a list: what it is worth as far as known (not with [amountHidden]), on which mint, and where it stands (what it
+ * [wait]s for), with [trailing] actions of the caller's own (the archive's).
  */
 @Composable
 fun ReceivedNoteRow(
     note: ReceivedNote,
-    showMint: Boolean,
     amountHidden: Boolean,
     modifier: Modifier = Modifier,
     wait: ReceivedWait = ReceivedWait.NextRefresh,
     trailing: (@Composable () -> Unit)?,
 ) {
-    val status = receivedNoteStatus(note, wait, mintNamed = showMint)
+    val status = receivedNoteStatus(note, wait)
     val known = note.amountMsat
     val declared = note.declaredMsat
     val amount =
@@ -147,7 +140,7 @@ fun ReceivedNoteRow(
         supportingContent = {
             Column {
                 if (amount != null) Text(status)
-                if (showMint) Text(stringResource(R.string.received_on, note.host), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.received_on, note.host), style = MaterialTheme.typography.bodySmall)
             }
         },
         trailingContent = trailing,

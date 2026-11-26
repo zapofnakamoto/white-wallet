@@ -81,7 +81,7 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    moments: before (what each mint holds, whether it can take part), during (rows finishing one by one) and after
    (moved, waiting for an answer, no answer with "Try again", a signing key to look at). The rows replace the
    dialog, show why an amount fits no single mint, and give the mint's page a place before the move (today its
-   link is only on the result). With one mint, or `mints.visible=false`, the summary stays. Also open there: the
+   link is only on the result). With one mint, the summary stays. Also open there: the
    "will be added to the mints of" line isn't refreshed when the other wallet's mints change while the screen is
    open, and nothing but History says how a move that waited for an answer ended.
 6. **Small things from the walk through the wallet pages (2026-11-10).** An account's page shows no balance (the
@@ -93,14 +93,7 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    answer, does it still sign with the pinned key; what the mint page's check does, for all of them) and shows the
    result per row: reachable, unreachable, key changed. The user decides when, so the app never asks every mint on its
    own. Maybe Settings' Mints row could flag a changed key too.
-8. **A changed signing key with `mints.visible=false`.** Without `mints.visible`, users never see mints, yet a mint that
-   signs with a new key still names it and sends them to its details: the notes view's outcome (`notes_key_changed`,
-   "The signing key of %1$s doesn't match … in its details") and the wallet tab's card
-   (`home_key_changed_title`, its Details button → `onOpenMint` where there is no notes view), on a mint page the brand
-   hides. Open: what such a user should see and can decide (wording without the mint; whether Details opens a page
-   of its own or the mint page anyway, since deciding about the new key is the user's), and whether other outcomes
-   and cards name a mint the same way. Found while fixing the notes view for `mints.visible=false`.
-9. **A failed note maintenance on the Wallet tab.** When a run of the note strategy fails partway (the mint doesn't
+8. **A failed note maintenance on the Wallet tab.** When a run of the note strategy fails partway (the mint doesn't
    answer, a combine or a move home is rejected), the user only learns it under Settings → Wallets → the account → Note settings,
    in small text below the strategy ("Stopped: …", `PolicyRun.stoppedEarly`, `failed`, `NotCollected.Reason.Failed`).
    Nobody looks there unless something already seems wrong, while a success is now told on Home. Idea: a card on the
@@ -110,49 +103,49 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
    (`stoppedEarly` is a message string today); a new `WalletStatus.Problem` kind for brands; whether it follows
    `notes.maintenance.notices` or always shows; with `notes.view=hidden`, what it says to users who don't know about
    notes; when it goes away (the next run that succeeds, or dismissed). Asked for on 2026-10-29.
-10. **Adding an account while a mint is down.** "Add account" scans every mint of the wallet and adds nothing if one
-    doesn't answer (2026-11-10), so a wallet with a dead mint can't get another account until that mint is removed.
-    Could offer "Add anyway" and mark that mint as not scanned (`Mint.scan`), so the main screen offers the scan.
-11. **Move funds as "pay one of my accounts".** What a move should mean (2026-11-10): the money ends up as a note
+9. **Adding an account while a mint is down.** "Add account" scans every mint of the wallet and adds nothing if one
+   doesn't answer (2026-11-10), so a wallet with a dead mint can't get another account until that mint is removed.
+   Could offer "Add anyway" and mark that mint as not scanned (`Mint.scan`), so the main screen offers the scan.
+10. **Move funds as "pay one of my accounts".** What a move should mean (2026-11-10): the money ends up as a note
     at the same mint on the receiving account's next unused receive key, asked from the mint rather than read from
     the other account's counters; the sender needs only something public of the receiver (its own phrase for an
     account of the same wallet; a stored public key per account, or its Lightning address there, for another
     wallet); the receiver learns it from the mint on its next refresh; only mints both wallets have are offered.
     Today's Move funds (`FundsMover`, Home's switcher sheet) isn't checked against this yet. It would then fit under
     Send ("To one of my accounts") rather than in the sheet.
-12. **Mint pickers that say more than the name.** New mints are added at setup, when adding an account, under
+11. **Mint pickers that say more than the name.** New mints are added at setup, when adding an account, under
     Settings → Mints, or by claiming a note from one; everywhere else (change home, move money) a dropdown of known mints shows only hosts. Each entry
     should show what helps choosing: the host, trusted (or a changed key, as a warning), the active account's money
     there ("₿5,000 here", plus "₿2,000 in 2 other accounts" when there is some), "Home mint" where it is. Order: home,
     then trusted, then the rest, each by the account's money there. Untrusted mints stay pickable but marked, and the
     move summary says so before money goes to one. One shared picker component for all these places.
-13. **Better note selection for payments.** `PayPlanner` takes the largest notes in order and never tries other
+12. **Better note selection for payments.** `PayPlanner` takes the largest notes in order and never tries other
     combinations, so it can split where a merge would do: with no fees and notes of 5, 3 and 2, paying 7 merges 5 + 3
     and splits, though 5 + 2 needs no split. That costs a base fee, on melts and internal transfers alike. Explore
     selection strategies: largest first (today), oldest first, an exact combination before any split, fewest requests,
     lowest fee. Open: what each does to the notes left behind, whether a brand or the note strategy should choose, and
     how many combinations are worth trying on a wallet of many notes.
-14. **A mint that is shutting down.** A sunsetting lnurl-mint (`sunset_mint`) stops minting and splitting, but whole
+13. **A mint that is shutting down.** A sunsetting lnurl-mint (`sunset_mint`) stops minting and splitting, but whole
     notes can still leave. The wallet doesn't know the mode: receiving and any payment that needs a split just fail as
     refused. Wanted: tell the user why, and offer to move the money while whole notes still can. Open: how a wallet
     learns of it (the mint doesn't announce it today), and a regtest stack with a mint in this mode, since none runs
     it yet. See "What a mint refuses" in docs/DEVELOPMENT.md.
-15. **How long "Add account" takes on a real mint.** The scan looks up about 400 keys per mint: roughly 10 seconds
+14. **How long "Add account" takes on a real mint.** The scan looks up about 400 keys per mint: roughly 10 seconds
     on a local mint (2026-11-10), unknown over the internet. Suggestion: time it against `mint.lnurlcash.com`
     (lookups only); if it is too long, open the account at once and let the scan go on behind it with a notice
     until it is done.
-16. **Removing an account that holds dust.** An account can only be removed once it holds nothing; an amount below
+15. **Removing an account that holds dust.** An account can only be removed once it holds nothing; an amount below
     what a move or payment costs keeps it forever. Could let the user give the dust up explicitly.
-17. **Scan for notes with chosen limits.** "Scan for notes" on a wallet's page repeats the restore's scan and
+16. **Scan for notes with chosen limits.** "Scan for notes" on a wallet's page repeats the restore's scan and
     remembers per mint whether it got through (2026-11-11). Open: gap limits the user picks (accounts, keys,
     addresses), and history entries for what a scan finds.
-18. **A time limit on a handed-out note.** When handing out a note, the user can set a limit ("take back if not
+17. **A time limit on a handed-out note.** When handing out a note, the user can set a limit ("take back if not
     claimed within 7 days"). The note shows it, so the recipient knows, and once it passes a refresh rotates the note
     back into the wallet if it is still there. Without a limit a shared note is never taken back on its own: from the
     moment the link is out, whoever holds it may claim it. Open: where the limit is stored and shown (link, note face,
     print), whether it can be changed later, how a recipient's wallet shows it, and whether LUD-25 should carry it in
     the link. Asked for on 2026-11-03.
-19. **Brand marks in QR codes.** A brand should be able to put its logo in the middle of a QR code (acme its mark,
+18. **Brand marks in QR codes.** A brand should be able to put its logo in the middle of a QR code (acme its mark,
     Zap its bolt). Today `BrandComponents.QrCode` may frame the code but never alter it, and `qrBitmap` encodes at
     zxing's default error correction, L (about 7 % of the code may be lost), so a logo breaks scanning. Possible if
     the app keeps control of what is safe: a brand asks for it (an option, or a `centerMark` in `QrCodeParams`); the
@@ -163,33 +156,33 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     which codes (a handed-out note, receive invoices and addresses, the printed page, where paper and ink matter
     too); a test that decodes every brand's code with the logo on (zxing reads back what the app encoded) so a brand
     can't ship an unscannable one; and dark mode (the code stays black on white). Asked for on 2026-10-29.
-20. **Derived keys where the mint is.** Developer options → Derived keys looks like a home-mint view: it offers a chip
+19. **Derived keys where the mint is.** Developer options → Derived keys looks like a home-mint view: it offers a chip
     per mint only once the account has key counters there (`Wallet.keyHosts`), and none while there's just one. The
     keys belong to an account on a mint, so the view fits on the mint's page under Account → Your mints (account
     mode, next to its other details): a "Derived keys" row, shown only while developer options are on, opening the
     view for that mint (a mint without counters yet shows its empty indexes rather than nothing). Since 2026-11-10
     the view is a row on the account's page (Settings → Wallets → a wallet → an account) instead of a developer
     entry; the per-mint row is still open.
-21. **Managing a wallet that isn't in use.** Settings → Wallets shows everything of the wallet and account in use;
+20. **Managing a wallet that isn't in use.** Settings → Wallets shows everything of the wallet and account in use;
     another wallet only lists its accounts, and another account only offers "Use this account", because every
     settings page reads the active account. Nicer: open any wallet and see its phrase, mints, addresses and notes
     while the one in use stays in use. Cost: every settings view model takes a wallet or account id. Open: pages that
     talk to the mint (addresses, notes, mints) would use a wallet that isn't active, against "only the active wallet
     is ever used"; they could be read-only there, or only the pages that never touch a mint (showing the phrase,
     deleting the wallet) work without switching. Decided on 2026-11-10 to start with "use it first".
-22. **A wallet without a home mint.** Every account has a home mint (`Account.host`), and setup can't create one
+21. **A wallet without a home mint.** Every account has a home mint (`Account.host`), and setup can't create one
     without it, so a brand that offers no mints (`mints.suggestions` empty, `mints.custom=false`) can't build. The
     protocol doesn't need one to take notes: a note is redeemed at its own mint (`Note.host`), so such a wallet could
     still claim notes other wallets hand over. Without a home mint there's no Lightning address and no receiving by
     invoice. Open: whether paying an invoice can spend a note at its own mint or the send path assumes the home mint;
     what becomes optional (onboarding, restore, the backup screen, collect at home mint, the mint and account
     settings pages); what such a wallet's setup and Receive look like. Asked for on 2026-10-29.
-23. **Better account management.** Open questions: should accounts get their own place in the bottom navigation
+22. **Better account management.** Open questions: should accounts get their own place in the bottom navigation
     (today: the account's mark in Home's top bar opens the switcher sheet; wallets and accounts are managed under Settings →
     Wallets), and
     should that be a brand option white-label apps can turn on or off? Related: `accounts.max=1` already hides
     accounts entirely, and with the Notes tab the bar already has three.
-24. **One recovery phrase for several accounts.** Each account's seed would be a BIP-85 child of one master phrase
+23. **One recovery phrase for several accounts.** Each account's seed would be a BIP-85 child of one master phrase
     (`m/83696968'/39'/0'/12'/i'`, account `i`), so one backup restores every account. LUD-26 stays unchanged inside
     each child (own `m/139'/0`, branch, `cx1` and Lightning address per mint), and an account's child phrase still
     works on its own in any LUD-26 wallet, e.g. exported to a second device, without revealing the master or the
@@ -208,7 +201,7 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     doesn't cover.
       - `accounts.max=1` brands: the user sees the master phrase, the single account is child 0. Check Zap's
     onboarding and backup first.
-25. **A mint impersonator passes the key check.** A mutation sends the note's `k1` in the clear, and the only check
+24. **A mint impersonator passes the key check.** A mutation sends the note's `k1` in the clear, and the only check
     before it is that the answer's `mintPubkey` equals the pinned one (`Pinning.check`): a string anyone can copy from
     the real mint. Someone who takes over the domain (DNS, server, a proxy in front of it) can pass lookups through to
     the real mint, Cs1s included, then spend a mutation's `k1` there with their own outputs and answer "confirmed".
@@ -228,13 +221,13 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
       - The notes the bad answer made count as held there, as `heldWhereKeyChanged` shows today.
     Open: which branch it goes on. Limit: the `k1` of the spend that trips it is already gone; only the spec can
     close that (below). Related: 27.
-26. **A canary note per mint.** The smallest note on its own derivation path, rotated now and then only for its Cs1:
+25. **A canary note per mint.** The smallest note on its own derivation path, rotated now and then only for its Cs1:
     it would catch a mint that signs with another key than it advertises, and a domain whose owner can't reach the
     real mint, before a real note's answer does, and it gives a blocked mint (26) a mutation to clear itself with. It
     doesn't catch an impersonator who passes rotations through and steals only real spends, since the canary's
     amount and timing give it away. Costs a fee per rotation, a new purpose that restore and scan must walk (with gap
     rules), and a pattern the mint can link to one wallet. Could be a second key-trust strategy. Raised 2026-11-16.
-27. **What LUD-25 could do about impersonators.** Proposals to bring to lnurl/luds#301, strongest first:
+26. **What LUD-25 could do about impersonators.** Proposals to bring to lnurl/luds#301, strongest first:
       - Let a `ck1` commit to its mutation. Today it signs the canonical spend transaction, which binds the domain and
     `Q` but has one empty output (`CanonicalSpend`): the outputs, amount and invoice go unsigned next to it, so someone
     at the same domain spends it into their own. With the mutation in the transaction's outputs (`OP_1 <P1>` with its
@@ -246,7 +239,7 @@ Ideas and follow-ups noted for later. Not a plan: each item still needs its own 
     catches the canary's cases (27) without a note or a fee, but not someone who passes the request through.
       - Make a Cs1 a MUST in every mutation answer with a `cp1` output, so a missing one is a violation, not
     "unverifiable but landed".
-28. **Brands draw the notes view their own way.** White Wallet's notes view (the balance, the needs-attention card,
+27. **Brands draw the notes view their own way.** White Wallet's notes view (the balance, the needs-attention card,
     the notes by mint, "Not in your balance") becomes the default of a new brand level. The brand gets a read-only
     model (notes by mint, totals, states, home and trusted) and actions (open a note, open a mint, select, refresh)
     that start White Wallet's own flows, so confirmations, the bearer warning and the checks stay the app's.

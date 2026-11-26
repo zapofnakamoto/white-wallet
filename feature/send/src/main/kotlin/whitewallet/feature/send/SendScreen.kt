@@ -164,7 +164,7 @@ fun SendScreen(state: SendState, onBack: () -> Unit, onDone: () -> Unit, actions
         // Still on its way or not paid: on the same layout, as a wait or a problem.
         val result = state.result
         if (result != null && state.preview != null) {
-            PayEnded(result, state.preview, sendStatus(state), state.mintsVisible, onDone, actions.onEdit, Modifier.padding(padding))
+            PayEnded(result, state.preview, sendStatus(state), onDone, actions.onEdit, Modifier.padding(padding))
             return@Scaffold
         }
         ScreenColumn(Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState())) {
@@ -270,7 +270,7 @@ private fun InputContent(state: SendState, actions: SendActions, onPickMint: (()
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     // Opened for a mint: paid from there, up to what it holds. Otherwise the wallet picks once it knows the payment.
-    val from = state.from?.takeIf { state.mintsVisible }
+    val from = state.from
     val stuck = state.mints.filter { it.keyChanged }
     val sendable = state.mints.filterNot { it.keyChanged }
     if (from != null) {
@@ -280,7 +280,7 @@ private fun InputContent(state: SendState, actions: SendActions, onPickMint: (()
         // Money on a mint whose signing key doesn't match isn't sendable: said with the most one mint can pay, and where to fix it. With
         // nothing else to pay from, that is all there is to say.
         sendable.maxOfOrNull { it.maxMsat }?.let { LimitText(stringResource(R.string.send_available, formatAmount(it))) }
-        KeyChangedHeld(stuck, state.mintsVisible, actions.onOpenMint)
+        KeyChangedHeld(stuck, actions.onOpenMint)
         if (sendable.isEmpty()) return
     } else
         state.limitMsat?.let {
@@ -347,14 +347,10 @@ private fun LimitText(text: String) {
 
 /**
  * What [stuck] mints hold, whose signing key doesn't match: not sendable until it does. Details opens each, where its new key can be
- * accepted; where the brand doesn't name mints, one sentence says it for all of them.
+ * accepted.
  */
 @Composable
-internal fun KeyChangedHeld(stuck: List<SendMint>, mintsVisible: Boolean, onOpenMint: (String) -> Unit) {
-    if (!mintsVisible) {
-        LimitText(stringResource(R.string.send_key_changed_held_unnamed, formatAmount(stuck.sumOf { it.maxMsat })))
-        return
-    }
+internal fun KeyChangedHeld(stuck: List<SendMint>, onOpenMint: (String) -> Unit) {
     stuck.forEach { mint ->
         LimitText(stringResource(R.string.send_key_changed_held, formatAmount(mint.maxMsat), mint.host))
         WalletButton(kind = ButtonKind.Text, onClick = { onOpenMint(mint.host) }) { Text(stringResource(DesignR.string.details)) }
@@ -456,7 +452,7 @@ private fun ReviewContent(state: SendState, preview: PayPreview.Ready, actions: 
     )
     // Which mint pays, once known (picked, or chosen by the wallet for this amount), where there is another to pick.
     state.payingHost
-        ?.takeIf { state.mintsVisible && (state.canPickMint || state.from != null) }
+        ?.takeIf { state.canPickMint || state.from != null }
         ?.let { MintChoiceLine(stringResource(R.string.send_from, it), onPickMint.takeIf { !state.paying && !state.checking }) }
     state.shownProblem?.let { Text(problemText(it), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
     QuoteText(state.quote)
@@ -524,7 +520,6 @@ private fun PayEnded(
     result: PayResult,
     preview: PayPreview.Ready,
     status: WalletStatus,
-    mintsVisible: Boolean,
     onDone: () -> Unit,
     onTryAgain: () -> Unit,
     modifier: Modifier,
@@ -566,14 +561,16 @@ private fun PayEnded(
                     },
                 lines =
                     listOfNotNull(
-                        problemText(result.problem, result.host?.takeIf { mintsVisible }),
+                        problemText(result.problem, result.host),
                         result.mintMessage?.let { stringResource(DesignR.string.mint_message, it) },
                     ),
             )
     }
 }
 
-/** What [problem] means, in a full sentence; [host] names the mint that didn't answer ([PayProblem.MintNotAnswering]), where mints show. */
+/**
+ * What [problem] means, in a full sentence; [host] names the mint that didn't answer ([PayProblem.MintNotAnswering]), where it is known.
+ */
 @Composable
 internal fun problemText(problem: PayProblem, host: String? = null): String =
     if (problem == PayProblem.MintNotAnswering && host != null) stringResource(R.string.send_problem_mint_silent, host)

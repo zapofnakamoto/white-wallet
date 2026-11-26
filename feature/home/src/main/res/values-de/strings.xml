@@ -9,7 +9,6 @@
     <string name="home_mint_is_home_key_changed">Haupt-Mint · Signaturschlüssel passt nicht</string>
     <string name="home_mint_silent_title_home">Deine Haupt-Mint, %1$s, antwortet nicht</string>
     <string name="home_mint_silent_title">%1$s antwortet nicht</string>
-    <string name="home_mint_silent_title_unnamed">Deine Mint antwortet nicht</string>
     <plurals name="home_mints_silent_title">
         <item quantity="one">%1$d Mint antwortet nicht</item>
         <item quantity="other">%1$d Mints antworten nicht</item>
@@ -68,10 +67,6 @@
     <plurals name="home_unknown_title">
         <item quantity="one">%2$s kennt %1$d deiner Scheine nicht</item>
         <item quantity="other">%2$s kennt %1$d deiner Scheine nicht</item>
-    </plurals>
-    <plurals name="home_unknown_title_unnamed">
-        <item quantity="one">Deine Mint kennt %1$d deiner Scheine nicht</item>
-        <item quantity="other">Deine Mint kennt %1$d deiner Scheine nicht</item>
     </plurals>
     <plurals name="notice_unknown_back">
         <item quantity="one">Die Mint kennt einen Schein wieder: Du kannst ihn ausgeben.</item>
@@ -137,7 +132,6 @@
         <item quantity="other">%1$d Vorgänge warten noch auf Antwort.</item>
     </plurals>
     <string name="move_waiting">Warte auf Antwort von %1$s: %2$s. Deine Wallet fragt beim nächsten Aktualisieren erneut.</string>
-    <string name="move_waiting_unnamed">Warte auf Antwort: %1$s. Deine Wallet fragt beim nächsten Aktualisieren erneut.</string>
     <string name="move_insufficient">Nicht genug Guthaben für diesen Betrag samt Gebühren.</string>
     <string name="move_split_mints">Dein Guthaben liegt an verschiedenen Orten. Verschiebe einen kleineren Betrag oder alles.</string>
     <string name="move_failed">Abgelehnt: %1$s</string>
@@ -146,7 +140,6 @@
     <string name="move_stayed_key">Der Signaturschlüssel von %1$s passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details den neuen Schlüssel annimmst, wird von dort nichts verschoben.</string>
     <string name="move_stayed_other_key">%2$s kennt %1$s unter einem anderen Signaturschlüssel. Sieh es dir in dieser Wallet an, bevor du es erneut versuchst.</string>
     <string name="move_stayed_refused">%1$s nimmt die Verschiebung nicht an.</string>
-    <string name="move_stayed_blocked_unnamed">Das lässt sich nicht verschieben.</string>
     <string name="move_mint_details">Details zu %1$s</string>
     <string name="move_partial_title">Gerade lässt sich nicht alles verschieben</string>
     <string name="move_partial_body">Bliebe in %2$s: %1$s</string>

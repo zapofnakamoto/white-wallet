@@ -15,8 +15,6 @@
     <string name="home_mint_is_home_key_changed">Home mint · signing key doesn\'t match</string>
     <!-- A card on the home screen: a mint the account uses didn't answer. %1$s: the mint. -->
     <string name="home_mint_silent_title_home">Your home mint, %1$s, isn\'t answering</string>
-    <!-- Where the brand doesn't name mints (mints.visible=false). -->
-    <string name="home_mint_silent_title_unnamed">Your mint isn\'t answering</string>
     <!-- A card on the home screen: several mints the account uses, none the home mint, didn't answer. %1$d: how many (always 2 or more). -->
     <plurals name="home_mints_silent_title">
         <item quantity="one">%1$d mint isn\'t answering</item>
@@ -80,11 +78,6 @@
         <item quantity="one">%2$s doesn\'t know %1$d of your notes</item>
         <item quantity="other">%2$s doesn\'t know %1$d of your notes</item>
     </plurals>
-    <!-- The same, where mints aren't named (brand mints.visible=false). -->
-    <plurals name="home_unknown_title_unnamed">
-        <item quantity="one">Your mint doesn\'t know %1$d of your notes</item>
-        <item quantity="other">Your mint doesn\'t know %1$d of your notes</item>
-    </plurals>
     <!-- Short messages after "Check again": what the mint answered. %1$d: how many notes. -->
     <plurals name="notice_unknown_back">
         <item quantity="one">The mint knows a note again: you can spend it.</item>
@@ -94,7 +87,7 @@
         <item quantity="one">Asked just now: the mint still doesn\'t know your note.</item>
         <item quantity="other">Asked just now: the mint still doesn\'t know your notes.</item>
     </plurals>
-    <!-- It got no answer, where mints aren't named (brand mints.visible=false) or it isn't known which; else notice_unknown_unreachable. -->
+    <!-- It got no answer, and it isn't known which mint; else notice_unknown_unreachable. -->
     <string name="notice_unknown_unreachable_unnamed">Your mint isn\'t answering. Your wallet asks again later.</string>
 
     <!-- A card on the home screen: a mint the account uses (not the home mint) didn't answer. %1$s: the mint. -->
@@ -162,8 +155,6 @@
     </plurals>
     <!-- A move that was sent to a mint whose answer didn't arrive. %1$s: the mint's host, %2$s: the amount. -->
     <string name="move_waiting">Waiting for %1$s to answer: %2$s. Your wallet asks again on the next refresh.</string>
-    <!-- The same where mints aren't named (brand mints.visible=false). %1$s: the amount. -->
-    <string name="move_waiting_unnamed">Waiting for an answer: %1$s. Your wallet asks again on the next refresh.</string>
     <string name="move_insufficient">Not enough funds for this amount, including fees.</string>
     <string name="move_split_mints">Your funds are held in different places. Move a smaller amount, or everything.</string>
     <string name="move_failed">Refused: %1$s</string>
@@ -174,7 +165,6 @@
     <!-- The wallet the money was to go to knows the mint by another key. %1$s: the mint's host, %2$s: that wallet's name. -->
     <string name="move_stayed_other_key">%2$s knows %1$s by another signing key. Look at it in that wallet before you try again.</string>
     <string name="move_stayed_refused">%1$s doesn\'t accept the move.</string>
-    <string name="move_stayed_blocked_unnamed">It can\'t be moved.</string>
     <!-- Opens the page of the mint whose signing key isn't the one expected. %1$s: the mint's host. -->
     <string name="move_mint_details">Details of %1$s</string>
     <!-- Asked before a move of which only a part can be made. -->

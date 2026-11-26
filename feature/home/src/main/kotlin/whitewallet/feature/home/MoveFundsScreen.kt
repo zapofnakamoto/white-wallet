@@ -124,7 +124,7 @@ fun MoveFundsScreen(
         val toWallet = state.targets.firstOrNull { it.account.id == state.targetId }?.let { walletLabel(state, it.account.walletId) } ?: ""
         // Only part of the money can move (a mint isn't answering, say): nothing moves until the user chooses to move that part or
         // cancel. Drawn over the result screen too, as another try there can end in the same question.
-        state.partial?.let { PartialDialog(it, fromName, toWallet, state.showMints, onConfirmPartial, onCancelPartial) }
+        state.partial?.let { PartialDialog(it, fromName, toWallet, onConfirmPartial, onCancelPartial) }
         // Not all of it moved, or some waits: on the result screen, with what waits, what stayed and why, and another try where it helps.
         state.result?.let { result ->
             val stayed = result.stayed
@@ -150,7 +150,7 @@ fun MoveFundsScreen(
                 more = SuccessAction(stringResource(DesignR.string.try_again), onMove).takeIf { retry && !state.busy },
             ) {
                 // What was sent without an answer is out of the balance until a refresh finds out: nothing the user can do but wait.
-                WaitingLines(result.pending, state.showMints, MaterialTheme.typography.bodyMedium)
+                WaitingLines(result.pending, MaterialTheme.typography.bodyMedium)
                 // What didn't move is safe where it was: said with the amount, why, and what the user can do about it.
                 if (result !is MoveResult.Failed && stayed.isNotEmpty()) {
                     Text(
@@ -159,20 +159,18 @@ fun MoveFundsScreen(
                         textAlign = TextAlign.Center,
                     )
                 }
-                StayedReasons(stayed, toWallet, state.showMints, TextAlign.Center)
+                StayedReasons(stayed, toWallet, TextAlign.Center)
                 // A signing key the mint changed stays so until the user looked at the mint: its page is this wallet's. (A key the other
                 // wallet differs on is looked at there, as the reason says: only the wallet in use shows its mints.)
-                if (state.showMints) {
-                    stayed
-                        .filter { it.reason == StayReason.KeyChanged }
-                        .map { it.host }
-                        .distinct()
-                        .forEach { host ->
-                            WalletButton(kind = ButtonKind.Secondary, onClick = { onMint(host) }) {
-                                Text(stringResource(R.string.move_mint_details, host))
-                            }
+                stayed
+                    .filter { it.reason == StayReason.KeyChanged }
+                    .map { it.host }
+                    .distinct()
+                    .forEach { host ->
+                        WalletButton(kind = ButtonKind.Secondary, onClick = { onMint(host) }) {
+                            Text(stringResource(R.string.move_mint_details, host))
                         }
-                }
+                    }
                 if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth())
             }
             return@Scaffold
@@ -282,40 +280,30 @@ private val MoveResult.pending: List<MovePending>
             is MoveResult.Pending -> pending
         }
 
-/** What is waiting for its mint's answer, a line per mint; where mints aren't named, one line for all of it. */
+/** What is waiting for its mint's answer, a line per mint. */
 @Composable
-private fun WaitingLines(pending: List<MovePending>, showMints: Boolean, style: TextStyle) {
-    if (pending.isEmpty()) return
-    val lines =
-        if (showMints) pending.map { stringResource(R.string.move_waiting, it.host, formatAmount(it.amountMsat)) }
-        else listOf(stringResource(R.string.move_waiting_unnamed, formatAmount(pending.sumOf { it.amountMsat })))
-    lines.forEach { Text(it, style = style, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+private fun WaitingLines(pending: List<MovePending>, style: TextStyle) {
+    pending.forEach {
+        Text(
+            stringResource(R.string.move_waiting, it.host, formatAmount(it.amountMsat)),
+            style = style,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
-/**
- * Why money stayed (or would stay), a line per mint; where mints aren't named, a line per kind of reason. [toWallet] is the wallet it was
- * to go to, by its name.
- */
+/** Why money stayed (or would stay), a line per mint. [toWallet] is the wallet it was to go to, by its name. */
 @Composable
-private fun StayedReasons(stayed: List<MoveStayed>, toWallet: String, showMints: Boolean, align: TextAlign) {
-    val lines =
-        if (showMints)
-            stayed.map {
-                when (it.reason) {
-                    StayReason.Unreachable -> stringResource(DesignR.string.mint_not_answering, it.host)
-                    StayReason.KeyChanged -> stringResource(R.string.move_stayed_key, it.host)
-                    StayReason.OtherWalletKey -> stringResource(R.string.move_stayed_other_key, it.host, toWallet)
-                    StayReason.Refused -> stringResource(R.string.move_stayed_refused, it.host)
-                }
-            }
-        else
-            stayed
-                .map { it.reason == StayReason.Unreachable }
-                .distinct()
-                .sortedDescending()
-                .map {
-                    stringResource(if (it) DesignR.string.mint_not_answering_unnamed else R.string.move_stayed_blocked_unnamed)
-                }
+private fun StayedReasons(stayed: List<MoveStayed>, toWallet: String, align: TextAlign) {
+    val lines = stayed.map {
+        when (it.reason) {
+            StayReason.Unreachable -> stringResource(DesignR.string.mint_not_answering, it.host)
+            StayReason.KeyChanged -> stringResource(R.string.move_stayed_key, it.host)
+            StayReason.OtherWalletKey -> stringResource(R.string.move_stayed_other_key, it.host, toWallet)
+            StayReason.Refused -> stringResource(R.string.move_stayed_refused, it.host)
+        }
+    }
     lines.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = align, modifier = Modifier.fillMaxWidth()) }
 }
 
@@ -324,7 +312,6 @@ private fun PartialDialog(
     check: MoveCheck,
     fromName: String,
     toWallet: String,
-    showMints: Boolean,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -334,7 +321,7 @@ private fun PartialDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.move_partial_body, formatAmount(check.stayed.sumOf { it.amountMsat }), fromName))
-                StayedReasons(check.stayed, toWallet, showMints, TextAlign.Start)
+                StayedReasons(check.stayed, toWallet, TextAlign.Start)
             }
         },
         confirmButton = {

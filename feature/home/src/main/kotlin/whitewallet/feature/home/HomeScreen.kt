@@ -285,7 +285,7 @@ fun HomeScreen(
         }
     }
     state.unknownCheck?.let { check ->
-        val message = unknownCheckMessage(check, state.mintsVisible)
+        val message = unknownCheckMessage(check)
         LaunchedEffect(check) {
             snackbars.showSnackbar(message, duration = SnackbarDuration.Long)
             onUnknownCheckShown()
@@ -560,8 +560,7 @@ private fun workingText(task: WalletTask, state: HomeState): String {
                     MaintenanceStep.Combining -> R.string.home_working_combining
                     MaintenanceStep.Splitting -> R.string.home_working_splitting
                     MaintenanceStep.Renewing -> R.string.home_working_renewing
-                    MaintenanceStep.MovingHome ->
-                        if (state.mintsVisible) R.string.home_working_moving_home else R.string.home_working_updating
+                    MaintenanceStep.MovingHome -> R.string.home_working_moving_home
                 }
         }
     return stringResource(words)
@@ -780,12 +779,12 @@ private fun noticeMessage(notice: MaintenanceNotice): String {
 
 /** What asking again about notes a mint doesn't know found, as the short message says it. */
 @Composable
-private fun unknownCheckMessage(check: UnknownCheck, mintsVisible: Boolean): String =
+private fun unknownCheckMessage(check: UnknownCheck): String =
     when (check) {
         is UnknownCheck.Back -> pluralStringResource(R.plurals.notice_unknown_back, check.notes, check.notes)
         is UnknownCheck.Still -> pluralStringResource(R.plurals.notice_unknown_still, check.notes)
         is UnknownCheck.Unreachable ->
-            check.host?.takeIf { mintsVisible }?.let { stringResource(R.string.notice_unknown_unreachable, it) }
+            check.host?.let { stringResource(R.string.notice_unknown_unreachable, it) }
                 ?: stringResource(R.string.notice_unknown_unreachable_unnamed)
     }
 
@@ -1012,25 +1011,19 @@ private fun NotesAlert(
     onRecheckUnknown: () -> Unit,
     onRefresh: () -> Unit,
 ) {
-    val named = state.mintsVisible
     val (title, line) =
         when (alert) {
             is HomeAlert.KeyChanged ->
                 stringResource(R.string.home_key_changed_title, alert.host) to stringResource(DesignR.string.attention_key_changed_line)
             is HomeAlert.UnknownNotes -> {
                 val n = alert.mint.unknownCount
-                (if (named) pluralStringResource(R.plurals.home_unknown_title, n, n, alert.mint.host)
-                else pluralStringResource(R.plurals.home_unknown_title_unnamed, n, n)) to
+                pluralStringResource(R.plurals.home_unknown_title, n, n, alert.mint.host) to
                     (if (state.balanceHidden) stringResource(DesignR.string.attention_unknown_line_hidden)
                     else stringResource(DesignR.string.attention_unknown_line, formatAmount(alert.mint.unknownMsat)))
             }
             is HomeAlert.MintNotAnswering -> {
                 val mint = alert.mint
-                when {
-                    !named -> stringResource(R.string.home_mint_silent_title_unnamed)
-                    mint.isHome -> stringResource(R.string.home_mint_silent_title_home, mint.host)
-                    else -> stringResource(R.string.home_mint_silent_title, mint.host)
-                } to
+                stringResource(if (mint.isHome) R.string.home_mint_silent_title_home else R.string.home_mint_silent_title, mint.host) to
                     stringResource(
                         when {
                             !mint.isHome -> DesignR.string.attention_not_answering_line
@@ -1208,7 +1201,6 @@ private fun ReceivedCard(state: HomeState, actions: ReceivedNoteActions, waiting
             shown.forEach {
                 ReceivedNoteRow(
                     it,
-                    showMint = state.mintsVisible,
                     amountHidden = state.balanceHidden,
                     actions,
                     wait = it.waitsFor(state.offline, state.notAnsweringHosts),

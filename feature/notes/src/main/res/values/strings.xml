@@ -93,7 +93,7 @@
     <string name="archive_handed_out_hint">You handed these notes out, but their mint doesn\'t know them. Your wallet still asks about them now and then; once the mint knows one again, it waits to be claimed, or your wallet claims it if you asked it to.</string>
     <string name="archive_note_remove_title">Remove this note for good?</string>
     <string name="archive_note_remove_body">Its mint doesn\'t know it now. If the mint ever knows it again, “Scan for notes” finds it with your recovery phrase.</string>
-    <!-- Notes a mint doesn't know, in the needs-attention card: on one mint (%2$s), on several, or with mints not named. -->
+    <!-- Notes a mint doesn't know, in the needs-attention card: on one mint (%2$s), or on several. -->
     <plurals name="notes_attention_unknown_at">
         <item quantity="one">%2$s doesn\'t know %1$d of your notes</item>
         <item quantity="other">%2$s doesn\'t know %1$d of your notes</item>
@@ -101,10 +101,6 @@
     <plurals name="notes_attention_unknown">
         <item quantity="one">Your mints don\'t know %d of your notes</item>
         <item quantity="other">Your mints don\'t know %d of your notes</item>
-    </plurals>
-    <plurals name="notes_attention_unknown_unnamed">
-        <item quantity="one">Your mint doesn\'t know %d of your notes</item>
-        <item quantity="other">Your mint doesn\'t know %d of your notes</item>
     </plurals>
     <plurals name="notes_attention_waiting">
         <item quantity="one">%d note waiting for an answer</item>
@@ -120,8 +116,6 @@
     <string name="notes_mint_next">Next mint</string>
     <!-- Read out on the dots under the mints' piles. -->
     <string name="notes_mint_position">Mint %1$d of %2$d</string>
-    <!-- On the page of what needs the user, with mints not named: a mint that wasn't answering, while the phone is offline. -->
-    <string name="notes_attention_offline_unnamed">Your mint didn\'t answer, and you\'re offline. It\'s asked again when you\'re back online.</string>
     <!-- Under a mint's name on its pile of bills, when none of its notes is in the balance: why, the most important first. -->
     <plurals name="notes_pile_unknown">
         <item quantity="one">%d note unknown to the mint</item>

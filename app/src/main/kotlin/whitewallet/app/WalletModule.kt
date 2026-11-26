@@ -214,8 +214,7 @@ object WalletModule {
             historyFilter = HistoryFilterOption.fromConfig(BuildConfig.HISTORY_FILTER),
             maintenanceNotices =
                 MaintenanceNoticeDefaults.fromConfig(BuildConfig.MAINTENANCE_NOTICES, BuildConfig.MAINTENANCE_NOTICES_WHEN_NOTES_HIDDEN),
-            showMints = BuildConfig.SHOW_MINTS,
-            noteActions = NoteAction.fromConfig(BuildConfig.NOTE_ACTIONS, BuildConfig.SHOW_MINTS),
+            noteActions = NoteAction.fromConfig(BuildConfig.NOTE_ACTIONS),
             developerOptions = DeveloperOptions.fromConfig(BuildConfig.DEVELOPER_OPTIONS, debug = BuildConfig.DEBUG),
             releaseStage = releaseStageFromConfig(BuildConfig.RELEASE_STAGE, BuildConfig.VERSION_NAME),
             timings =

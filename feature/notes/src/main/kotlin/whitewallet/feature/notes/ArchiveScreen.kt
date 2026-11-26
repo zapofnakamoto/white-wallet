@@ -53,7 +53,6 @@ import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.model.Note
 import whitewallet.core.model.ReceivedNote
-import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.NoteCheck
 import whitewallet.core.wallet.Wallet
@@ -89,7 +88,6 @@ data class ArchiveState(
     val notes: List<ReceivedNote> = emptyList(),
     /** The active account's notes archived while their mint doesn't know them ([Note.isArchived]), newest first. */
     val unknownNotes: List<Note> = emptyList(),
-    val showMints: Boolean = true,
     /** The received note waiting for the user to confirm removing it for good. */
     val removing: String? = null,
     /** The archived note waiting for the user to confirm removing it for good. */
@@ -107,8 +105,8 @@ data class ArchiveState(
  * that the user archived, each to be asked about now or removed for good.
  */
 @HiltViewModel
-class ArchiveViewModel @Inject constructor(private val wallet: Wallet, defaults: AppDefaults) : ViewModel() {
-    private val ui = MutableStateFlow(ArchiveState(showMints = defaults.showMints))
+class ArchiveViewModel @Inject constructor(private val wallet: Wallet) : ViewModel() {
+    private val ui = MutableStateFlow(ArchiveState())
 
     val state: StateFlow<ArchiveState> =
         combine(wallet.receivedNotes, wallet.notes, ui) { received, notes, u ->
@@ -264,7 +262,6 @@ fun ArchiveScreen(state: ArchiveState, actions: ArchiveActions, onBack: () -> Un
                     items(state.notes, key = { it.id }) { note ->
                         ReceivedNoteRow(
                             note,
-                            state.showMints,
                             amountHidden = false,
                             trailing = {
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -361,7 +358,7 @@ private fun ArchivedNoteRow(note: Note, state: ArchiveState, actions: ArchiveAct
         supportingContent = {
             Column {
                 Text(stringResource(if (note.handedOut != null) R.string.notes_state_unknown_handed_out else R.string.notes_state_unknown))
-                if (state.showMints) Text(stringResource(DesignR.string.received_on, note.host), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(DesignR.string.received_on, note.host), style = MaterialTheme.typography.bodySmall)
             }
         },
         trailingContent = {

@@ -12,23 +12,16 @@
     <string name="receive_no_home">This account has no home mint. Choose one of your mints to receive there.</string>
     <string name="receive_no_home_action">Choose home mint</string>
     <string name="receive_claim">Claim a note instead</string>
-    <!-- Under the Lightning address, instead of receive_hint, when its mint didn't answer the last time. %1$s: the mint. -->
-    <string name="receive_address_mint_silent_unnamed">Your mint isn\'t answering, so payments to this address can\'t arrive right now.</string>
-    <!-- The home mint makes the invoice, and didn't answer. %1$s: the mint. -->
-    <string name="receive_invoice_mint_silent_unnamed">Your mint isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <!-- Receive picks this mint (%1$s), the home mint: see receive_on. -->
     <string name="receive_on_home">On %1$s, your home mint</string>
     <!-- The home mint in the Receive on list. %1$s: the address, or receive_on_invoice. -->
     <string name="receive_on_home_detail">Home mint · %1$s</string>
-    <!-- As receive_address_key_changed and receive_invoice_key_changed, where the brand doesn't name mints. -->
-    <string name="receive_address_key_changed_unnamed">The signing key of your mint doesn\'t match the one your wallet knows, so payments to this address wait there for now.</string>
-    <!-- As receive_key_checking, where the brand doesn't name mints. -->
-    <string name="receive_key_checking_unnamed">Checking your mint…</string>
-    <string name="receive_invoice_key_changed_unnamed">The signing key of your mint doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
 
     <string name="receive_address_lost">Payments to this address don\'t reach your wallet anymore.</string>
     <string name="receive_address_fix">Fix</string>
+    <!-- Under the Lightning address, instead of receive_hint, when its mint didn't answer the last time. %1$s: the mint. -->
     <string name="receive_address_mint_silent">%1$s isn\'t answering, so payments to this address can\'t arrive right now.</string>
+    <!-- The home mint makes the invoice, and didn't answer. %1$s: the mint. -->
     <string name="receive_invoice_mint_silent">%1$s isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <string name="receive_title">Receive</string>
     <string name="receive_copied">Address copied</string>

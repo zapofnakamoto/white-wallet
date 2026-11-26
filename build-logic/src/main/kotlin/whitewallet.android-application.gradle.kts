@@ -43,7 +43,6 @@ val renamedKeys =
         "mints.default" to "mints.suggestions (its first entry)",
         "mintSuggestions" to "mints.suggestions",
         "allowMintChange" to "mints.changeable",
-        "showMints" to "mints.visible",
         "trustedMints" to "mints.trusted",
         "maxAccounts" to "accounts.max",
         "maxAddresses" to "addresses.max",
@@ -69,6 +68,17 @@ renamedKeys
                 old.entries.joinToString { (from, to) -> "$from → $to" }
         )
     }
+
+// Keys that are gone, with nothing in their place. A brand still setting one fails.
+val removedKeys =
+    listOf("mints.visible", "showMints").associateWith {
+        "mints are always shown (for one mint of your own, see docs/WHITE_LABEL.md)"
+    }
+
+removedKeys
+    .filterKeys(brand::containsKey)
+    .takeIf { it.isNotEmpty() }
+    ?.let { gone -> error("brand.properties uses keys that were removed: " + gone.entries.joinToString { (key, why) -> "$key: $why" }) }
 
 fun brand(key: String): String = checkNotNull(brand.getProperty(key)) { "brand/brand.properties is missing '$key'" }.trim()
 
@@ -137,9 +147,8 @@ android {
             brand.getProperty("amounts.unit.changeable", "true").trim().toBooleanStrict().toString(),
         )
         buildConfigField("String", "DEVELOPER_OPTIONS", "\"${brand.getProperty("developer.options", "shown").trim()}\"")
-        // null when unset: the app then offers every action that fits mints.visible.
+        // null when unset: the app then offers every action.
         buildConfigField("String", "NOTE_ACTIONS", brand.getProperty("notes.actions")?.let { "\"${it.trim()}\"" } ?: "null")
-        buildConfigField("boolean", "SHOW_MINTS", brand.getProperty("mints.visible", "true").trim().toBooleanStrict().toString())
         buildConfigField("int", "MAX_ACCOUNTS", brand.getProperty("accounts.max", "0").trim())
         buildConfigField("int", "MAX_WALLETS", brand.getProperty("wallets.max", "0").trim())
         buildConfigField("int", "MAX_ADDRESSES", brand.getProperty("addresses.max", "1").trim())

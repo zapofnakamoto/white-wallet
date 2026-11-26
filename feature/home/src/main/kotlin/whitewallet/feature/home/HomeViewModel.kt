@@ -43,9 +43,8 @@ data class HomeState(
     val task: WalletTask? = null,
     /** The note strategy's own words for its steps ([whitewallet.brand.NoteStrategy.workingText]), while they run. */
     val strategyText: Int? = null,
-    /** The brand shows notes, and mints; without, maintenance that names them is told as updating the balance. */
+    /** The brand shows notes; without, maintenance that names them is told as updating the balance. */
     val notesVisible: Boolean = true,
-    val mintsVisible: Boolean = true,
     val accounts: List<AccountSummary> = emptyList(),
     val activeAccountId: String? = null,
     val balanceMsat: Long = 0,
@@ -101,10 +100,10 @@ data class HomeState(
     /**
      * The balance per mint, shown under it once some of it is outside the home mint (or, without a home mint, on more than one): a payment
      * is made from one mint's money, so the total alone promises more than can be sent at once. The home mint has its row even when empty.
-     * Not where the brand hides mints, nor while the balance is hidden.
+     * Not while the balance is hidden.
      */
     val balanceByMint: List<AccountMint>
-        get() = mints.takeIf { mintsVisible && !balanceHidden && it.size > 1 && it.any { m -> !m.isHome } }.orEmpty()
+        get() = mints.takeIf { !balanceHidden && it.size > 1 && it.any { m -> !m.isHome } }.orEmpty()
 
     /** The rows Home has room for: all of [balanceByMint] up to [MINT_ROWS] and one, else the first [MINT_ROWS]. */
     val mintRows: List<AccountMint>
@@ -149,17 +148,11 @@ data class HomeState(
         get() = buildList {
             keyChangedMint?.let { add(HomeAlert.KeyChanged(it)) }
             unknownNotes.forEach { add(HomeAlert.UnknownNotes(it)) }
-            // Where the brand hides mints, one card says it: they can't be told apart. Otherwise the home mint has its own, as it also
-            // stops money coming in; several others are one situation, with one "Check again" that asks them all.
+            // The home mint has its own card, as it also stops money coming in; several others are one situation, with one "Check
+            // again" that asks them all.
             val (home, others) = mintsNotAnswering.partition { it.isHome }
-            when {
-                !mintsVisible -> mintsNotAnswering.take(1).forEach { add(HomeAlert.MintNotAnswering(it)) }
-                else -> {
-                    home.forEach { add(HomeAlert.MintNotAnswering(it)) }
-                    if (others.size > 1) add(HomeAlert.MintsNotAnswering(others))
-                    else others.forEach { add(HomeAlert.MintNotAnswering(it)) }
-                }
-            }
+            home.forEach { add(HomeAlert.MintNotAnswering(it)) }
+            if (others.size > 1) add(HomeAlert.MintsNotAnswering(others)) else others.forEach { add(HomeAlert.MintNotAnswering(it)) }
             if (showAddMintPrompt) add(HomeAlert.AddMint)
             if (showBackupPrompt) add(HomeAlert.Backup)
             if (showScanPrompt) add(HomeAlert.Scan)
@@ -246,7 +239,6 @@ class HomeViewModel(
             HomeState(
                 historyFilter = defaults.historyFilter,
                 notesVisible = defaults.notesView != NotesView.Hidden,
-                mintsVisible = defaults.showMints,
             )
         )
 
@@ -413,7 +405,7 @@ class HomeViewModel(
             last = run
             if (!defaults.maintenanceNotices.active(wallet.maintenanceNoticesChoice.first())) return@collect
             if (!notesVisible && !defaults.maintenanceNotices.whenNotesHidden) return@collect
-            val notice = MaintenanceNotice.of(run, notesVisible, defaults.showMints) ?: return@collect
+            val notice = MaintenanceNotice.of(run, notesVisible) ?: return@collect
             if (visible || notice.balanceChangeMsat != null) status.update { it.copy(notice = notice) }
         }
     }

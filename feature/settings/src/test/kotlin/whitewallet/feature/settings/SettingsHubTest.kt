@@ -52,13 +52,11 @@ class SettingsHubTest {
 
     @Test
     fun hiddenPagesHaveNoRowOnTheAccountPage() {
-        val hidden = setOf(SettingsTarget.Mints, SettingsTarget.Notes, SettingsTarget.NoteList)
+        val hidden = setOf(SettingsTarget.Notes, SettingsTarget.NoteList)
         val state =
             SettingsState(accountName = "Main", address = address, backupVerified = true, homeHost = "mint.example", hidden = hidden)
         compose.setContent { AccountSettingsScreen(state, {}, {}) }
         compose.onNodeWithText("alice@mint.example").assertExists()
-        compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.addresses_home_mint, "mint.example")).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_notes)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_note_list)).assertDoesNotExist()
     }
@@ -117,10 +115,9 @@ class SettingsHubTest {
                 accountName = "Main",
                 address = address,
                 backupVerified = true,
-                hidden = setOf(SettingsTarget.Mints, SettingsTarget.Notes, SettingsTarget.Display, SettingsTarget.Developer),
+                hidden = setOf(SettingsTarget.Notes, SettingsTarget.Display, SettingsTarget.Developer),
             )
         compose.setContent { SettingsScreen(state, "1.0", {}) {} }
-        compose.onNodeWithText(text(R.string.settings_mints)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_developer)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.settings_amounts)).assertDoesNotExist()
     }

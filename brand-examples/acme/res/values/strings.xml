@@ -130,10 +130,6 @@
         <item quantity="one">%2$s doesn\'t know %1$d of your banknotes</item>
         <item quantity="other">%2$s doesn\'t know %1$d of your banknotes</item>
     </plurals>
-    <plurals name="home_unknown_title_unnamed">
-        <item quantity="one">Your provider doesn\'t know %1$d of your banknotes</item>
-        <item quantity="other">Your provider doesn\'t know %1$d of your banknotes</item>
-    </plurals>
     <plurals name="notice_unknown_back">
         <item quantity="one">The provider knows a banknote again: you can spend it.</item>
         <item quantity="other">The provider knows %1$d banknotes again: you can spend them.</item>
@@ -298,13 +294,10 @@
     <string name="home_mint_is_home_not_answering">Provider · not answering</string>
     <string name="home_mint_is_home_key_changed">Provider · signing key doesn\'t match</string>
     <string name="home_mint_silent_title_home">Your provider, %1$s, isn\'t answering</string>
-    <string name="home_mint_silent_title_unnamed">Your provider isn\'t answering</string>
     <plurals name="home_mints_silent_title">
         <item quantity="one">%1$d provider isn\'t answering</item>
         <item quantity="other">%1$d providers aren\'t answering</item>
     </plurals>
-    <string name="receive_address_mint_silent_unnamed">Your provider isn\'t answering, so payments to this address can\'t arrive right now.</string>
-    <string name="receive_invoice_mint_silent_unnamed">Your provider isn\'t answering, so no invoice can be created right now. Try again later.</string>
     <string name="send_problem_mint_silent_unnamed">Your provider isn\'t answering. Nothing was paid. Try again later.</string>
     <string name="release_note_old_keys_title">Banknotes from before version 0.8</string>
     <string name="release_note_old_keys_body">This version no longer finds banknotes and Lightning addresses made the way the app made them before version 0.8. Since then, the app moved them over by itself whenever it was opened. If money is missing, open your recovery phrase once in version 0.9.0, which still moves them, then use “Scan for banknotes” here.</string>
@@ -328,19 +321,13 @@
     </plurals>
     <string name="received_unreachable">Its provider didn\'t answer, so your wallet stopped trying.</string>
     <string name="mint_key_changed_nothing_sent">The signing key of the provider doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the provider\'s details, nothing is sent there.</string>
-    <string name="mint_not_answering_unnamed">Your provider isn\'t answering. Try again later.</string>
     <string name="own_claim_refused">Its provider didn\'t accept that. Try again later.</string>
-    <string name="received_waiting_mint_unnamed">Claimed when its provider answers.</string>
     <string name="received_lightning_no_key">Its provider publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its provider doesn\'t answer for it as a banknote, so it can only be received over Lightning, for a fee.</string>
     <string name="claim_mint_refused">The provider doesn\'t accept this banknote right now.</string>
     <string name="receive_on_home">On %1$s, your provider</string>
     <string name="receive_on_home_detail">Your provider · %1$s</string>
     <string name="send_from_detail_home">Your provider · up to %1$s</string>
-    <string name="receive_address_key_changed_unnamed">The signing key of your provider doesn\'t match the one your wallet knows, so payments to this address wait there for now.</string>
-    <string name="receive_invoice_key_changed_unnamed">The signing key of your provider doesn\'t match the one your wallet knows, so no invoice can be created right now.</string>
-    <string name="receive_key_checking_unnamed">Checking your provider…</string>
-    <string name="send_key_changed_held_unnamed">%1$s with your provider can\'t be sent until its signing key matches.</string>
     <plurals name="notes_attention_waiting">
         <item quantity="one">%d banknote waiting for an answer</item>
         <item quantity="other">%d banknotes waiting for an answer</item>
@@ -361,7 +348,6 @@
     <string name="notes_mint_previous">Previous provider</string>
     <string name="notes_mint_next">Next provider</string>
     <string name="notes_mint_position">Provider %1$d of %2$d</string>
-    <string name="notes_attention_offline_unnamed">Your provider didn\'t answer, and you\'re offline. It\'s asked again when you\'re back online.</string>
     <plurals name="notes_attention_unknown_at">
         <item quantity="one">%2$s doesn\'t know %1$d of your banknotes</item>
         <item quantity="other">%2$s doesn\'t know %1$d of your banknotes</item>
@@ -369,9 +355,5 @@
     <plurals name="notes_attention_unknown">
         <item quantity="one">Your providers don\'t know %d of your banknotes</item>
         <item quantity="other">Your providers don\'t know %d of your banknotes</item>
-    </plurals>
-    <plurals name="notes_attention_unknown_unnamed">
-        <item quantity="one">Your provider doesn\'t know %d of your banknotes</item>
-        <item quantity="other">Your provider doesn\'t know %d of your banknotes</item>
     </plurals>
 </resources>

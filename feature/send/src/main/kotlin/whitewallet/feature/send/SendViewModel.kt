@@ -82,8 +82,6 @@ data class SendState(
     /** The account's balance, and the most one payment can be: set when that is less, its money being on several mints. */
     val balanceMsat: Long = 0,
     val limitMsat: Long? = null,
-    /** The brand names mints (brand `mints.visible`). */
-    val mintsVisible: Boolean = true,
     /** The phone is offline: nothing can be paid, and the screen says so before the user tries. */
     val offline: Boolean = false,
     /** The mint the user picked to pay from; null leaves it to the wallet (see the payment order in Settings). */
@@ -91,9 +89,9 @@ data class SendState(
     /** The mints the account can pay from, home first; then those holding money whose signing key doesn't match. */
     val mints: List<SendMint> = emptyList(),
 ) {
-    /** Another mint can be picked: the brand names mints and the account can pay from more than one. */
+    /** Another mint can be picked: the account can pay from more than one. */
     val canPickMint: Boolean
-        get() = mintsVisible && mints.count { !it.keyChanged } > 1
+        get() = mints.count { !it.keyChanged } > 1
 
     /** The mint the payment is made from: the one picked, else the one the quote says the wallet chose. */
     val payingHost: String?
@@ -126,7 +124,7 @@ constructor(
 ) : ViewModel() {
     // Opened from a mint (Home's mint row, its page): paid from there.
     private val opened = savedState.get<String>("from")?.takeIf { it.isNotBlank() }
-    private val _state = MutableStateFlow(SendState(loaded = false, mintsVisible = defaults.showMints, from = opened))
+    private val _state = MutableStateFlow(SendState(loaded = false, from = opened))
     val state: StateFlow<SendState> = _state
     private var quoteJob: Job? = null
 
@@ -255,7 +253,6 @@ constructor(
         _state.update {
             SendState(
                 faucet = it.faucet?.copy(error = null),
-                mintsVisible = it.mintsVisible,
                 balanceMsat = it.balanceMsat,
                 limitMsat = it.limitMsat,
                 mints = it.mints,

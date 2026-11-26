@@ -105,8 +105,6 @@ data class NotesState(
     val developerMode: Boolean = false,
     /** What the brand lets users do with notes (brand `notes.actions`). */
     val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
-    /** Whether mints are named (brand `mints.visible`); without, the piles and a mint's page show no name nor labels. */
-    val showMints: Boolean = true,
     /** The phone is offline ([Wallet.offline]): the view says so, and a received note waits for it. */
     val offline: Boolean = false,
     /** Every mint that didn't answer the last time the wallet asked it: what a received note there waits for. */
@@ -331,7 +329,6 @@ constructor(
         MutableStateFlow(
             NotesState(
                 noteActions = defaults.noteActions,
-                showMints = defaults.showMints,
                 attentionOpen = savedState.get<Boolean>("attention") == true,
             )
         )

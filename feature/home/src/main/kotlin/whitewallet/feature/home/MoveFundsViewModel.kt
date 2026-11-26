@@ -41,8 +41,6 @@ data class MoveFundsState(
     val addsMints: List<String> = emptyList(),
     /** A move that can't be whole, as its mints said before any of it was made: for the user to decide whether what can move still does. */
     val partial: MoveCheck? = null,
-    /** Whether mints are named (brand `mints.visible`); without, what stayed is said without saying where. */
-    val showMints: Boolean = true,
 ) {
     /** With several wallets, an account's name alone doesn't say whose money this is: each is shown under its wallet. */
     val showWallets: Boolean
@@ -99,7 +97,6 @@ class MoveFundsViewModel @Inject constructor(private val wallet: Wallet, private
                     groups.associate { it.wallet.id to it.number },
                     groups.mapNotNull { g -> g.wallet.name?.let { g.wallet.id to it } }.toMap(),
                     partial = i.partial,
-                    showMints = defaults.showMints,
                 )
             }
             .mapLatest { s -> s.copy(addsMints = s.targetId?.let { wallet.moveAddsMints(it, s.amountMsat) }.orEmpty()) }

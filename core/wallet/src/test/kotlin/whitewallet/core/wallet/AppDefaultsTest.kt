@@ -31,7 +31,6 @@ class AppDefaultsTest {
         val open = defaults.copy(allowMintChange = true)
         assertEquals(true, open.mintOptional)
         assertEquals(false, defaults.mintOptional, "mints.changeable=false")
-        assertEquals(false, open.copy(showMints = false).mintOptional)
     }
 
     @Test

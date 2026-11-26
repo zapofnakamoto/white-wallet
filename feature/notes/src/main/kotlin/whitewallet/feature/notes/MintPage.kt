@@ -63,9 +63,7 @@ internal fun MintPage(mint: MintNotes, state: NotesState, actions: NotesActions,
         LazyColumn(Modifier.fillMaxSize()) {
             item(key = "header") { MintPageHeader(mint, state, actions, backArrow) }
             if (working) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
-            state.outcome
-                ?.takeIf { state.open == null }
-                ?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
+            state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, actions.dismissOutcome) } }
             item(key = "toolbar") { Toolbar(state, actions) }
             items(mint.notes, key = { it.id }) { note -> NoteRow(note, state, actions) }
             // Room for the selection bar, so the last note can scroll above it.
@@ -76,8 +74,8 @@ internal fun MintPage(mint: MintNotes, state: NotesState, actions: NotesActions,
 }
 
 /**
- * Back, then the mint's name, total, how many notes and its labels, drawn by the brand; without `mints.visible` the total and count only.
- * When collecting at the home mint left its notes here, why, and Move anyway.
+ * Back, then the mint's name, total, how many notes and its labels, drawn by the brand. When collecting at the home mint left its notes
+ * here, why, and Move anyway.
  */
 @Composable
 private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesActions, backArrow: Boolean) {
@@ -86,13 +84,12 @@ private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesAct
             IconButton(onClick = actions.closeMint) {
                 Icon(painterResource(DesignR.drawable.ic_arrow_back), contentDescription = stringResource(DesignR.string.back))
             }
-        val summary = mintSummary(mint, state.showMints)
+        val summary = mintSummary(mint)
         WalletNoteGroupHeader(
-            mint = mint.host.takeIf { state.showMints },
             host = mint.host,
             totalMsat = summary.totalMsat,
             home = mint.isHome,
-            trusted = mint.trusted && state.showMints,
+            trusted = mint.trusted,
             labels = summary.labels,
             outsideBalance = summary.outsideBalance,
             modifier = Modifier.weight(1f),
@@ -183,7 +180,7 @@ private fun NoteRow(note: Note, state: NotesState, actions: NotesActions) {
         statusText = noteStatusText(status),
         statusIcon = noteStatusIcon(status),
         age = recentTime(note.updatedAtMillis),
-        mint = note.host.takeIf { state.showMints },
+        mint = note.host,
         host = note.host,
         trusted = state.mints.any { it.host == note.host && it.trusted },
         selected = selected,

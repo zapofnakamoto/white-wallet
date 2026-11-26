@@ -99,14 +99,12 @@ private fun Hub(
         }
         HorizontalDivider()
     }
-    if (SettingsTarget.Mints !in state.hidden) {
-        SummaryRow(
-            pageIcon(SettingsTarget.Mints),
-            stringResource(R.string.settings_mints),
-            mintsSummary(state.homeHost),
-        ) {
-            open(SettingsTarget.Mints)
-        }
+    SummaryRow(
+        pageIcon(SettingsTarget.Mints),
+        stringResource(R.string.settings_mints),
+        mintsSummary(state.homeHost),
+    ) {
+        open(SettingsTarget.Mints)
     }
     SummaryRow(
         pageIcon(SettingsTarget.Security),

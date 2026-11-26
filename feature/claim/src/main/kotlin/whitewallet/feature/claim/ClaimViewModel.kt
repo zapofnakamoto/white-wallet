@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.ClaimPreview
 import whitewallet.core.wallet.ClaimResult
 import whitewallet.core.wallet.FaucetState
@@ -32,8 +31,6 @@ data class ClaimState(
     val result: ClaimResult? = null,
     /** The outcome of taking back the user's own note ([ClaimPreview.OwnShared]). */
     val takenBack: ReclaimResult? = null,
-    /** Say which mint the note is on and whether it's trusted (brand `mints.visible`). */
-    val showMints: Boolean = true,
     /** An invoice, address or pay link was scanned or pasted here: Send takes it over, so one scanner does for both. */
     val pay: String? = null,
     /** Developer: the local regtest mints the faucet makes a note on, and its last attempt. Empty outside developer mode. */
@@ -80,11 +77,9 @@ data class ClaimState(
 internal const val FAUCET_SATS = 1_000L
 
 @HiltViewModel
-class ClaimViewModel
-@Inject
-constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, savedState: SavedStateHandle, defaults: AppDefaults) :
+class ClaimViewModel @Inject constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, savedState: SavedStateHandle) :
     ViewModel() {
-    private val _state = MutableStateFlow(ClaimState(showMints = defaults.showMints, loaded = false))
+    private val _state = MutableStateFlow(ClaimState(loaded = false))
     val state: StateFlow<ClaimState> = _state
 
     init {
@@ -122,7 +117,6 @@ constructor(private val wallet: Wallet, private val faucet: RegtestFaucet, saved
     private fun fresh(from: ClaimState, input: String = "", pay: String? = null) =
         ClaimState(
             input = input,
-            showMints = from.showMints,
             pay = pay,
             faucetMints = from.faucetMints,
             loaded = from.loaded,

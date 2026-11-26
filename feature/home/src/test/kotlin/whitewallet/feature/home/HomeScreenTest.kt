@@ -492,19 +492,6 @@ class HomeScreenTest {
     }
 
     @Test
-    fun whereMintsDoNotShowTheCardDoesNotNameOne() {
-        show(
-            HomeState(
-                activeAccountId = "a",
-                mintsVisible = false,
-                mints = listOf(mint("home.example", 0, home = true, answering = false)),
-            )
-        )
-        compose.onNodeWithText(text(R.string.home_mint_silent_title_unnamed)).assertExists()
-        compose.onNodeWithText(text(DesignR.string.attention_not_answering_home_empty_line)).assertExists()
-    }
-
-    @Test
     fun offlineHomeSaysSoWithNothingToTryInsteadOfBlamingAMint() {
         show(
             HomeState(
@@ -706,14 +693,14 @@ class HomeScreenTest {
     }
 
     @Test
-    fun aMintThatDidNotAnswerIsNamedWhereMintsAre() {
+    fun aMintThatDidNotAnswerIsNamed() {
         show(HomeState(unknownCheck = UnknownCheck.Unreachable("mint.example")))
         compose.onNodeWithText(text(R.string.notice_unknown_unreachable, "mint.example")).assertExists()
     }
 
     @Test
-    fun aMintThatDidNotAnswerIsNotNamedWhereMintsAreHidden() {
-        show(HomeState(unknownCheck = UnknownCheck.Unreachable("mint.example"), mintsVisible = false))
+    fun aMintThatDidNotAnswerIsNotNamedWhenItIsNotKnownWhich() {
+        show(HomeState(unknownCheck = UnknownCheck.Unreachable(null)))
         compose.onNodeWithText(text(R.string.notice_unknown_unreachable_unnamed)).assertExists()
     }
 
@@ -1002,13 +989,10 @@ class HomeScreenTest {
     }
 
     @Test
-    fun withoutNotesOrMintsMaintenanceIsUpdatingTheBalance() {
+    fun withoutNotesMaintenanceIsUpdatingTheBalance() {
         compose.mainClock.autoAdvance = false
-        val set = showLive(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Combining, "single"), notesVisible = false))
+        show(HomeState(task = WalletTask.Maintaining(MaintenanceStep.Combining, "single"), notesVisible = false))
         compose.mainClock.advanceTimeBy(SHOWN_AFTER + 100)
-        compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
-        set(HomeState(task = WalletTask.Maintaining(MaintenanceStep.MovingHome), mintsVisible = false))
-        compose.mainClock.advanceTimeByFrame()
         compose.onNodeWithText(text(R.string.home_working_updating)).assertExists()
     }
 
@@ -1136,19 +1120,6 @@ class HomeScreenTest {
             )
         )
         compose.onNodeWithText(text(DesignR.string.received_waiting_mint, "mint.example")).assertExists()
-    }
-
-    @Test
-    fun aSilentMintIsNotNamedWhereMintsAreHidden() {
-        show(
-            HomeState(
-                activeAccountId = "a",
-                mintsVisible = false,
-                notAnsweringHosts = setOf("mint.example"),
-                received = listOf(received("r1", ReceivedState.Waiting)),
-            )
-        )
-        compose.onNodeWithText(text(DesignR.string.received_waiting_mint_unnamed)).assertExists()
     }
 
     @Test

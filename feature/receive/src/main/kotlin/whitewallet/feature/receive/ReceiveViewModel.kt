@@ -98,14 +98,12 @@ data class ReceiveState(
     val addressLost: Boolean = false,
     /** The mints whose signing key is being asked for: nothing is made on them until the answer is back. */
     val keyChecking: Set<String> = emptySet(),
-    /** The brand names mints (brand `mints.visible`). */
-    val mintsVisible: Boolean = true,
     /** The phone is offline: no invoice can be made, and the amount form says so before the user tries. */
     val offline: Boolean = false,
     /** The mint the user picked to receive on; null leaves it to the wallet (the address it offers first, else the home mint). */
     val on: String? = null,
     val homeHost: String? = null,
-    /** The mints the account can receive on, home first; one to pick from once there are several (and the brand names mints). */
+    /** The mints the account can receive on, home first; one to pick from once there are several. */
     val mints: List<ReceiveMint> = emptyList(),
 ) {
     /** The mint what is shown receives on: the invoice's, the address's, else the one an invoice would be made on. */
@@ -120,9 +118,9 @@ data class ReceiveState(
     val receivingKeyChanged: Boolean
         get() = mints.any { it.host == receivingHost && it.keyChanged }
 
-    /** Another mint can be picked: the brand names mints and the account has more than one to receive on. */
+    /** Another mint can be picked: the account has more than one to receive on. */
     val canPickMint: Boolean
-        get() = mintsVisible && mints.size > 1
+        get() = mints.size > 1
 
     /** The mint of the [address] shown. */
     val addressHost: String?
@@ -190,7 +188,6 @@ constructor(
     savedState: SavedStateHandle,
 ) : ViewModel() {
     private val timings = defaults.timings
-    private val mintsVisible = defaults.showMints
     private val received = MutableStateFlow(Arrivals())
     // Opened from a mint (Home's mint row, its page): received there.
     private val ui = MutableStateFlow(ReceiveUi(on = savedState.get<String>("on")?.takeIf { it.isNotBlank() }))
@@ -216,7 +213,6 @@ constructor(
                     faucet = u.faucet.takeIf { canFaucet },
                     // Receiving on a mint picked by hand needs no home.
                     noHome = noHome.takeIf { u.on == null },
-                    mintsVisible = mintsVisible,
                     on = u.on,
                 )
             }

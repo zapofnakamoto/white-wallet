@@ -205,7 +205,7 @@ interface BrandComponents {
      */
     @Composable fun NoteFace(params: NoteFaceParams, modifier: Modifier) = DefaultComponents.noteFace(params, modifier)
 
-    /** The heading of a mint's page: its name, labels and total; without a name (`mints.visible=false`) the total and labels. */
+    /** The heading of a mint's page: its name, labels and total. */
     @Composable fun NoteGroupHeader(params: NoteGroupParams, modifier: Modifier) = DefaultComponents.noteGroupHeader(params, modifier)
 
     /**
@@ -476,7 +476,7 @@ class NoteFaceParams(
     val statusIcon: Painter? = null,
     /** How long ago it last changed, in words; null where it isn't shown. */
     val age: String? = null,
-    /** The mint it is held on; null where mints aren't named (brand `mints.visible=false`). */
+    /** The mint it is held on; null where it isn't shown. */
     val mint: String? = null,
     /** The user trusts its mint (by its signing key). */
     val trusted: Boolean = false,
@@ -503,7 +503,7 @@ class NoteFaceParams(
      * with a foil stripe and its engraving, and another without; the words for one that isn't ([statusText]) stay the app's.
      */
     val certified: Boolean,
-    /** How its mint's bills are drawn, also where mints aren't named ([mint] null): the default's border, waves and seal. */
+    /** How its mint's bills are drawn: the default's border, waves and seal. */
     val pattern: MintPattern,
 )
 
@@ -512,8 +512,8 @@ val NoteStatus.inBalance: Boolean
     get() = this == NoteStatus.Ready || this == NoteStatus.Uncertified
 
 class NotePileParams(
-    /** The mint's host; null where mints aren't named (brand `mints.visible=false`). */
-    val mint: String?,
+    /** The mint's host. */
+    val mint: String,
     /**
      * Home mint, trusted and how many notes, in words ("Home mint · Trusted · 84 notes"); with none in the balance, why first, then home
      * and trusted ("2 notes unknown to the mint · 1 more · Home mint").
@@ -560,15 +560,13 @@ class NotePileParams(
     val onClick: () -> Unit,
     /** What a tap does, for screen readers ("Open this mint's notes"). */
     val onClickLabel: String,
-    /**
-     * How the mint's bills are drawn, also where mints aren't named ([mint] null); the default shows its [MintMark] beside a named mint.
-     */
+    /** How the mint's bills are drawn; the default shows its [MintMark] beside its name. */
     val pattern: MintPattern,
 )
 
 class NoteGroupParams(
-    /** The mint's host; null where mints aren't named. */
-    val mint: String?,
+    /** The mint's host. */
+    val mint: String,
     /**
      * What the group's notes count in the balance, formatted; with none in the balance, what is held up there ([outsideBalance] says so),
      * as on the pile; null when nothing is.
@@ -1123,18 +1121,12 @@ object DefaultComponents : BrandComponents {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Its mark, as beside its name in lists; "Trusted" is in its labels.
-                if (params.mint != null)
-                    LocalBrandDesign.current.components.MintMark(
-                        MintMarkParams(params.pattern, params.colors, params.home, 24.dp),
-                        Modifier,
-                    )
-                // Without a name, the labels head the card, in as many lines.
-                val lines = if (params.mint == null) params.labelLines else 1
+                LocalBrandDesign.current.components.MintMark(MintMarkParams(params.pattern, params.colors, params.home, 24.dp), Modifier)
                 Text(
-                    params.mint ?: params.labels,
+                    params.mint,
                     style = MaterialTheme.typography.titleSmall,
-                    maxLines = lines,
-                    minLines = lines,
+                    maxLines = 1,
+                    minLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
@@ -1148,15 +1140,14 @@ object DefaultComponents : BrandComponents {
                 Icon(params.openIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             // Below, the card's whole width: why none counts is a long line.
-            if (params.mint != null)
-                Text(
-                    params.labels,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = params.labelLines,
-                    minLines = params.labelLines,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Text(
+                params.labels,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = params.labelLines,
+                minLines = params.labelLines,
+                overflow = TextOverflow.Ellipsis,
+            )
             BillFan(params, Modifier.fillMaxWidth().padding(top = 8.dp).height(160.dp))
             // Always a line, empty or not: every mint's card is as high as the others.
             Text(
@@ -1170,38 +1161,25 @@ object DefaultComponents : BrandComponents {
         }
     }
 
-    /**
-     * A row with the mint's name, labels and total; without a [NoteGroupParams.mint], the total (or without one the labels) and labels
-     * only. A total out of the balance is muted, and said so below the labels.
-     */
+    /** A row with the mint's name, labels and total. A total out of the balance is muted, and said so below the labels. */
     @Composable
     fun noteGroupHeader(params: NoteGroupParams, modifier: Modifier) {
-        val mint = params.mint
         val totalColor = if (params.outsideBalance != null) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified
         val total: (@Composable () -> Unit)? =
             params.total?.let { total -> { Text(total, style = MaterialTheme.typography.titleMedium, color = totalColor) } }
-        // Without a name, the total heads the row; without a total either, the labels do.
-        val headline = mint ?: params.total ?: params.labels.orEmpty()
-        val supporting = listOfNotNull(params.labels.takeIf { headline != it }, params.outsideBalance)
+        val supporting = listOfNotNull(params.labels, params.outsideBalance)
         LocalBrandDesign.current.components.ListRow(
             ListRowParams(
-                headline =
-                    if (mint == null && total != null) total
-                    else {
-                        { Text(headline, style = MaterialTheme.typography.titleMedium) }
-                    },
+                headline = { Text(params.mint, style = MaterialTheme.typography.titleMedium) },
                 supporting = supporting.takeIf { it.isNotEmpty() }?.let { lines -> { Column { lines.forEach { Text(it) } } } },
                 // Its mark, as beside its name in lists; "Trusted" is in its labels.
-                leading =
-                    mint?.let {
-                        {
-                            LocalBrandDesign.current.components.MintMark(
-                                MintMarkParams(params.pattern, params.colors, params.home, 32.dp),
-                                Modifier,
-                            )
-                        }
-                    },
-                trailing = total.takeIf { mint != null },
+                leading = {
+                    LocalBrandDesign.current.components.MintMark(
+                        MintMarkParams(params.pattern, params.colors, params.home, 32.dp),
+                        Modifier,
+                    )
+                },
+                trailing = total,
             ),
             modifier,
         )

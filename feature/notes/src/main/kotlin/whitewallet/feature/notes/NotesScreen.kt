@@ -300,10 +300,10 @@ internal fun noteStatusIcon(status: NoteStatus): Int? =
     }
 
 @Composable
-internal fun Outcome(outcome: NotesOutcome, showMints: Boolean, onDismiss: () -> Unit) {
+internal fun Outcome(outcome: NotesOutcome, onDismiss: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            outcomeText(outcome, showMints),
+            outcomeText(outcome),
             style = MaterialTheme.typography.bodyMedium,
             color = if (outcome.isProblem) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).padding(vertical = 12.dp),
@@ -320,7 +320,7 @@ private val NotesOutcome.isProblem: Boolean
             (this is NotesOutcome.Checked && (gone > 0 || unknown > 0 || unreachable.isNotEmpty()))
 
 @Composable
-private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String =
+private fun outcomeText(outcome: NotesOutcome): String =
     when (outcome) {
         is NotesOutcome.Combined -> stringResource(R.string.notes_combined, formatAmount(outcome.amountMsat))
         is NotesOutcome.Split ->
@@ -358,14 +358,12 @@ private fun outcomeText(outcome: NotesOutcome, showMints: Boolean): String =
                         add(pluralStringResource(R.plurals.notes_checked_ok, outcome.ok, outcome.ok))
                     if (outcome.unreachable.isNotEmpty()) {
                         add(
-                            if (showMints)
-                                pluralStringResource(
-                                    DesignR.plurals.mints_not_answering,
-                                    outcome.unreachable.size,
-                                    outcome.unreachable.size,
-                                    ListFormatter.getInstance().format(outcome.unreachable),
-                                )
-                            else stringResource(DesignR.string.mint_not_answering_unnamed)
+                            pluralStringResource(
+                                DesignR.plurals.mints_not_answering,
+                                outcome.unreachable.size,
+                                outcome.unreachable.size,
+                                ListFormatter.getInstance().format(outcome.unreachable),
+                            )
                         )
                     }
                 }

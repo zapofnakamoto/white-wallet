@@ -263,17 +263,6 @@ class MoveFundsScreenTest {
     }
 
     @Test
-    fun whereMintsArentNamedWhatStayedIsSaidWithoutSayingWhere() {
-        val result = MoveResult.Moved(3_000, listOf(stayed(StayReason.Unreachable), stayed(StayReason.OtherWalletKey, "mint-c.example")))
-        show(twoWallets.copy(result = result, showMints = false))
-        compose.onNodeWithText(text(DesignR.string.mint_not_answering_unnamed)).assertExists()
-        compose.onNodeWithText(text(R.string.move_stayed_blocked_unnamed)).assertExists()
-        compose.onNodeWithText("mint-b.example", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("mint-c.example", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(DesignR.string.try_again)).assertExists()
-    }
-
-    @Test
     fun aMoveThatCantBeWholeIsAskedAboutBeforeAnyOfItIsMade() {
         var confirmed = 0
         var cancelled = 0
@@ -328,13 +317,5 @@ class MoveFundsScreenTest {
         compose.onNodeWithText(text(DesignR.string.try_again)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.move_none)).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.done)).assertExists()
-    }
-
-    @Test
-    fun whereMintsArentNamedWhatIsWaitingIsOneAmount() {
-        val pending = listOf(MovePending("mint-b.example", 5_000), MovePending("mint-c.example", 4_000))
-        show(twoWallets.copy(result = MoveResult.Pending(pending), showMints = false))
-        compose.onNode(hasText("9", substring = true)).assertExists()
-        compose.onNodeWithText("mint-b.example", substring = true).assertDoesNotExist()
     }
 }

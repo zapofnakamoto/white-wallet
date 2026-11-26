@@ -286,7 +286,6 @@ private fun FaucetButtons(state: ClaimState, onFaucet: (String) -> Unit, onWithd
 
 @Composable
 private fun ReadyCard(preview: ClaimPreview.Ready, state: ClaimState) {
-    val showMints = state.showMints
     WalletCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             WalletNoteFace(
@@ -295,26 +294,23 @@ private fun ReadyCard(preview: ClaimPreview.Ready, state: ClaimState) {
                 modifier = Modifier.fillMaxWidth(),
                 status = if (preview.certified) NoteStatus.Ready else NoteStatus.Uncertified,
                 certified = preview.certified,
-                mint = preview.link.host.takeIf { showMints },
+                mint = preview.link.host,
                 trusted = preview.trusted,
                 place = NoteFacePlace.Claim,
                 // In the colour its mint's notes have on the notes view, once it is claimed.
                 colors = MaterialTheme.walletColors.note(homeMint = preview.link.host == state.home),
                 host = preview.link.host,
             )
-            // Without showMints, only what needs the user: an amount that can't be verified, other spend paths, and the bearer warning.
-            if (showMints) {
-                Text(
-                    stringResource(if (preview.isOwnMint) R.string.claim_home_mint else R.string.claim_mint, preview.link.host),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                // Trust is the user's own list (Settings → Mints), by signing key; nothing is blocked either way.
-                Text(
-                    stringResource(if (preview.trusted) R.string.claim_trusted else R.string.claim_not_trusted),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (preview.trusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                stringResource(if (preview.isOwnMint) R.string.claim_home_mint else R.string.claim_mint, preview.link.host),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            // Trust is the user's own list (Settings → Mints), by signing key; nothing is blocked either way.
+            Text(
+                stringResource(if (preview.trusted) R.string.claim_trusted else R.string.claim_not_trusted),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (preview.trusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             // A certified amount is the normal case and says nothing; only one that can't be verified needs the user.
             if (!preview.certified) {
                 Text(
@@ -323,7 +319,7 @@ private fun ReadyCard(preview: ClaimPreview.Ready, state: ClaimState) {
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            if (showMints && !preview.isOwnMint)
+            if (!preview.isOwnMint)
                 Text(stringResource(R.string.claim_other_mint, preview.link.host), style = MaterialTheme.typography.bodySmall)
             if (preview.hasOtherPaths)
                 Text(

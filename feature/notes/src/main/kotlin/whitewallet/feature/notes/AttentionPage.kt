@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,25 +62,13 @@ internal fun AttentionPage(state: NotesState, actions: NotesActions, backArrow: 
             }
         }
         if (working) item { WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) }
-        state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, state.showMints, actions.dismissOutcome) } }
-        hosts.forEachIndexed { index, host ->
-            // Named, each mint under its name; unnamed, still apart from the one before.
-            if (state.showMints) item(key = "mint $host") { Heading(host, mark = { WalletMintMark(host, state.isHomeMint(host)) }) }
-            else if (index > 0) item(key = "apart $host") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            // Under its name, the line needn't name it again; without names, it says whose.
-            if (host in state.silentMints)
-                item(key = "silent $host") {
-                    MintLine(
-                        stringResource(if (state.showMints) R.string.notes_attention_silent else DesignR.string.mint_not_answering_unnamed)
-                    )
-                }
+        state.outcome?.takeIf { state.open == null }?.let { outcome -> item { Outcome(outcome, actions.dismissOutcome) } }
+        hosts.forEach { host ->
+            // Each mint under its name, so its lines needn't name it again.
+            item(key = "mint $host") { Heading(host, mark = { WalletMintMark(host, state.isHomeMint(host)) }) }
+            if (host in state.silentMints) item(key = "silent $host") { MintLine(stringResource(R.string.notes_attention_silent)) }
             // Offline, a mint that wasn't answering stays here (the page stays open for it), saying why nothing is asked now.
-            if (host in state.silentWhileOffline)
-                item(key = "offline $host") {
-                    MintLine(
-                        stringResource(if (state.showMints) R.string.notes_attention_offline else R.string.notes_attention_offline_unnamed)
-                    )
-                }
+            if (host in state.silentWhileOffline) item(key = "offline $host") { MintLine(stringResource(R.string.notes_attention_offline)) }
             if (host in state.keyChangedMints)
                 item(key = "key $host") {
                     MintLine(
@@ -100,7 +87,6 @@ internal fun AttentionPage(state: NotesState, actions: NotesActions, backArrow: 
             items(received, key = { "received ${it.id}" }) { note ->
                 ReceivedNoteRow(
                     note,
-                    state.showMints,
                     amountHidden = false,
                     actions.received,
                     wait = note.waitsFor(state.offline, state.notAnsweringHosts),
@@ -154,7 +140,7 @@ private fun TroubledNoteRow(note: Note, state: NotesState, actions: NotesActions
         statusText = noteStatusText(status),
         statusIcon = noteStatusIcon(status),
         age = recentTime(note.updatedAtMillis),
-        mint = note.host.takeIf { state.showMints },
+        mint = note.host,
         host = note.host,
         trusted = state.mints.any { it.host == note.host && it.trusted },
         // Drawn as on its mint's page: one its mint doesn't know as out of the balance.

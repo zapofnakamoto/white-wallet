@@ -464,9 +464,6 @@ mints.custom={"false" if o.lock else "true"}
 # true: after setup, users can add an address on another mint, change their home mint and move money between mints.
 # false: each wallet stays on the mint it was set up with.
 mints.changeable={"false" if o.lock else "true"}
-# false hides everything about mints: Settings → Mints, the home mint's page, which mint a claimed note is on, and
-# the mints in the notes view.
-mints.visible={"false" if o.hide_mints else "true"}
 # Mints shown as trusted from the start, each as host:pubkey (the mint's signing key), comma-separated. Users can
 # untrust them; each wallet's home mint is trusted by default anyway.
 mints.trusted={",".join(o.trusted_mint)}
@@ -493,10 +490,10 @@ amounts.unit.changeable={"false" if o.lock_unit else "true"}
 # History, settings = a page under Settings → Account, hidden = nowhere (the note strategy keeps them by itself).
 notes.view={o.notes_view}
 # What users can do with their notes in the notes view, comma-separated: share (as a QR code), split, combine, move
-# (to another mint; needs mints.visible=true), recheck, renew, print (a handed-out note, on paper). Without combine,
-# move and recheck there is no selecting.
-# Unset = all of them (without move when mints.visible=false); empty = notes are only shown.
-notes.actions={"share,split,combine,recheck,renew,print" if o.hide_mints else "share,split,combine,move,recheck,renew,print"}
+# (to another mint), recheck, renew, print (a handed-out note, on paper). Without combine, move and recheck there is
+# no selecting.
+# Unset = all of them; empty = notes are only shown.
+notes.actions=share,split,combine,move,recheck,renew,print
 # Note strategies users can choose from, in this order (built in: single, manual; a code/ module can add its own),
 # and the one a new account starts with.
 notes.strategies={o.note_strategy if o.no_strategy_choice else ",".join(dict.fromkeys([o.note_strategy, "single", "manual"]))}
@@ -716,7 +713,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--history-filter", choices=("types", "maintenance", "none"), default="types", help="filters on the History tab: kinds of entries, only note maintenance, or none (default: types)")
     parser.add_argument("--notes-view", choices=("tab", "settings", "hidden"), default="tab", help="where users manage their notes: a Notes tab, a page in Settings → Account, or hidden (default: tab)")
     parser.add_argument("--developer-options", choices=("shown", "unlock", "hidden"), default="shown", help="Developer options in Settings: shown, unlock (tap the version in About seven times) or hidden in release builds (default: shown)")
-    parser.add_argument("--hide-mints", action="store_true", help="hide everything about mints (Settings → Mints, the home mint's page, a claimed note's mint)")
     parser.add_argument("--collect-fee-cap", type=int, default=2, help="the most such a move may cost, in percent (default: 2)")
     parser.add_argument("--suggest", default="", help="further mints offered at setup after --mint, comma-separated")
     parser.add_argument("--support-url", help="support website (default: https://<mint host>)")

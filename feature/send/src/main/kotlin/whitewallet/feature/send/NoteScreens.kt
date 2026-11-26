@@ -105,12 +105,10 @@ data class CreateNoteState(
     val from: String? = null,
     /** The mints it can be made from, home first; then those holding money whose signing key doesn't match. */
     val mints: List<SendMint> = emptyList(),
-    /** The brand names mints (brand `mints.visible`). */
-    val mintsVisible: Boolean = true,
 ) {
-    /** Another mint can be picked: the brand names mints and the account can pay from more than one. */
+    /** Another mint can be picked: the account can pay from more than one. */
     val canPickMint: Boolean
-        get() = mintsVisible && mints.count { !it.keyChanged } > 1
+        get() = mints.count { !it.keyChanged } > 1
 
     /** The mint the note is made from: the one picked, else the one the quote says the wallet chose. */
     val payingHost: String?
@@ -125,13 +123,9 @@ data class CreateNoteState(
 }
 
 @HiltViewModel
-class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle, defaults: AppDefaults) :
-    ViewModel() {
+class CreateNoteViewModel @Inject constructor(private val wallet: Wallet, savedState: SavedStateHandle) : ViewModel() {
     // Opened from Send for a mint: made from there.
-    private val _state =
-        MutableStateFlow(
-            CreateNoteState(from = savedState.get<String>("from")?.takeIf { it.isNotBlank() }, mintsVisible = defaults.showMints)
-        )
+    private val _state = MutableStateFlow(CreateNoteState(from = savedState.get<String>("from")?.takeIf { it.isNotBlank() }))
     val state: StateFlow<CreateNoteState> = _state
     private var quoteJob: Job? = null
 
@@ -252,7 +246,7 @@ fun CreateNoteScreen(
             // is to say.
             val stuck = state.mints.filter { it.keyChanged }.takeIf { state.from == null }.orEmpty()
             if (stuck.isNotEmpty()) {
-                KeyChangedHeld(stuck, state.mintsVisible, onOpenMint)
+                KeyChangedHeld(stuck, onOpenMint)
                 if (state.mints.all { it.keyChanged }) return@ScreenColumn
             }
             WalletTextField(
@@ -268,7 +262,7 @@ fun CreateNoteScreen(
             // Which mint it is made from, once known, where there is another to pick.
             var picking by rememberSaveable { mutableStateOf(false) }
             state.payingHost
-                ?.takeIf { state.mintsVisible && (state.canPickMint || state.from != null) }
+                ?.takeIf { state.canPickMint || state.from != null }
                 ?.let {
                     MintChoiceLine(
                         stringResource(R.string.send_from, it),

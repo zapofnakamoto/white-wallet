@@ -130,10 +130,6 @@
         <item quantity="one">%2$s kennt %1$d deiner Geldscheine nicht</item>
         <item quantity="other">%2$s kennt %1$d deiner Geldscheine nicht</item>
     </plurals>
-    <plurals name="home_unknown_title_unnamed">
-        <item quantity="one">Dein Anbieter kennt %1$d deiner Geldscheine nicht</item>
-        <item quantity="other">Dein Anbieter kennt %1$d deiner Geldscheine nicht</item>
-    </plurals>
     <plurals name="notice_unknown_back">
         <item quantity="one">Der Anbieter kennt einen Geldschein wieder: Du kannst ihn ausgeben.</item>
         <item quantity="other">Der Anbieter kennt %1$d Geldscheine wieder: Du kannst sie ausgeben.</item>
@@ -299,13 +295,10 @@
     <string name="home_mint_is_home_not_answering">Anbieter · antwortet nicht</string>
     <string name="home_mint_is_home_key_changed">Anbieter · Signaturschlüssel passt nicht</string>
     <string name="home_mint_silent_title_home">Dein Anbieter, %1$s, antwortet nicht</string>
-    <string name="home_mint_silent_title_unnamed">Dein Anbieter antwortet nicht</string>
     <plurals name="home_mints_silent_title">
         <item quantity="one">%1$d Anbieter antwortet nicht</item>
         <item quantity="other">%1$d Anbieter antworten nicht</item>
     </plurals>
-    <string name="receive_address_mint_silent_unnamed">Dein Anbieter antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
-    <string name="receive_invoice_mint_silent_unnamed">Dein Anbieter antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
     <string name="send_problem_mint_silent_unnamed">Dein Anbieter antwortet nicht. Es wurde nichts bezahlt. Versuche es später erneut.</string>
     <string name="release_note_old_keys_title">Geldscheine von vor Version 0.8</string>
     <string name="release_note_old_keys_body">Diese Version findet keine Geldscheine und Lightning-Adressen mehr, die so angelegt wurden wie vor Version 0.8. Seitdem hat die App sie bei jedem Öffnen von selbst umgezogen. Fehlt Geld, öffne deine Wiederherstellungsphrase einmal in Version 0.9.0, die sie noch umzieht, und nutze dann hier „Nach Geldscheinen suchen“.</string>
@@ -329,19 +322,13 @@
     </plurals>
     <string name="received_unreachable">Sein Anbieter hat nicht geantwortet, deshalb versucht deine Wallet es nicht mehr.</string>
     <string name="mint_key_changed_nothing_sent">Der Signaturschlüssel des Anbieters passt nicht zu dem, den deine Wallet kennt. Bis er wieder passt oder du in den Details des Anbieters den neuen Schlüssel annimmst, wird nichts dorthin gesendet.</string>
-    <string name="mint_not_answering_unnamed">Dein Anbieter antwortet nicht. Versuche es später erneut.</string>
     <string name="own_claim_refused">Der Anbieter hat das nicht angenommen. Versuche es später erneut.</string>
-    <string name="received_waiting_mint_unnamed">Wird eingelöst, sobald sein Anbieter antwortet.</string>
     <string name="received_lightning_no_key">Sein Anbieter veröffentlicht keinen Signaturschlüssel, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="received_lightning_not_a_note">Sein Anbieter antwortet darauf nicht wie auf einen Geldschein, daher lässt er sich nur über Lightning empfangen, gegen eine Gebühr.</string>
     <string name="claim_mint_refused">Der Anbieter nimmt diesen Geldschein gerade nicht an.</string>
     <string name="receive_on_home">Bei %1$s, deinem Anbieter</string>
     <string name="receive_on_home_detail">Dein Anbieter · %1$s</string>
     <string name="send_from_detail_home">Dein Anbieter · bis zu %1$s</string>
-    <string name="receive_address_key_changed_unnamed">Der Signaturschlüssel deines Anbieters passt nicht zu dem, den deine Wallet kennt, darum warten Zahlungen an diese Adresse vorerst dort.</string>
-    <string name="receive_invoice_key_changed_unnamed">Der Signaturschlüssel deines Anbieters passt nicht zu dem, den deine Wallet kennt, darum lässt sich gerade keine Rechnung erstellen.</string>
-    <string name="receive_key_checking_unnamed">Prüfe deinen Anbieter …</string>
-    <string name="send_key_changed_held_unnamed">%1$s bei deinem Anbieter lässt sich erst senden, wenn sein Signaturschlüssel wieder passt.</string>
     <plurals name="notes_attention_waiting">
         <item quantity="one">%d Geldschein wartet auf eine Antwort</item>
         <item quantity="other">%d Geldscheine warten auf eine Antwort</item>
@@ -362,7 +349,6 @@
     <string name="notes_mint_previous">Vorheriger Anbieter</string>
     <string name="notes_mint_next">Nächster Anbieter</string>
     <string name="notes_mint_position">Anbieter %1$d von %2$d</string>
-    <string name="notes_attention_offline_unnamed">Dein Anbieter hat nicht geantwortet, und du bist offline. Er wird wieder gefragt, sobald du wieder online bist.</string>
     <plurals name="notes_attention_unknown_at">
         <item quantity="one">%2$s kennt %1$d deiner Geldscheine nicht</item>
         <item quantity="other">%2$s kennt %1$d deiner Geldscheine nicht</item>
@@ -370,9 +356,5 @@
     <plurals name="notes_attention_unknown">
         <item quantity="one">Deine Anbieter kennen %d deiner Geldscheine nicht</item>
         <item quantity="other">Deine Anbieter kennen %d deiner Geldscheine nicht</item>
-    </plurals>
-    <plurals name="notes_attention_unknown_unnamed">
-        <item quantity="one">Dein Anbieter kennt %d deiner Geldscheine nicht</item>
-        <item quantity="other">Dein Anbieter kennt %d deiner Geldscheine nicht</item>
     </plurals>
 </resources>

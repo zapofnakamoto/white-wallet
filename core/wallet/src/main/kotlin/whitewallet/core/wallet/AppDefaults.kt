@@ -83,7 +83,7 @@ enum class NoteAction(
     Split(bulk = false),
     Combine(bulk = true),
 
-    /** To another mint; needs `mints.visible`, as it names the mint. */
+    /** To another mint. */
     Move(bulk = true),
 
     /** Ask the mint about a note, or about the selected ones. */
@@ -97,15 +97,12 @@ enum class NoteAction(
 
     companion object {
         /**
-         * The brand's comma-separated list ([value] null when unset: all, without [Move] when mints are hidden). An empty list leaves the
-         * notes to look at. Fails on an unknown action, and on `move` with [showMints] false.
+         * The brand's comma-separated list ([value] null when unset: all). An empty list leaves the notes to look at. Fails on an unknown
+         * action.
          */
-        fun fromConfig(value: String?, showMints: Boolean): Set<NoteAction> {
-            if (value == null) return entries.filter { showMints || it != Move }.toSet()
-            val actions =
-                value.split(',').map(String::trim).filter(String::isNotEmpty).map { configEnum<NoteAction>("notes.actions", it) }.toSet()
-            check(showMints || Move !in actions) { "notes.actions can't include move with mints.visible=false: it names the mint" }
-            return actions
+        fun fromConfig(value: String?): Set<NoteAction> {
+            if (value == null) return entries.toSet()
+            return value.split(',').map(String::trim).filter(String::isNotEmpty).map { configEnum<NoteAction>("notes.actions", it) }.toSet()
         }
     }
 }
@@ -226,11 +223,6 @@ data class AppDefaults(
     val historyFilter: HistoryFilterOption = HistoryFilterOption.Types,
     /** Whether users are told what the wallet did to their notes by itself (brand `notes.maintenance.notices`). */
     val maintenanceNotices: MaintenanceNoticeDefaults = MaintenanceNoticeDefaults(),
-    /**
-     * Whether users see mints at all (brand `mints.visible`): Settings → Mints, the home mint's page, which mint a claimed note is on and
-     * whether it's trusted. Without, the app is just a wallet; the mints work the same underneath.
-     */
-    val showMints: Boolean = true,
     /** What users can do with their notes in the notes view (brand `notes.actions`). */
     val noteActions: Set<NoteAction> = NoteAction.entries.toSet(),
     /** Whether Settings shows Developer options (brand `developer.options`); see [developerOptionsVisible]. */
@@ -252,10 +244,10 @@ data class AppDefaults(
 
     /**
      * Whether setup may go on without a mint: the wallet asks for one on the main screen, and can't receive until then. Only where users
-     * can add a mint later (brand `mints.changeable`, `mints.visible`).
+     * can add a mint later (brand `mints.changeable`).
      */
     val mintOptional: Boolean
-        get() = allowMintChange && showMints
+        get() = allowMintChange
 
     /** The mint preselected at setup and restore; empty when users bring their own. */
     val defaultMintHost: String

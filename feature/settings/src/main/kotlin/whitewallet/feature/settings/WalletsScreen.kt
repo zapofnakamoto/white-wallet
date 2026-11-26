@@ -430,10 +430,8 @@ fun AccountSettingsScreen(
                     open(SettingsTarget.Addresses)
                 }
             }
-            if (SettingsTarget.Mints !in state.hidden) {
-                SummaryRow(pageIcon(SettingsTarget.Mints), stringResource(R.string.settings_mints), mintsSummary(state.homeHost)) {
-                    open(SettingsTarget.Mints)
-                }
+            SummaryRow(pageIcon(SettingsTarget.Mints), stringResource(R.string.settings_mints), mintsSummary(state.homeHost)) {
+                open(SettingsTarget.Mints)
             }
             if (SettingsTarget.NoteList !in state.hidden) {
                 SummaryRow(

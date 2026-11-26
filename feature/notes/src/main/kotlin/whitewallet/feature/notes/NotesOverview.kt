@@ -76,7 +76,7 @@ internal fun NotesOverview(state: NotesState, actions: NotesActions, overview: O
     Column(Modifier.fillMaxSize().verticalScroll(overview.scroll)) {
         Summary(state)
         if (showsWorking(state.busy)) WalletLinearProgress(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
-        state.outcome?.takeIf { state.open == null }?.let { Outcome(it, state.showMints, actions.dismissOutcome) }
+        state.outcome?.takeIf { state.open == null }?.let { Outcome(it, actions.dismissOutcome) }
         if (state.empty) {
             EmptyState(stringResource(R.string.notes_empty), anchor = Anchor.NotesEmpty) {
                 PrimaryButton(stringResource(R.string.notes_receive), actions.openReceive)
@@ -112,8 +112,7 @@ private fun Summary(state: NotesState) {
             val count = state.balanceNoteCount
             val parts = buildList {
                 add(pluralStringResource(DesignR.plurals.notes_count, count, count))
-                if (state.showMints && state.mints.size > 1)
-                    add(pluralStringResource(R.plurals.notes_mints, state.mints.size, state.mints.size))
+                if (state.mints.size > 1) add(pluralStringResource(R.plurals.notes_mints, state.mints.size, state.mints.size))
             }
             Text(parts.joinToString(stringResource(DesignR.string.notes_detail_separator)), style = MaterialTheme.typography.bodyMedium)
         }
@@ -135,14 +134,12 @@ private fun Attention(state: NotesState, onOpen: () -> Unit) {
                 .takeIf { it.isNotEmpty() }
                 ?.let { hosts ->
                     add(
-                        (if (state.showMints)
-                            pluralStringResource(
-                                R.plurals.notes_attention_key_changed,
-                                hosts.size,
-                                hosts.size,
-                                ListFormatter.getInstance().format(hosts),
-                            )
-                        else stringResource(DesignR.string.key_mismatch_short)) to stringResource(DesignR.string.attention_key_changed_line)
+                        pluralStringResource(
+                            R.plurals.notes_attention_key_changed,
+                            hosts.size,
+                            hosts.size,
+                            ListFormatter.getInstance().format(hosts),
+                        ) to stringResource(DesignR.string.attention_key_changed_line)
                     )
                 }
             state.unknownNotes
@@ -150,26 +147,22 @@ private fun Attention(state: NotesState, onOpen: () -> Unit) {
                 ?.let { notes ->
                     val hosts = notes.map { it.host }.distinct()
                     add(
-                        when {
-                            !state.showMints -> pluralStringResource(R.plurals.notes_attention_unknown_unnamed, notes.size, notes.size)
-                            hosts.size == 1 ->
-                                pluralStringResource(R.plurals.notes_attention_unknown_at, notes.size, notes.size, hosts.single())
-                            else -> pluralStringResource(R.plurals.notes_attention_unknown, notes.size, notes.size)
-                        } to stringResource(DesignR.string.attention_unknown_line, formatAmount(notes.sumOf { it.amountMsat }))
+                        (if (hosts.size == 1)
+                            pluralStringResource(R.plurals.notes_attention_unknown_at, notes.size, notes.size, hosts.single())
+                        else pluralStringResource(R.plurals.notes_attention_unknown, notes.size, notes.size)) to
+                            stringResource(DesignR.string.attention_unknown_line, formatAmount(notes.sumOf { it.amountMsat }))
                     )
                 }
             state.silentMints
                 .takeIf { it.isNotEmpty() }
                 ?.let { hosts ->
                     add(
-                        (if (state.showMints)
-                            pluralStringResource(
-                                R.plurals.notes_attention_not_answering,
-                                hosts.size,
-                                hosts.size,
-                                ListFormatter.getInstance().format(hosts),
-                            )
-                        else stringResource(DesignR.string.mint_not_answering_unnamed)) to
+                        pluralStringResource(
+                            R.plurals.notes_attention_not_answering,
+                            hosts.size,
+                            hosts.size,
+                            ListFormatter.getInstance().format(hosts),
+                        ) to
                             stringResource(
                                 if (hosts.any(state::isHomeMint)) DesignR.string.attention_not_answering_home_line
                                 else DesignR.string.attention_not_answering_line
@@ -230,9 +223,8 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
             counted
                 .takeIf { it.size > 1 && it.first().amountMsat != it.last().amountMsat }
                 ?.let { stringResource(R.string.notes_range, formatAmount(it.last().amountMsat), formatAmount(it.first().amountMsat)) }
-        val summary = mintSummary(mint, state.showMints)
+        val summary = mintSummary(mint)
         WalletNotePile(
-            mint = mint.host.takeIf { state.showMints },
             host = mint.host,
             labels = summary.labels,
             labelLines = labelLines,
@@ -246,7 +238,7 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
             largestMsat = largest,
             colors = MaterialTheme.walletColors.note(mint.isHome),
             home = mint.isHome,
-            trusted = mint.trusted && state.showMints,
+            trusted = mint.trusted,
             onClick = { actions.openMint(mint.host) },
             onClickLabel = stringResource(R.string.notes_mint_open),
             modifier = Modifier.fillMaxWidth(),
@@ -264,18 +256,17 @@ internal class MintSummary(val labels: String, val totalMsat: Long?, val outside
 /**
  * With notes in the balance, their total, and home, trusted and how many as labels. With none: what is held up there, out of it (waiting
  * for an answer or unknown to the mint, not what is being paid: that is on its way out), and why first, so a narrow card cuts the home and
- * trusted labels (its mark says home) rather than it. Without named mints, nothing tells one mint from the other: no labels but the count,
- * or why.
+ * trusted labels (its mark says home) rather than it.
  */
 @Composable
-internal fun mintSummary(mint: MintNotes, showMints: Boolean): MintSummary {
+internal fun mintSummary(mint: MintNotes): MintSummary {
     val counted = mint.inBalance
     val held = mint.notes.filter { it.state == NoteState.Unknown || it.state == NoteState.Ambiguous }.sumOf { it.amountMsat }
     val total = if (counted.isNotEmpty()) mint.totalMsat else held.takeIf { it > 0 }
     val kind =
         listOfNotNull(
-            stringResource(R.string.notes_home_mint).takeIf { mint.isHome && showMints },
-            stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted && showMints },
+            stringResource(R.string.notes_home_mint).takeIf { mint.isHome },
+            stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted },
         )
     val labels =
         if (counted.isNotEmpty()) kind + pluralStringResource(DesignR.plurals.notes_count, counted.size, counted.size)
@@ -376,7 +367,6 @@ private fun OutsideBalance(
             state.received.forEach { note ->
                 ReceivedNoteRow(
                     note,
-                    state.showMints,
                     amountHidden = false,
                     actions.received,
                     wait = note.waitsFor(state.offline, state.notAnsweringHosts),
@@ -393,8 +383,8 @@ private fun OutsideBalance(
         )
         if (sharedOpen) {
             if (state.shared.isNotEmpty()) Hint(stringResource(R.string.notes_shared_hint))
-            state.shared.forEach { note -> SharedRow(note, state.showMints, actions.openShared) }
-            state.handedOutUnknown.forEach { note -> HandedOutUnknownRow(note, state.showMints, actions.tap) }
+            state.shared.forEach { note -> SharedRow(note, actions.openShared) }
+            state.handedOutUnknown.forEach { note -> HandedOutUnknownRow(note, actions.tap) }
         }
     }
     if (state.archivedCount > 0) ArchivedRow(state, actions.openArchive)
@@ -444,7 +434,7 @@ private fun Hint(text: String) {
 
 /** A handed-out note, drawn by the brand like the others (a greyed-out bill: it isn't in the balance); it waits for its recipient. */
 @Composable
-private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) {
+private fun SharedRow(note: Note, onOpen: (String) -> Unit) {
     WalletNoteFace(
         size = NoteFaceSize.Row,
         note.amountMsat,
@@ -452,7 +442,7 @@ private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) 
         status = NoteStatus.Waiting,
         certified = note.certificate != null,
         age = recentTime(note.updatedAtMillis),
-        mint = note.host.takeIf { showMints },
+        mint = note.host,
         host = note.host,
         place = NoteFacePlace.Shared,
     )
@@ -463,7 +453,7 @@ private fun SharedRow(note: Note, showMints: Boolean, onOpen: (String) -> Unit) 
  * not its QR code.
  */
 @Composable
-private fun HandedOutUnknownRow(note: Note, showMints: Boolean, onOpen: (Note) -> Unit) {
+private fun HandedOutUnknownRow(note: Note, onOpen: (Note) -> Unit) {
     WalletNoteFace(
         size = NoteFaceSize.Row,
         note.amountMsat,
@@ -473,7 +463,7 @@ private fun HandedOutUnknownRow(note: Note, showMints: Boolean, onOpen: (Note) -
         statusText = noteStatusText(NoteStatus.Unknown, handedOut = true),
         statusIcon = noteStatusIcon(NoteStatus.Unknown),
         age = recentTime(note.updatedAtMillis),
-        mint = note.host.takeIf { showMints },
+        mint = note.host,
         host = note.host,
         place = NoteFacePlace.Shared,
     )

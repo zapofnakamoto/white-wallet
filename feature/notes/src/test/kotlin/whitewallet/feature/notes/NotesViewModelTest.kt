@@ -63,16 +63,24 @@ class NotesViewModelTest {
     }
 
     /** One account at [home], with two notes there and two on [other]. */
-    private suspend fun screen(): NotesViewModel {
+    private suspend fun screen(defaults: AppDefaults = AppDefaults(emptyList(), allowMintChange = true)): NotesViewModel {
         store.addAccount("a", "Main", null, home)
         store.upsertNotes(listOf(note("h1", home, 3_000), note("h2", home, 2_000), note("o1", other, 5_000), note("o2", other, 1_000)))
-        return NotesViewModel(wallet, AppPreferences.InMemory(), AppDefaults(emptyList(), allowMintChange = true), SavedStateHandle())
-            .also { screen ->
-                collectors.launch { screen.state.collect {} }
-            }
+        return NotesViewModel(wallet, AppPreferences.InMemory(), defaults, SavedStateHandle()).also { screen ->
+            collectors.launch { screen.state.collect {} }
+        }
     }
 
     private suspend fun NotesViewModel.await(settled: (NotesState) -> Boolean): NotesState = state.first(settled)
+
+    @Test
+    fun `a brand with one mint of its own still shows the notes held on another, in the balance`() = runTest {
+        val ownMintOnly = AppDefaults(listOf(home), customMints = false, allowMintChange = false)
+        val state = screen(ownMintOnly).await { it.mints.size == 2 }
+        assertEquals(listOf(home, other), state.mints.map { it.host })
+        assertEquals(11_000, state.totalMsat)
+        assertEquals(4, state.balanceNoteCount)
+    }
 
     @Test
     fun `a mint's page whose notes are all gone closes for good, with its selection`() = runTest {

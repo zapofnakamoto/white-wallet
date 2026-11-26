@@ -51,20 +51,20 @@ sealed interface MaintenanceNotice {
     /** [notes] notes renewed: moved to fresh keys, same amounts. */
     data class Renewed(val notes: Int, override val balanceChangeMsat: Long?) : MaintenanceNotice
 
-    /** Only what the balance did, for users who don't see notes or mints. */
+    /** Only what the balance did, for users who don't see notes. */
     data class BalanceChanged(override val balanceChangeMsat: Long) : MaintenanceNotice
 
     companion object {
         /**
          * The notice for [run], or null if there is nothing to tell. Users who don't see notes ([notesVisible] false) hear only about a
-         * move to the home mint and about the balance; mints are named only if [mintsVisible].
+         * move to the home mint and about the balance.
          */
-        fun of(run: PolicyRun, notesVisible: Boolean, mintsVisible: Boolean): MaintenanceNotice? {
+        fun of(run: PolicyRun, notesVisible: Boolean): MaintenanceNotice? {
             if (!run.maintained) return null
             val change = run.balanceChangeMsat?.takeIf { it != 0L }
             val collected = run.collected.filterNot { it.pending }
             return when {
-                collected.isNotEmpty() && mintsVisible -> MovedHome(collected.sumOf { it.arrivedMsat }, change)
+                collected.isNotEmpty() -> MovedHome(collected.sumOf { it.arrivedMsat }, change)
                 !notesVisible -> change?.let(::BalanceChanged)
                 run.merged > 0 && run.split > 0 -> Rearranged(run.notesReplaced, run.notesMade, change)
                 run.merged > 0 -> Combined(run.notesReplaced, run.notesMade, run.notesMadeMsat, change)

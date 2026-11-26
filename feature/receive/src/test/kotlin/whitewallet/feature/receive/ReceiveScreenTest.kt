@@ -141,13 +141,11 @@ class ReceiveScreenTest {
 
     @Test
     fun anAddressWhoseMintDoesNotAnswerStillShowsAndSaysPaymentsCannotArrive() {
-        var state by mutableStateOf(ReceiveState("alice@mint.example", addressMintNotAnswering = true))
+        val state = ReceiveState("alice@mint.example", addressMintNotAnswering = true)
         compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}) }
         compose.onNodeWithText("alice@mint.example").assertExists()
         compose.onNodeWithText(text(R.string.receive_address_mint_silent, "mint.example")).assertExists()
         compose.onNodeWithText(text(R.string.receive_hint)).assertDoesNotExist()
-        state = state.copy(mintsVisible = false)
-        compose.onNodeWithText(text(R.string.receive_address_mint_silent_unnamed)).assertExists()
     }
 
     @Test
@@ -164,16 +162,12 @@ class ReceiveScreenTest {
     @Test
     fun anInvoiceOnAMintWhoseKeyChangedSaysSoAndLeadsToItsDetails() {
         val opened = mutableListOf<String>()
-        var state by mutableStateOf(ReceiveState(address = null, amountText = "21", problem = InvoiceProblem.KeyChanged("home.example")))
+        val state = ReceiveState(address = null, amountText = "21", problem = InvoiceProblem.KeyChanged("home.example"))
         compose.setContent { ReceiveScreen(state, onBack = {}, onClaim = {}, InvoiceActions(onOpenMint = { opened += it })) }
         compose.onNodeWithText(text(R.string.receive_invoice_key_changed, "home.example")).assertExists()
         compose.onNodeWithText(text(R.string.receive_invoice_refused)).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.details)).performScrollTo().performClick()
         assertEquals(listOf("home.example"), opened)
-        // Where the brand hides mints, none is named, and there is no page to go to.
-        state = state.copy(mintsVisible = false)
-        compose.onNodeWithText(text(R.string.receive_invoice_key_changed_unnamed)).assertExists()
-        compose.onNodeWithText(text(DesignR.string.details)).assertDoesNotExist()
     }
 
     @Test
@@ -348,18 +342,6 @@ class ReceiveScreenTest {
         }
         compose.onNodeWithText(text(R.string.receive_on_home, "home.example")).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.mint_choice_change)).assertDoesNotExist()
-    }
-
-    @Test
-    fun whereTheBrandHidesMintsNoneIsNamed() {
-        compose.setContent {
-            ReceiveScreen(
-                ReceiveState("alice@home.example", homeHost = "home.example", mints = twoMints, mintsVisible = false),
-                onBack = {},
-                onClaim = {},
-            )
-        }
-        compose.onNodeWithText(text(R.string.receive_on_home, "home.example")).assertDoesNotExist()
     }
 
     @Test

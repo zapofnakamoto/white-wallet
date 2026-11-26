@@ -10,14 +10,9 @@
     <string name="receive_address_lost">Zahlungen an diese Adresse erreichen deine Wallet nicht mehr.</string>
     <string name="receive_address_fix">Beheben</string>
     <string name="receive_address_mint_silent">%1$s antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
-    <string name="receive_address_mint_silent_unnamed">Deine Mint antwortet nicht, darum können Zahlungen an diese Adresse gerade nicht ankommen.</string>
     <string name="receive_invoice_mint_silent">%1$s antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
-    <string name="receive_invoice_mint_silent_unnamed">Deine Mint antwortet nicht, darum lässt sich gerade keine Rechnung erstellen. Versuche es später erneut.</string>
     <string name="receive_on_home">Bei %1$s, deiner Haupt-Mint</string>
     <string name="receive_on_home_detail">Haupt-Mint · %1$s</string>
-    <string name="receive_address_key_changed_unnamed">Der Signaturschlüssel deiner Mint passt nicht zu dem, den deine Wallet kennt, darum warten Zahlungen an diese Adresse vorerst dort.</string>
-    <string name="receive_key_checking_unnamed">Prüfe deine Mint …</string>
-    <string name="receive_invoice_key_changed_unnamed">Der Signaturschlüssel deiner Mint passt nicht zu dem, den deine Wallet kennt, darum lässt sich gerade keine Rechnung erstellen.</string>
 
     <string name="receive_title">Empfangen</string>
     <string name="receive_copied">Adresse kopiert</string>

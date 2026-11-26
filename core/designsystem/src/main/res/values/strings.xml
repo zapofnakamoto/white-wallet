@@ -37,15 +37,12 @@
         <item quantity="other">Its mint didn\'t answer for %d days, so your wallet stopped trying.</item>
     </plurals>
     <string name="received_unreachable">Its mint didn\'t answer, so your wallet stopped trying.</string>
-    <!-- A received note waits for its mint, which didn't answer the last time (mints not named). -->
-    <string name="received_waiting_mint_unnamed">Claimed when its mint answers.</string>
     <string name="received_lightning_no_key">Its mint publishes no signing key, so it can only be received over Lightning, for a fee.</string>
     <string name="received_lightning_not_a_note">Its mint doesn\'t answer for it as a note, so it can only be received over Lightning, for a fee.</string>
     <!-- A mint's signing key doesn't match the pinned one (KeyChangedCard) -->
     <string name="mint_key_changed">The signing key of %1$s doesn\'t match the one your wallet knows. Nothing is sent there and no invoice is created until it matches again, or you accept the new key. Payments to your addresses there wait until then.</string>
     <!-- The same where one thing failed on that mint (a payment, a note, claiming one handed out): nothing else waits there. -->
     <string name="mint_key_changed_nothing_sent">The signing key of the mint doesn\'t match the one your wallet knows. Until it matches again, or you accept the new key in the mint\'s details, nothing is sent there.</string>
-    <string name="mint_not_answering_unnamed">Your mint isn\'t answering. Try again later.</string>
     <string name="own_claim_refused">Its mint didn\'t accept that. Try again later.</string>
     <string name="mint_key_accept_body">Only do this if you know why %1$s changed its key, for example because its operator announced it. If someone else is answering in its place, your notes there and anything you send can be lost.</string>
 

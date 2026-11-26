@@ -362,6 +362,19 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Removed
 
+- For brands: the option `mints.visible` (and `--hide-mints` of `just new-brand`). Mints are always shown; a brand
+  that still sets it fails the build. A brand with one mint of its own sets `mints.suggestions` to it and
+  `mints.custom=false` (docs/WHITE_LABEL.md, "One mint of your own"); users can still claim and hold notes from any
+  mint. With it go the strings `home_mint_silent_title_unnamed`, `home_unknown_title_unnamed`,
+  `mint_not_answering_unnamed`, `move_stayed_blocked_unnamed`, `move_waiting_unnamed`,
+  `notes_attention_offline_unnamed`, `notes_attention_unknown_unnamed`, `receive_address_key_changed_unnamed`,
+  `receive_address_mint_silent_unnamed`, `received_waiting_mint_unnamed`, `receive_invoice_key_changed_unnamed`,
+  `receive_invoice_mint_silent_unnamed`, `receive_key_checking_unnamed` and `send_key_changed_held_unnamed`;
+  `NotePileParams.mint` and `NoteGroupParams.mint` are never null (`NoteFaceParams.mint` is null only where the mint
+  isn't shown on the note), and `notes.actions` may always include `move`.
+- For developers: `AppDefaults.showMints`; `NoteAction.fromConfig` and `MaintenanceNotice.of` lost their mints
+  parameter, `ReceivedNoteRow` its `showMint`, `receivedNoteStatus` its `mintNamed`, and `WalletNotePile` and
+  `WalletNoteGroupHeader` their `mint` (they take the `host`).
 - For brands: the strings `home_key_changed_body`, `home_unknown_body`, `home_unknown_body_hidden`,
   `home_unknown_help`, `home_unknown_help_late`, `home_unknown_asked`, `home_unknown_asked_now`, `home_unknown_show`,
   `home_mint_silent_body`, `home_mint_silent_body_home`, `home_mint_silent_body_home_empty`,

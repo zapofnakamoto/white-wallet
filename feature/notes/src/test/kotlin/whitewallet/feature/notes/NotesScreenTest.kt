@@ -149,20 +149,6 @@ class NotesScreenTest {
     }
 
     @Test
-    fun anUnnamedMintsPageWithOnlyNotesBeingPaidIsHeadedByWhy() {
-        val paying = listOf(note("p1", "home.example", 4_000, NoteState.Paying))
-        compose.setContent {
-            NotesContent(
-                state({ it.copy(mints = listOf(MintNotes("home.example", true, paying)), showMints = false) }, onPage()),
-                NotesActions(),
-            )
-        }
-        compose.onNodeWithText("1 note being paid").assertExists()
-        compose.onNodeWithText(text(R.string.notes_outside_title)).assertDoesNotExist()
-        compose.onNodeWithText("₿0").assertDoesNotExist()
-    }
-
-    @Test
     fun aMintsPageListsItsNotesWithOnlyUnusualStatusAndLeadsBack() {
         var closed = 0
         compose.setContent { NotesContent(state(onPage("other.example")), NotesActions(closeMint = { closed++ })) }
@@ -571,37 +557,6 @@ class NotesScreenTest {
         compose.onNodeWithText(text(R.string.notes_move)).assertDoesNotExist()
     }
 
-    @Test
-    fun withoutMintsOneMintsNotesAreAPlainList() {
-        compose.setContent {
-            NotesContent(
-                state({ it.copy(mints = listOf(MintNotes("home.example", true, home, trusted = true)), showMints = false, open = "h2") }),
-                NotesActions(),
-            )
-        }
-        // The balance's count, and the pile's title where it has no name.
-        compose.onAllNodesWithText("2 notes").assertCountEquals(2)
-        compose.onNodeWithText("home.example", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(R.string.notes_home_mint), substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(DesignR.string.notes_trusted)).assertDoesNotExist()
-    }
-
-    @Test
-    fun withoutMintsSeveralMintsAreSeparatedButNotNamed() {
-        compose.setContent {
-            NotesContent(
-                state({
-                    it.copy(showMints = false, outcome = NotesOutcome.Checked(ok = 3, gone = 0, unreachable = listOf("other.example")))
-                }),
-                NotesActions(),
-            )
-        }
-        compose.onNodeWithText("4 notes").assertExists()
-        compose.onNodeWithText("₿2,430").assertExists()
-        compose.onNodeWithText("other.example", substring = true).assertDoesNotExist()
-        compose.onNodeWithText(text(DesignR.string.mint_not_answering_unnamed)).assertExists()
-    }
-
     /** A brand that draws notes and their headers its own way: only the texts it's given, in its own layout. */
     private val bills =
         object : BrandDesign {
@@ -984,7 +939,6 @@ class NotesScreenTest {
         compose.setContent { NotesContent(s, NotesActions()) }
         compose.onNodeWithText("other.example").assert(isHeading())
         compose.onNodeWithText(text(R.string.notes_attention_offline)).assertExists()
-        compose.onNodeWithText(text(DesignR.string.mint_not_answering_unnamed)).assertDoesNotExist()
     }
 
     @Test

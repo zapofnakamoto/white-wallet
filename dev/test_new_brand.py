@@ -167,7 +167,7 @@ class BrandDirectoryTest(unittest.TestCase):
             logo.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>')
             options = nb.parse_args(["--name", "Acme Cash", "--id", "com.acme.cash", "--mint", "mint.acme.com", "--primary", "#0B6E4F", "--logo", str(logo), "--lock", "--unit", "sats", "--lock-unit",
                                      "--max-accounts", "1", "--max-addresses", "0", "--note-strategy", "manual", "--no-address",
-                                     "--collect-at-home", "always", "--collect-fee-cap", "5", "--notes-view", "hidden", "--history-filter", "maintenance", "--hide-mints", "--no-strategy-choice", "--developer-options", "unlock",
+                                     "--collect-at-home", "always", "--collect-fee-cap", "5", "--notes-view", "hidden", "--history-filter", "maintenance", "--no-strategy-choice", "--developer-options", "unlock",
                                      "--trusted-mint", "mint.example:02" + "ab" * 32])
             nb.write_brand(options, out)
             expected = {"brand.properties", "zapstore.yaml", "res/values/brand_colors.xml", "res/values-night/brand_colors.xml",
@@ -177,8 +177,8 @@ class BrandDirectoryTest(unittest.TestCase):
             props = (out / "brand.properties").read_text()
             for line in ("app.name=Acme Cash", "app.id=com.acme.cash", "mints.custom=false", "mints.changeable=false", "mints.suggestions=mint.acme.com\n", "amounts.unit.default=sats", "amounts.unit.changeable=false", "app.supportUrl=https://mint.acme.com",
                          "addresses.lightning=none", "accounts.max=1", "addresses.max=0", "notes.strategies=manual\n", "notes.strategy.default=manual",
-                         "notes.collect.atHomeMint=always", "notes.collect.feeCap=5", "notes.view=hidden", "history.filter=maintenance", "mints.visible=false", "developer.options=unlock",
-                         "notes.actions=share,split,combine,recheck,renew,print\n", "app.releaseStage=auto", "mints.trusted=mint.example:02" + "ab" * 32):
+                         "notes.collect.atHomeMint=always", "notes.collect.feeCap=5", "notes.view=hidden", "history.filter=maintenance", "developer.options=unlock",
+                         "notes.actions=share,split,combine,move,recheck,renew,print\n", "app.releaseStage=auto", "mints.trusted=mint.example:02" + "ab" * 32):
                 self.assertIn(line, props)
             for xml in out.rglob("*.xml"):
                 ET.parse(xml)  # well-formed

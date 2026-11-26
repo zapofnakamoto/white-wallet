@@ -154,7 +154,8 @@ class SendScreenTest {
         compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
         compose.onNodeWithText(text(R.string.send_problem_mint_silent, "home.example")).assertExists()
         compose.onNodeWithText(text(DesignR.string.try_again)).assertExists()
-        state = state.copy(mintsVisible = false)
+        // Where it isn't known which mint, none is named.
+        state = state.copy(result = PayResult.Failed(PayProblem.MintNotAnswering))
         compose.onNodeWithText(text(R.string.send_problem_mint_silent_unnamed)).assertExists()
     }
 
@@ -357,14 +358,6 @@ class SendScreenTest {
         compose.onNodeWithText(text(DesignR.string.details)).assertExists()
         compose.onNodeWithText(text(R.string.send_input)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.send_create_note)).assertDoesNotExist()
-    }
-
-    @Test
-    fun whereTheBrandDoesNotNameMintsOneSentenceSaysWhatCannotBeSent() {
-        val state = SendState(mints = mints + stuck + stuck.copy(host = "also.example"), mintsVisible = false)
-        compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
-        compose.onNodeWithText(text(R.string.send_key_changed_held_unnamed, "₿596")).assertExists()
-        compose.onNodeWithText(text(DesignR.string.details)).assertDoesNotExist()
     }
 
     @Test
