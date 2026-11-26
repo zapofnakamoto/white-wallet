@@ -166,8 +166,8 @@
         <item quantity="other">%d Scheine werden bezahlt</item>
     </plurals>
     <plurals name="notes_pile_more">
-        <item quantity="one">%d weiterer</item>
-        <item quantity="other">%d weitere</item>
+        <item quantity="one">%d\u00A0weiterer</item>
+        <item quantity="other">%d\u00A0weitere</item>
     </plurals>
     <string name="notes_section_open">Ausgeklappt</string>
     <string name="notes_section_closed">Eingeklappt</string>

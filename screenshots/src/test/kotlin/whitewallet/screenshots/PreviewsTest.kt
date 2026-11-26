@@ -85,6 +85,7 @@ class PreviewsTest {
                 "NotesOfflinePreview",
                 "NotesNoteProblemsPreview",
                 "NotesNoneInBalancePreview",
+                "NotesNoneInBalanceMintPagePreview",
                 "NotesMintPagePreview",
                 "NotesAttentionPagePreview",
                 "NotesSelectingPreview",

@@ -278,27 +278,30 @@ fun WalletNoteFace(
 
 /**
  * The heading of a mint's page ([whitewallet.brand.ui.BrandComponents.NoteGroupHeader]): its name, total and labels; a heading for screen
- * readers when it names the [mint]. [host]: the mint's, for its pattern, also where [mint] isn't named.
+ * readers when it names the [mint]. [totalMsat]: what counts in the balance, or with [outsideBalance] what is held up out of it; null for
+ * none. [host]: the mint's, for its pattern, also where [mint] isn't named.
  */
 @Composable
 fun WalletNoteGroupHeader(
     mint: String?,
     host: String,
-    totalMsat: Long,
+    totalMsat: Long?,
     home: Boolean,
     trusted: Boolean,
     labels: String?,
+    outsideBalance: String?,
     modifier: Modifier = Modifier,
 ) {
     val pattern = remember(host) { MintPattern.of(host) }
     LocalBrandDesign.current.components.NoteGroupHeader(
         NoteGroupParams(
             mint,
-            total = formatAmount(totalMsat),
-            totalMsat,
+            total = totalMsat?.let { formatAmount(it) },
+            totalMsat ?: 0,
             home,
             trusted,
             labels,
+            outsideBalance,
             pattern,
             colors = MaterialTheme.walletColors.note(home),
         ),

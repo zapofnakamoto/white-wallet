@@ -228,27 +228,14 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
             counted
                 .takeIf { it.size > 1 && it.first().amountMsat != it.last().amountMsat }
                 ?.let { stringResource(R.string.notes_range, formatAmount(it.last().amountMsat), formatAmount(it.first().amountMsat)) }
-        // With none in the balance: what is held up there, out of it (not what is being paid: that is on its way out), and why.
-        val heldMsat = bills.filter { it.state == NoteState.Unknown || it.state == NoteState.Ambiguous }.sumOf { it.amountMsat }
-        val total = if (counted.isNotEmpty()) mint.totalMsat else heldMsat.takeIf { it > 0 }
-        val outsideBalance = stringResource(R.string.notes_outside_title).takeIf { counted.isEmpty() && total != null }
-        // Without named mints, nothing tells one mint from the other: no labels but the count, or why none counts. Why comes first, so
-        // a narrow card cuts the home and trusted labels (its mark says home) rather than it.
-        val kind =
-            listOfNotNull(
-                stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
-                stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted && state.showMints },
-            )
-        val labels =
-            if (counted.isNotEmpty()) kind + pluralStringResource(DesignR.plurals.notes_count, counted.size, counted.size)
-            else listOfNotNull(outsideReason(bills), outsideMore(bills)) + kind
+        val summary = mintSummary(mint, state.showMints)
         WalletNotePile(
             mint = mint.host.takeIf { state.showMints },
             host = mint.host,
-            labels = labels.joinToString(stringResource(DesignR.string.notes_detail_separator)),
-            totalMsat = total,
+            labels = summary.labels,
+            totalMsat = summary.totalMsat,
             range = range,
-            outsideBalance = outsideBalance,
+            outsideBalance = summary.outsideBalance,
             bills = bills.map { it.amountMsat },
             certified = bills.map { it.certificate != null },
             statuses = statuses,
@@ -263,6 +250,38 @@ private fun MintPiles(state: NotesState, actions: NotesActions, pager: PagerStat
         )
     }
     if (several) PageControls(pager, state.mints.size)
+}
+
+/**
+ * What a mint's pile and page head say: [labels] in words, [totalMsat] (null for none) and, when that isn't the balance's,
+ * [outsideBalance].
+ */
+internal class MintSummary(val labels: String, val totalMsat: Long?, val outsideBalance: String?)
+
+/**
+ * With notes in the balance, their total, and home, trusted and how many as labels. With none: what is held up there, out of it (waiting
+ * for an answer or unknown to the mint, not what is being paid: that is on its way out), and why first, so a narrow card cuts the home and
+ * trusted labels (its mark says home) rather than it. Without named mints, nothing tells one mint from the other: no labels but the count,
+ * or why.
+ */
+@Composable
+internal fun mintSummary(mint: MintNotes, showMints: Boolean): MintSummary {
+    val counted = mint.inBalance
+    val held = mint.notes.filter { it.state == NoteState.Unknown || it.state == NoteState.Ambiguous }.sumOf { it.amountMsat }
+    val total = if (counted.isNotEmpty()) mint.totalMsat else held.takeIf { it > 0 }
+    val kind =
+        listOfNotNull(
+            stringResource(R.string.notes_home_mint).takeIf { mint.isHome && showMints },
+            stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted && showMints },
+        )
+    val labels =
+        if (counted.isNotEmpty()) kind + pluralStringResource(DesignR.plurals.notes_count, counted.size, counted.size)
+        else listOfNotNull(outsideReason(mint.notes), outsideMore(mint.notes)) + kind
+    return MintSummary(
+        labels.joinToString(stringResource(DesignR.string.notes_detail_separator)),
+        total,
+        stringResource(R.string.notes_outside_title).takeIf { counted.isEmpty() && total != null },
+    )
 }
 
 /**

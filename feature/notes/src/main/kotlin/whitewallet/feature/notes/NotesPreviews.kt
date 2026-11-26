@@ -114,32 +114,32 @@ private val problemsState =
 /** The overview with such notes: the needs-attention card says what needs the user. */
 @WalletPreviews @Composable private fun NotesNoteProblemsPreview() = NotesContent(problemsState, NotesActions())
 
-/**
- * None of the home mint's notes in the balance: its pile greys them out and says why, its total muted and "Not in your balance" below,
- * never ₿0.
- */
+/** The home mint with none of its notes in the balance, another with one. */
+private val noneInBalanceState =
+    notesState.copy(
+        mints =
+            listOf(
+                MintNotes(
+                    HOME,
+                    isHome = true,
+                    listOf(
+                        note("n1", HOME, 8_000_000, NoteState.Unknown),
+                        note("n2", HOME, 4_000_000, NoteState.Unknown),
+                        note("n3", HOME, 2_000_000, NoteState.Ambiguous),
+                    ),
+                    trusted = true,
+                ),
+                MintNotes(OTHER, isHome = false, listOf(note("n4", OTHER, 4_000_000)), trusted = true),
+            )
+    )
+
+/** Its pile greys them out and says why, its total muted and "Not in your balance" below, never ₿0. */
+@WalletPreviews @Composable private fun NotesNoneInBalancePreview() = NotesContent(noneInBalanceState, NotesActions())
+
+/** That mint's page: its head says the same as its pile. */
 @WalletPreviews
 @Composable
-private fun NotesNoneInBalancePreview() =
-    NotesContent(
-        notesState.copy(
-            mints =
-                listOf(
-                    MintNotes(
-                        HOME,
-                        isHome = true,
-                        listOf(
-                            note("n1", HOME, 8_000_000, NoteState.Unknown),
-                            note("n2", HOME, 4_000_000, NoteState.Unknown),
-                            note("n3", HOME, 2_000_000, NoteState.Ambiguous),
-                        ),
-                        trusted = true,
-                    ),
-                    MintNotes(OTHER, isHome = false, listOf(note("n4", OTHER, 4_000_000)), trusted = true),
-                )
-        ),
-        NotesActions(),
-    )
+private fun NotesNoneInBalanceMintPagePreview() = NotesContent(noneInBalanceState.copy(mintPage = HOME), NotesActions())
 
 /** The same mint's page: every note as a row with a small bill, those out of the balance greyed out with their status in words. */
 @WalletPreviews @Composable private fun NotesMintPagePreview() = NotesContent(problemsState.copy(mintPage = HOME), NotesActions())

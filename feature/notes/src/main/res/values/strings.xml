@@ -229,8 +229,8 @@
     <string name="notes_range">From %1$s to %2$s</string>
     <!-- After notes_pile_unknown, notes_attention_waiting or notes_pile_paying under a mint's pile: how many more notes are out of the balance for another reason. -->
     <plurals name="notes_pile_more">
-        <item quantity="one">%d more</item>
-        <item quantity="other">%d more</item>
+        <item quantity="one">%d\u00A0more</item>
+        <item quantity="other">%d\u00A0more</item>
     </plurals>
     <!-- Read out on a section of the notes view that opens and closes. -->
     <string name="notes_section_open">Expanded</string>

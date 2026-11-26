@@ -564,15 +564,21 @@ class NotePileParams(
 class NoteGroupParams(
     /** The mint's host; null where mints aren't named. */
     val mint: String?,
-    /** What the group's notes count in the balance, formatted. */
-    val total: String,
+    /**
+     * What the group's notes count in the balance, formatted; with none in the balance, what is held up there ([outsideBalance] says so),
+     * as on the pile; null when nothing is.
+     */
+    val total: String?,
     val totalMsat: Long,
     val home: Boolean,
     val trusted: Boolean,
     /**
-     * [home], [trusted] and how many notes, in words ("Home mint · Trusted · 84 notes"), as on the pile; null when there's nothing to say.
+     * [home], [trusted] and how many notes, in words ("Home mint · Trusted · 84 notes"), or with none in the balance why, as on the pile;
+     * null when there's nothing to say.
      */
     val labels: String?,
+    /** "Not in your balance", when [total] isn't counted in it: the default draws the total muted and says this below the labels. */
+    val outsideBalance: String?,
     /** How the mint's bills are drawn; the default shows its [MintMark] beside a named mint. */
     val pattern: MintPattern,
     /** Its bills' colours, for its mark. */
@@ -1157,14 +1163,27 @@ object DefaultComponents : BrandComponents {
         }
     }
 
-    /** A row with the mint's name, labels and total; without a [NoteGroupParams.mint], the total and labels only. */
+    /**
+     * A row with the mint's name, labels and total; without a [NoteGroupParams.mint], the total (or without one the labels) and labels
+     * only. A total out of the balance is muted, and said so below the labels.
+     */
     @Composable
     fun noteGroupHeader(params: NoteGroupParams, modifier: Modifier) {
         val mint = params.mint
+        val totalColor = if (params.outsideBalance != null) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified
+        val total: (@Composable () -> Unit)? =
+            params.total?.let { total -> { Text(total, style = MaterialTheme.typography.titleMedium, color = totalColor) } }
+        // Without a name, the total heads the row; without a total either, the labels do.
+        val headline = mint ?: params.total ?: params.labels.orEmpty()
+        val supporting = listOfNotNull(params.labels.takeIf { headline != it }, params.outsideBalance)
         LocalBrandDesign.current.components.ListRow(
             ListRowParams(
-                headline = { Text(mint ?: params.total, style = MaterialTheme.typography.titleMedium) },
-                supporting = params.labels?.let { labels -> { Text(labels) } },
+                headline =
+                    if (mint == null && total != null) total
+                    else {
+                        { Text(headline, style = MaterialTheme.typography.titleMedium) }
+                    },
+                supporting = supporting.takeIf { it.isNotEmpty() }?.let { lines -> { Column { lines.forEach { Text(it) } } } },
                 // Its mark, as beside its name in lists; "Trusted" is in its labels.
                 leading =
                     mint?.let {
@@ -1175,7 +1194,7 @@ object DefaultComponents : BrandComponents {
                             )
                         }
                     },
-                trailing = mint?.let { { Text(params.total, style = MaterialTheme.typography.titleMedium) } },
+                trailing = total.takeIf { mint != null },
             ),
             modifier,
         )

@@ -108,7 +108,7 @@ class NotesScreenTest {
             )
         compose.setContent { NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, aside))) }), NotesActions()) }
         // Why first, unknown to the mint before the others, as on the needs-attention card; the others counted.
-        compose.onNodeWithText("2 notes unknown to the mint · 2 more · Home mint").assertExists()
+        compose.onNodeWithText("2 notes unknown to the mint · 2\u00A0more · Home mint").assertExists()
         // What is held up (not what is being paid), out of the balance: never "₿0" nor "0 notes" on the pile, only the balance's ₿0.
         compose.onNodeWithText("₿8,000").assertExists()
         compose.onNodeWithText(text(R.string.notes_outside_title)).assertExists()
@@ -132,6 +132,34 @@ class NotesScreenTest {
         compose.onNodeWithText("Home mint · 2 notes").assertExists()
         compose.onNodeWithText("From ₿15,000 to ₿30,000").assertExists()
         compose.onNodeWithText(text(R.string.notes_outside_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aMintsPageWithNoneInTheBalanceSaysWhatIsHeldUpThereAndWhyAsItsPile() {
+        val aside = listOf(note("u1", "home.example", 5_000, NoteState.Unknown), note("p1", "home.example", 4_000, NoteState.Paying))
+        compose.setContent {
+            NotesContent(state({ it.copy(mints = listOf(MintNotes("home.example", true, aside))) }, onPage()), NotesActions())
+        }
+        compose.onNodeWithText("1 note unknown to the mint · 1\u00A0more · Home mint").assertExists()
+        compose.onNodeWithText(text(R.string.notes_outside_title)).assertExists()
+        // The held-up total in the header; ₿5,000 and ₿4,000 also on the notes' own rows.
+        compose.onAllNodesWithText("₿5,000").assertCountEquals(2)
+        compose.onNodeWithText("0 notes", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("₿0").assertDoesNotExist()
+    }
+
+    @Test
+    fun anUnnamedMintsPageWithOnlyNotesBeingPaidIsHeadedByWhy() {
+        val paying = listOf(note("p1", "home.example", 4_000, NoteState.Paying))
+        compose.setContent {
+            NotesContent(
+                state({ it.copy(mints = listOf(MintNotes("home.example", true, paying)), showMints = false) }, onPage()),
+                NotesActions(),
+            )
+        }
+        compose.onNodeWithText("1 note being paid").assertExists()
+        compose.onNodeWithText(text(R.string.notes_outside_title)).assertDoesNotExist()
+        compose.onNodeWithText("₿0").assertDoesNotExist()
     }
 
     @Test

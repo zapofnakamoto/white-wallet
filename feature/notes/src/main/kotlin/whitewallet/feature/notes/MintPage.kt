@@ -86,20 +86,15 @@ private fun MintPageHeader(mint: MintNotes, state: NotesState, actions: NotesAct
             IconButton(onClick = actions.closeMint) {
                 Icon(painterResource(DesignR.drawable.ic_arrow_back), contentDescription = stringResource(DesignR.string.back))
             }
-        val labels =
-            listOfNotNull(
-                // In the balance, as the total and the pile count them; the others say so on their rows.
-                stringResource(R.string.notes_home_mint).takeIf { mint.isHome && state.showMints },
-                stringResource(DesignR.string.notes_trusted).takeIf { mint.trusted && state.showMints },
-                pluralStringResource(DesignR.plurals.notes_count, mint.inBalance.size, mint.inBalance.size),
-            )
+        val summary = mintSummary(mint, state.showMints)
         WalletNoteGroupHeader(
             mint = mint.host.takeIf { state.showMints },
             host = mint.host,
-            totalMsat = mint.totalMsat,
+            totalMsat = summary.totalMsat,
             home = mint.isHome,
             trusted = mint.trusted && state.showMints,
-            labels = labels.joinToString(stringResource(DesignR.string.notes_detail_separator)),
+            labels = summary.labels,
+            outsideBalance = summary.outsideBalance,
             modifier = Modifier.weight(1f),
         )
     }
