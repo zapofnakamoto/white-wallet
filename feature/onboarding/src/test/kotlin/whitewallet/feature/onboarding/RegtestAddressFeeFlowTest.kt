@@ -203,9 +203,9 @@ class RegtestAddressFeeFlowTest {
         }
 
     @Test
-    fun `from settings the fee is always asked first, and an account that holds enough pays it from its balance`() =
+    fun `from settings the fee is said on the form, not asked again, and an account that holds enough pays it from its balance`() =
         runBlocking<Unit> {
-            // A brand that reserves without asking in the setup: Settings asks all the same.
+            // A brand that reserves without asking in the setup: Settings says the fee all the same, on the form.
             val phone = newPhone(AddressFeeChoice.Reserve)
             phone.addMint()
             val setup = phone.addressScreen()
@@ -219,19 +219,11 @@ class RegtestAddressFeeFlowTest {
             val screen = phone.addressScreen(OnboardingMode.AddAddress)
             assertEquals(fee, screen.state.value.feeToShow)
             val name = screen.state.value.username
+            assertTrue(screen.state.value.firstAddress, "the account's first address: not \"another\" name")
             screen.start()
-            assertEquals(fee, screen.state.await { it.feePrompt != null || it.held != null }.feePrompt)
-
-            // Declined from Settings: back on the form, nothing reserved.
-            screen.declineFee()
-            assertNull(screen.state.value.feePrompt)
-            assertFalse(screen.state.value.done)
-            assertEquals(emptyList(), phone.held())
-
-            screen.start()
-            screen.state.await { it.feePrompt != null }
-            screen.acceptFee()
-            val held = assertNotNull(screen.state.await { it.held != null }.held)
+            // The form said what the mint charges now: claiming the name holds it, without a second question.
+            val held = assertNotNull(screen.state.await { it.feePrompt != null || it.held != null }.held)
+            assertEquals(fee, held.amountMsat)
             assertTrue(held.canPayFromBalance)
 
             screen.payFee()

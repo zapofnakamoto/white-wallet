@@ -117,6 +117,8 @@ data class OnboardingState(
     val abandoned: Boolean? = null,
     /** The user may go on without an address: the setup's address step. */
     val canSkipAddress: Boolean = false,
+    /** [OnboardingMode.AddAddress] for an account without one yet: not "another" name. */
+    val firstAddress: Boolean = false,
     /** The mint and the name to start with are known: the form can show. */
     val ready: Boolean = true,
 ) {
@@ -237,6 +239,7 @@ constructor(
                 OnboardingMode.ChangeAddress,
                 OnboardingMode.AddAddress -> {
                     val host = wallet.homeHost.first() ?: defaults.defaultMintHost
+                    val first = mode == OnboardingMode.AddAddress && wallet.addresses.first().isEmpty()
                     _state.update {
                         it.copy(
                             mode = mode,
@@ -244,6 +247,7 @@ constructor(
                             canChangeHost = false,
                             canSkipAddress = false,
                             username = UsernameSuggestions.random(),
+                            firstAddress = first,
                         )
                     }
                     updateMintOptions(developerMode)
@@ -408,10 +412,12 @@ constructor(
             }
         // A name that is the wallet's already (a restore's) is taken back without registering again: there is no fee to ask about.
         val free = fee == null || wallet.checkAddress(s.username, s.host) == AddressStatus.Ours
-        // Only the setup follows the brand's choice; from Settings the user always sees the fee first.
+        // Only the setup follows the brand's choice; from Settings the user always sees the fee first: on the form, and asked about only
+        // when the mint now charges something else than the form said.
         val choice = if (free) AddressFeeChoice.Reserve else if (s.inSetup) defaults.addressFee else AddressFeeChoice.Ask
+        val seen = !s.inSetup && fee != null && s.feeToShow == fee
         when {
-            choice == AddressFeeChoice.Reserve -> claim(s)
+            choice == AddressFeeChoice.Reserve || seen -> claim(s)
             choice == AddressFeeChoice.Skip && s.canSkip -> {
                 _state.update { it.copy(busy = false) }
                 skipAddress()

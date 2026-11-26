@@ -71,7 +71,7 @@ class MoneyMoveScreenTest {
         compose.onNodeWithText(text(R.string.money_review_choose)).performClick()
         compose.onNode(isToggleable() and hasText("₿10 on pricey.example")).performClick()
         compose.onNodeWithText(text(R.string.money_change_and_move, "₿100")).performClick()
-        compose.onNode(hasText("Change home mint") and hasClickAction()).performScrollTo().performClick()
+        compose.onNode(hasText(text(R.string.money_change_only)) and hasClickAction()).performScrollTo().performClick()
         assertEquals(listOf(true, false), confirmed)
     }
 
@@ -256,6 +256,49 @@ class MoneyMoveScreenTest {
     }
 
     @Test
+    fun withoutAHomeNothingIsPickedForTheUserAndThePickerOpensAtOnce() {
+        val picked = mutableListOf<String>()
+        val state = MoneyMoveState(mode = MoneyMoveMode.ChangeHome, targets = listOf("a.example", "b.example"), target = null)
+        compose.setContent { MoneyMoveScreen(state, {}, MoneyMoveActions(onTarget = { picked += it })) }
+        compose.onNodeWithText(text(R.string.settings_no_home_action)).assertExists()
+        compose.onNodeWithText(text(R.string.money_continue)).assertDoesNotExist()
+        compose.onNodeWithText("b.example").performClick()
+        assertEquals(listOf("b.example"), picked)
+        compose.onNodeWithText(text(DesignR.string.mint_choice_choose)).performClick()
+        compose.onNodeWithText("a.example").assertExists()
+    }
+
+    @Test
+    fun aMoveThatCostsNothingSaysNoFee() {
+        val free =
+            MovePreview(
+                "new.example",
+                listOf(MovePreview.Line("old.example", 996_000, MovePreview.Quote.Ok(997_000, -1_000))),
+                feeCapPercent = 2,
+            )
+        compose.setContent { MoneyMoveScreen(review(collects = false).copy(preview = free), {}, MoneyMoveActions()) }
+        compose.onNodeWithText(text(R.string.money_review_moves_no_fee, "₿996", "old.example", "₿997")).assertExists()
+        compose.onNodeWithText(text(R.string.money_review_fee_total, "₿-1"), substring = true).assertDoesNotExist()
+        compose.onNodeWithText("₿-", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aMovedMintWithARefundSaysWhatArrivedWithoutAFee() {
+        val outcome =
+            MoneyMoveOutcome(
+                homeChanged = true,
+                moved =
+                    listOf(
+                        MoneyMoved("old.example", 996_000, MintMoveResult.Moved(997_000, -1_000)),
+                        MoneyMoved("other.example", 2_996_000, MintMoveResult.Failed(NoteProblem.PaymentFailed)),
+                    ),
+            )
+        compose.setContent { MoneyMoveScreen(MoneyMoveState(target = "new.example", outcome = outcome), {}, MoneyMoveActions()) }
+        compose.onNodeWithText(text(R.string.money_result_moved_no_fee, "₿997", "old.example")).assertExists()
+        compose.onNodeWithText("₿-", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun theTargetIsPickedWithTheMintPickerSayingWhatEachHolds() {
         val picked = mutableListOf<String>()
         val state =
@@ -267,8 +310,11 @@ class MoneyMoveScreenTest {
                 silent = setOf("a.example"),
             )
         compose.setContent { MoneyMoveScreen(state, {}, MoneyMoveActions(onTarget = { picked += it })) }
-        compose.onNodeWithText(text(R.string.money_review_to, "a.example")).assertExists()
+        // A new home is said as one, not as where money goes; the sheet is titled the same.
+        compose.onNodeWithText(text(R.string.money_home_changed, "a.example")).assertExists()
         compose.onNodeWithText(text(DesignR.string.mint_choice_change)).performClick()
+        compose.onNodeWithText(text(R.string.settings_home_mint)).assertExists()
+        compose.onNodeWithText(text(R.string.money_move_target_title)).assertDoesNotExist()
         compose.onNodeWithText(text(DesignR.string.mint_not_answering_short)).assertExists()
         compose.onNodeWithText(text(R.string.money_move_target_holds, "₿10")).assertExists()
         compose.onNodeWithText("b.example").performClick()

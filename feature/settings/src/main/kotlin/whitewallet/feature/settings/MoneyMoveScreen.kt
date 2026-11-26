@@ -206,9 +206,12 @@ class MoneyMoveViewModel @Inject constructor(private val wallet: Wallet, private
                     val added = before?.let { old -> targets.firstOrNull { it !in old } }
                     val target =
                         when {
-                            before == null -> host.takeIf { mode == MoneyMoveMode.ChangeHome && it in targets } ?: targets.firstOrNull()
+                            // A new home is only ever chosen: preselected when the user came from that mint, or it is the only one.
+                            before == null && mode == MoneyMoveMode.ChangeHome -> host?.takeIf { it in targets } ?: targets.singleOrNull()
+                            before == null -> targets.firstOrNull()
                             added != null -> added
                             s.target in targets -> s.target
+                            mode == MoneyMoveMode.ChangeHome -> targets.singleOrNull()
                             else -> targets.firstOrNull()
                         }
                     s.copy(
@@ -352,7 +355,7 @@ fun MoneyMoveScreen(state: MoneyMoveState, onClose: () -> Unit, actions: MoneyMo
     val title =
         stringResource(
             when (state.mode) {
-                MoneyMoveMode.ChangeHome -> R.string.mint_change_home
+                MoneyMoveMode.ChangeHome -> if (state.home == null) R.string.settings_no_home_action else R.string.mint_change_home
                 MoneyMoveMode.Move -> R.string.money_move_title
                 MoneyMoveMode.MoveHome -> R.string.mint_move_all_here
             }
@@ -400,23 +403,32 @@ private fun PickContent(state: MoneyMoveState, actions: MoneyMoveActions) {
     else if (state.mode == MoneyMoveMode.Move)
         state.from?.let { Text(stringResource(R.string.money_move_from, it), textAlign = TextAlign.Center) }
     else Text(stringResource(R.string.money_change_body), textAlign = TextAlign.Center)
-    TargetLine(state, actions.onTarget)
+    // Nothing picked yet (a new home with several to choose from): the picker opens at once, and "Choose" opens it again.
+    var picking by rememberSaveable(state.target == null) { mutableStateOf(state.target == null) }
+    TargetLine(state, picking, { picking = it }, actions.onTarget)
     state.error?.let { ErrorText(it) }
     if (state.offline) Text(stringResource(R.string.money_offline), textAlign = TextAlign.Center)
-    PrimaryButton(stringResource(R.string.money_continue), actions.onReview, enabled = state.canContinue, busy = state.busy)
+    if (state.target == null)
+        WalletButton(kind = ButtonKind.Secondary, onClick = { picking = true }) { Text(stringResource(DesignR.string.mint_choice_choose)) }
+    else PrimaryButton(stringResource(R.string.money_continue), actions.onReview, enabled = state.canContinue, busy = state.busy)
 }
 
 /**
- * "To mint.example.com · Change": the picked mint, and the mint picker over the known ones (a new one is added on the Mints page first).
+ * "To mint.example.com · Change" ("New home: …" for a new home): the picked mint, and the mint picker over the known ones (a new one is
+ * added on the Mints page first).
  */
 @Composable
-private fun TargetLine(state: MoneyMoveState, onSelect: (String) -> Unit) {
-    val target = state.target ?: return
-    var picking by rememberSaveable { mutableStateOf(false) }
-    MintChoiceLine(stringResource(R.string.money_review_to, target), { picking = true }.takeIf { state.targets.size > 1 && !state.busy })
+private fun TargetLine(state: MoneyMoveState, picking: Boolean, setPicking: (Boolean) -> Unit, onSelect: (String) -> Unit) {
+    val target = state.target
+    val home = state.mode == MoneyMoveMode.ChangeHome
+    if (target != null)
+        MintChoiceLine(
+            stringResource(if (home) R.string.money_home_changed else R.string.money_review_to, target),
+            { setPicking(true) }.takeIf { state.targets.size > 1 && !state.busy },
+        )
     if (picking) {
         MintChoiceSheet(
-            title = stringResource(R.string.money_move_target_title),
+            title = stringResource(if (home) R.string.settings_home_mint else R.string.money_move_target_title),
             options =
                 state.targets.map { host ->
                     val held = state.held[host] ?: 0
@@ -438,10 +450,10 @@ private fun TargetLine(state: MoneyMoveState, onSelect: (String) -> Unit) {
                 },
             selected = target,
             onSelect = { host ->
-                picking = false
+                setPicking(false)
                 host?.let(onSelect)
             },
-            onDismiss = { picking = false },
+            onDismiss = { setPicking(false) },
         )
     }
 }
@@ -469,7 +481,7 @@ private fun ReviewContent(preview: MovePreview, state: MoneyMoveState, actions: 
     )
     preview.lines.forEach { line -> Text(reviewLine(line, state), textAlign = TextAlign.Center) }
     if (state.canChoose) ChooseSection(state, actions.onToggle)
-    if (state.chosenMsat > 0)
+    if (state.chosenMsat > 0 && state.chosenFeeMsat > 0)
         Text(
             stringResource(R.string.money_review_fee_total, formatAmount(state.chosenFeeMsat)),
             style = MaterialTheme.typography.titleSmall,
@@ -498,7 +510,7 @@ private fun ReviewContent(preview: MovePreview, state: MoneyMoveState, actions: 
                     enabled = !state.busy && !state.offline,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.mint_change_home))
+                    Text(stringResource(R.string.money_change_only))
                 }
                 Text(
                     stringResource(R.string.money_review_stays_note),
@@ -527,6 +539,7 @@ private fun reviewLine(line: MovePreview.Line, state: MoneyMoveState): String {
         is MovePreview.Quote.Ok ->
             if (state.changingHome && state.collects && line.overCap(cap))
                 stringResource(R.string.money_review_over_cap, amount, line.host, cap)
+            else if (q.feeMsat <= 0) stringResource(R.string.money_review_moves_no_fee, amount, line.host, formatAmount(q.arrivesMsat))
             else stringResource(R.string.money_review_moves, amount, line.host, formatAmount(q.arrivesMsat), formatAmount(q.feeMsat))
         is MovePreview.Quote.TooSmall -> stringResource(R.string.money_review_too_small, amount, line.host)
         is MovePreview.Quote.Unavailable -> stringResource(R.string.money_review_unavailable, amount, line.host)
@@ -620,7 +633,8 @@ private fun OutcomeContent(outcome: MoneyMoveOutcome, state: MoneyMoveState, act
                     val amount = formatAmount(m.amountMsat)
                     when (val r = m.result) {
                         is MintMoveResult.Moved ->
-                            stringResource(R.string.money_result_moved, formatAmount(r.arrivedMsat), m.host, formatAmount(r.feeMsat))
+                            if (r.feeMsat <= 0) stringResource(R.string.money_result_moved_no_fee, formatAmount(r.arrivedMsat), m.host)
+                            else stringResource(R.string.money_result_moved, formatAmount(r.arrivedMsat), m.host, formatAmount(r.feeMsat))
                         MintMoveResult.Pending -> stringResource(R.string.money_result_pending, amount, m.host)
                         is MintMoveResult.Failed -> stringResource(R.string.money_result_failed, amount, m.host, reason(r.problem))
                     }

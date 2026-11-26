@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -234,8 +235,11 @@ class ReceiveScreenTest {
                 InvoiceActions(onOpenAddresses = { opened++ }),
             )
         }
-        // The address still shows: what is wrong is said on it.
+        // The address's name still shows, with what is wrong; nothing to scan or pass on, since payments to it fail.
         compose.onNodeWithText("alice@home.example").assertExists()
+        compose.onNodeWithContentDescription("LIGHTNING:ALICE@HOME.EXAMPLE").assertDoesNotExist()
+        compose.onNodeWithText(text(DesignR.string.copy)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.receive_request_amount)).assertExists()
         compose.onNodeWithText(text(R.string.receive_address_lost)).assertExists()
         compose.onNodeWithText(text(R.string.receive_hint)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.receive_address_fix)).performScrollTo().performClick()

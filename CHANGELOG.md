@@ -146,6 +146,17 @@ publishes its section as the GitHub release notes, which brands that follow Whit
 
 ### Changed
 
+- From a walk through the app: choosing a home mint when the account has none is titled "Choose home mint", no
+  longer picks a mint for the user (unless they came from that mint or there is only one: the picker opens at once,
+  "Choose" opens it again), says "New home: …" instead of "To …" and titles its picker "Home mint"; the button that
+  changes the home without moving money is "Change only". Receive no longer shows the QR code, Copy or Share for an
+  address that doesn't reach the wallet any more (its name, the warning, Fix and "Request a specific amount" stay).
+  An address the mint no longer holds for the wallet offers Remove instead of Unregister (nothing to free); one that
+  is free again asks before Register again where the mint charges, with the fee. Adding the first address from
+  Settings is "Get a Lightning address", not "another name", and the fee the form says isn't asked about again. New
+  strings `money_review_moves_no_fee`, `money_result_moved_no_fee`, `notes_collect_moved_no_fee`, `money_change_only`,
+  `addresses_register_again_title`, `addresses_register_again_fee`, `onboarding_first_title`, `onboarding_first_body`.
+
 - Shorter alerts. Home's alerts about notes and mints (a changed signing key, notes a mint doesn't know, a mint not
   answering) are one title, one line of what it means ("Nothing is sent there for now", "₿6,000 isn't in your
   balance for now", "You can't spend the money there for now") and "Show", which opens the notes view's page of what
@@ -290,6 +301,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   `TopBar` of their own should do the same (docs/WHITE_LABEL.md, "Components").
 
 ### Fixed
+
+- Moving money between mints said contradicting fees: the preview "₿997 arrives after a fee of ₿-1", the result "after
+  a fee of ₿2", for the same ₿996. Both now measure from the notes as they were (the result measured from them after
+  the merge the mint paid back), and a move that costs nothing or less says what arrives without a fee; the fee total
+  shows only above zero. History no longer shows a fee on a move that failed.
 
 - Text that was hard to read: the button of a message at the bottom of the screen ("Details") was in the theme's
   primary on the message's inverse surface, now in its inverse primary, as Material's; buttons and grey text on a

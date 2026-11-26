@@ -97,7 +97,8 @@ class NotesTest {
                 assertEquals(51_000, quote.amountMsat, "merged, with the refund")
                 assertEquals(49_000, quote.expectedMsat, "the target's 2 sat mint fee")
 
-                assertEquals(MintMoveResult.Moved(49_000, 2_000), wallet.moveToMint(ids, target.host))
+                // From the 50 sat the user had: the target's 2 sat fee less the merge's 1 sat refund, as a preview of the move says.
+                assertEquals(MintMoveResult.Moved(49_000, 1_000), wallet.moveToMint(ids, target.host))
                 assertEquals(emptyList(), on(mint.host))
                 assertEquals(listOf(49_000L), on(target.host))
                 val arrived = outstanding().single()
@@ -106,7 +107,7 @@ class NotesTest {
                 val moved = history().single { it.kind == ActivityKind.MovedMint }
                 assertEquals(ActivityStatus.Done, moved.status)
                 assertEquals(target.host, moved.counterparty)
-                assertEquals(2_000, moved.feeMsat)
+                assertEquals(1_000, moved.feeMsat)
             }
         }
 

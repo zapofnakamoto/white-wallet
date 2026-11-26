@@ -79,6 +79,8 @@
     <string name="addresses_status_free">Nicht mehr registriert: Zahlungen daran schlagen fehl</string>
     <string name="addresses_status_failed">Gerade nicht prüfbar.</string>
     <string name="addresses_register_again">Neu registrieren</string>
+    <string name="addresses_register_again_title">Diese Adresse neu registrieren?</string>
+    <string name="addresses_register_again_fee">Die neue Registrierung kostet einmalig %2$s. Der Name wird jetzt für dich reserviert, und du bezahlst, wann du möchtest.</string>
     <string name="addresses_remove">Entfernen</string>
     <string name="addresses_not_registered_again">%1$s konnte nicht neu registriert werden. Versuche es gleich noch einmal.</string>
     <string name="addresses_status_invalid">Keine gültige Adresse.</string>
@@ -250,6 +252,7 @@
     <string name="notes_collect_fee_cap">Nur wenn die Gebühren höchstens</string>
     <string name="notes_collect_fee_cap_option">%1$d %%</string>
     <string name="notes_collect_moved">%1$s von %2$s verschoben, nach einer Gebühr von %3$s</string>
+    <string name="notes_collect_moved_no_fee">%1$s von %2$s verschoben</string>
     <string name="notes_collect_fee_too_high">Nicht verschoben: %1$s bei %2$s. Die Gebühr von %3$s ist höher als %4$d %%.</string>
     <string name="notes_collect_too_small">Nicht verschoben: %1$s bei %2$s ist zu wenig zum Verschieben.</string>
     <string name="notes_collect_failed">Nicht verschoben: %1$s bei %2$s. Wird später erneut versucht.</string>
@@ -276,6 +279,7 @@
     <string name="money_back">Zurück</string>
     <string name="money_review_to">Nach %1$s</string>
     <string name="money_review_moves">%1$s auf %2$s: %3$s kommen an, nach einer Gebühr von %4$s</string>
+    <string name="money_review_moves_no_fee">%1$s auf %2$s: %3$s kommen an</string>
     <string name="money_review_over_cap">%1$s auf %2$s bleibt: das Verschieben kostet mehr als %3$d %%</string>
     <string name="money_review_too_small">%1$s auf %2$s bleibt: zu wenig zum Verschieben</string>
     <string name="money_review_unavailable">%1$s auf %2$s bleibt: gerade kein Preis</string>
@@ -286,9 +290,11 @@
     <string name="money_review_stays_note">Geld, das du nicht verschiebst, bleibt, wo es ist, und bleibt deins. Du kannst es später auf seiner Seite verschieben.</string>
     <string name="money_move_amount">%1$s verschieben</string>
     <string name="money_change_and_move">Wechseln und %1$s verschieben</string>
+    <string name="money_change_only">Nur wechseln</string>
     <string name="money_home_changed">Neues Zuhause: %1$s</string>
     <string name="money_result_money_stays">Dein Geld ist geblieben, wo es war.</string>
     <string name="money_result_moved">%1$s von %2$s angekommen, nach einer Gebühr von %3$s</string>
+    <string name="money_result_moved_no_fee">%1$s von %2$s angekommen</string>
     <string name="money_result_pending">%1$s von %2$s ist unterwegs</string>
     <string name="money_result_failed">%1$s auf %2$s wurde nicht verschoben (%3$s). Es ist noch dort.</string>
     <string name="money_reason_payment">die Zahlung ist fehlgeschlagen</string>

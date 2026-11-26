@@ -63,6 +63,8 @@
     <string name="onboarding_mint_custom">Andere …</string>
     <string name="onboarding_mint_local">Lokale Regtest-Mint (Entwicklermodus)</string>
     <string name="onboarding_add_body">Ein weiterer Name für dieses Konto auf %1$s. Zahlungen an jede seiner Adressen landen im selben Guthaben.</string>
+    <string name="onboarding_first_title">Lightning-Adresse holen</string>
+    <string name="onboarding_first_body">Unter dieser Adresse bei %1$s wirst du bezahlt.</string>
     <string name="onboarding_change_body">Wähle den Namen, unter dem man dir auf %1$s zahlt.</string>
     <string name="onboarding_error_registration">Die Adresse wurde nicht registriert: %1$s</string>
     <string name="onboarding_error_registration_plain">Die Adresse wurde nicht registriert.</string>

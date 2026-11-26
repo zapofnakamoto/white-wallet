@@ -110,7 +110,9 @@ class AddressesScreenTest {
             )
         }
         compose.onNodeWithText(text(R.string.addresses_status_free)).assertExists()
-        compose.onNodeWithText(text(R.string.addresses_remove)).assertDoesNotExist()
+        // Nothing to free at the mint: it can only leave the list.
+        compose.onNodeWithText(text(R.string.addresses_unregister)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_remove)).assertExists()
         compose.onNodeWithText(text(R.string.addresses_register_again)).performClick()
         assertEquals(listOf(home.address), registered)
     }
@@ -125,12 +127,13 @@ class AddressesScreenTest {
                 {},
                 {},
                 {},
-                AddressActions({}, {}, {}, onRemoveTaken = { removed += it }),
+                AddressActions({}, {}, {}, onRemoveLost = { removed += it }),
                 {},
                 {},
             )
         }
         compose.onNodeWithText(text(R.string.addresses_register_again)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.addresses_unregister)).assertDoesNotExist()
         compose.onNodeWithText(text(R.string.addresses_remove)).performClick()
         assertEquals(listOf(home.address), removed)
     }

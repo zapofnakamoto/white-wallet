@@ -218,6 +218,8 @@ private fun receiveStatus(state: ReceiveState): WalletStatus {
         state.problem == InvoiceProblem.Offline || (state.offline && state.showAmountForm) -> WalletStatus.Problem(ProblemKind.Offline)
         state.problem is InvoiceProblem.MintNotAnswering -> WalletStatus.Problem(ProblemKind.MintNotAnswering)
         state.problem != null -> WalletStatus.Problem(ProblemKind.Other)
+        state.invoice == null && state.address != null && !state.showAmountForm && state.addressLost ->
+            WalletStatus.Problem(ProblemKind.Other)
         state.invoice == null && state.address != null && !state.showAmountForm && state.addressMintNotAnswering ->
             WalletStatus.Problem(ProblemKind.MintNotAnswering)
         state.invoice != null || (state.address != null && !state.showAmountForm) -> WalletStatus.AwaitingPayment
@@ -245,9 +247,10 @@ private fun FaucetButton(faucet: FaucetState, invoice: Boolean, onPay: () -> Uni
 @Composable
 private fun AddressContent(state: ReceiveState, others: Boolean, actions: InvoiceActions, mintLine: @Composable () -> Unit) {
     val address = state.address ?: return
-    QrCode("LIGHTNING:${address.uppercase()}")
+    // A lost address never reaches the wallet again: nothing to scan or pass on, only its name and the fix. A silent mint's address
+    // still shows: the mint may be back by the time someone pays it, and the screen keeps asking.
+    if (!state.addressLost) QrCode("LIGHTNING:${address.uppercase()}")
     Text(address, style = MaterialTheme.typography.titleMedium)
-    // The address still shows: the mint may be back by the time someone pays it, and the screen keeps asking.
     if (state.addressLost) {
         Text(
             stringResource(R.string.receive_address_lost),
@@ -278,7 +281,7 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
         Text(stringResource(R.string.receive_hint), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
     }
     mintLine()
-    CopyShare(address, stringResource(R.string.receive_copied))
+    if (!state.addressLost) CopyShare(address, stringResource(R.string.receive_copied))
     WalletButton(kind = ButtonKind.Text, onClick = actions.onRequestAmount) { Text(stringResource(R.string.receive_request_amount)) }
     if (others)
         WalletButton(kind = ButtonKind.Text, onClick = actions.onOtherAddress) { Text(stringResource(R.string.receive_other_address)) }

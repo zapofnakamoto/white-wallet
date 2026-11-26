@@ -144,7 +144,7 @@ fun OnboardingScreen(
             when (state.mode) {
                 OnboardingMode.Setup -> R.string.setup_address_title
                 OnboardingMode.ChangeAddress -> R.string.onboarding_change_title
-                OnboardingMode.AddAddress -> R.string.onboarding_add_title
+                OnboardingMode.AddAddress -> if (state.firstAddress) R.string.onboarding_first_title else R.string.onboarding_add_title
                 OnboardingMode.AddAddressElsewhere -> R.string.onboarding_add_elsewhere_title
             }
         )
@@ -159,7 +159,8 @@ fun OnboardingScreen(
                 when (state.mode) {
                     OnboardingMode.Setup -> stringResource(R.string.setup_address_body, state.host)
                     OnboardingMode.ChangeAddress -> stringResource(R.string.onboarding_change_body, state.host)
-                    OnboardingMode.AddAddress -> stringResource(R.string.onboarding_add_body, state.host)
+                    OnboardingMode.AddAddress ->
+                        stringResource(if (state.firstAddress) R.string.onboarding_first_body else R.string.onboarding_add_body, state.host)
                     OnboardingMode.AddAddressElsewhere -> stringResource(R.string.onboarding_add_elsewhere_body)
                 },
                 textAlign = TextAlign.Center,

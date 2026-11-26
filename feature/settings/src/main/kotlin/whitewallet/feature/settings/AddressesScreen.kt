@@ -53,6 +53,7 @@ import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.HostText
 import whitewallet.core.designsystem.PrimaryButton
 import whitewallet.core.designsystem.QrCode
+import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.SensitiveClipboard
 import whitewallet.core.designsystem.WalletButton
 import whitewallet.core.designsystem.WalletCard
@@ -61,6 +62,7 @@ import whitewallet.core.designsystem.WalletDialog
 import whitewallet.core.designsystem.WalletMintMark
 import whitewallet.core.designsystem.WalletSnackbarHost
 import whitewallet.core.designsystem.WalletTopBar
+import whitewallet.core.designsystem.formatAmount
 import whitewallet.core.designsystem.pageLoaded
 import whitewallet.core.model.RegisteredAddress
 import whitewallet.core.wallet.AddressEntry
@@ -72,6 +74,7 @@ import whitewallet.core.wallet.OnboardResult
 import whitewallet.core.wallet.PayResult
 import whitewallet.core.wallet.UnregisterResult
 import whitewallet.core.wallet.Wallet
+import whitewallet.core.wallet.runSuspendCatching
 
 data class AddressesState(
     val entries: List<AddressEntry> = emptyList(),
@@ -95,6 +98,8 @@ data class AddressesState(
     val loaded: Boolean = true,
     /** The wallet has a mint at all; without a home mint, it decides what is missing ([noHome]). */
     val hasMint: Boolean = true,
+    /** Registering a lost address again costs this: said before the name is held. */
+    val registerFee: RegisterFee? = null,
 ) {
     /** Without a home mint no address can be added: what is missing, as on Receive. */
     val noHome: NoHome?
@@ -137,12 +142,16 @@ sealed interface AddressesMessage {
     data class NotRegisteredAgain(val address: String) : AddressesMessage
 }
 
+/** What [address]'s mint charges to register it again. */
+data class RegisterFee(val address: RegisteredAddress, val feeMsat: Long)
+
 private data class AddressesUi(
     val checking: Set<String> = emptySet(),
     val busy: Boolean = false,
     val confirm: RegisteredAddress? = null,
     val message: AddressesMessage? = null,
     val watchOnly: WatchOnlyKey? = null,
+    val registerFee: RegisterFee? = null,
 )
 
 @HiltViewModel
@@ -161,6 +170,7 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
                     ui.message,
                     ui.watchOnly,
                     homeHost = home,
+                    registerFee = ui.registerFee,
                     otherMints = defaults.allowMintChange && mints.any { it.host != home && defaults.mintAllowed(it.host) },
                     hasMint = mints.isNotEmpty(),
                 )
@@ -205,8 +215,24 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
         if (wallet.payAddressFee(address) !is PayResult.Paid) ui.update { it.copy(message = AddressesMessage.FeeNotPaid(address.address)) }
     }
 
-    /** Its mint says the name is free: registers it again (a mint with a fee holds it, as when it was added). */
+    /**
+     * Its mint says the name is free: registers it again (a mint with a fee holds it, as when it was added). Where the mint charges, the
+     * fee is said first; when the mint can't tell, the held name's invoice still waits for the user to pay it.
+     */
     fun registerAgain(address: RegisteredAddress) = act {
+        val fee = runSuspendCatching { wallet.addressFeeMsat(address.host) }.getOrNull()
+        if (fee != null) ui.update { it.copy(registerFee = RegisterFee(address, fee)) } else register(address)
+    }
+
+    fun confirmRegisterAgain() {
+        val fee = ui.value.registerFee ?: return
+        ui.update { it.copy(registerFee = null) }
+        act { register(fee.address) }
+    }
+
+    fun dismissRegisterAgain() = ui.update { it.copy(registerFee = null) }
+
+    private suspend fun register(address: RegisteredAddress) {
         when (wallet.registerAgain(address)) {
             is OnboardResult.Ready,
             is OnboardResult.AwaitingFee -> Unit
@@ -223,9 +249,9 @@ class AddressesViewModel @Inject constructor(private val wallet: Wallet, prefere
         }
     }
 
-    /** Its mint says it is someone else's: off the list, once a check now says so too. */
-    fun removeTaken(address: RegisteredAddress) = act {
-        if (wallet.removeTakenAddress(address)) ui.update { it.copy(message = AddressesMessage.NotOurs(address.address)) }
+    /** Its mint says it is someone else's or free: off the list, once a check now says so too. */
+    fun removeLost(address: RegisteredAddress) = act {
+        if (wallet.removeLostAddress(address)) ui.update { it.copy(message = AddressesMessage.NotOurs(address.address)) }
     }
 
     fun askUnregister(address: RegisteredAddress) = ui.update { it.copy(confirm = address, message = null) }
@@ -276,7 +302,9 @@ class AddressActions(
     val onCopyWatchOnly: (String) -> Unit = {},
     /** The fix for an address that doesn't reach the wallet any more: register its free name again, or take someone else's off the list. */
     val onRegisterAgain: (RegisteredAddress) -> Unit = {},
-    val onRemoveTaken: (RegisteredAddress) -> Unit = {},
+    val onRemoveLost: (RegisteredAddress) -> Unit = {},
+    val onConfirmRegisterAgain: () -> Unit = {},
+    val onDismissRegisterAgain: () -> Unit = {},
 )
 
 @Composable
@@ -305,7 +333,9 @@ fun AddressesRoute(
                 viewModel::toggleWatchOnly,
                 onCopyWatchOnly = { key -> SensitiveClipboard.copy(context, "watch-only key", key, viewModel.clipboardClearMillis) },
                 onRegisterAgain = viewModel::registerAgain,
-                onRemoveTaken = viewModel::removeTaken,
+                onRemoveLost = viewModel::removeLost,
+                onConfirmRegisterAgain = viewModel::confirmRegisterAgain,
+                onDismissRegisterAgain = viewModel::dismissRegisterAgain,
             ),
         onConfirmUnregister = viewModel::confirmUnregister,
         onDismissUnregister = viewModel::dismissUnregister,
@@ -399,6 +429,25 @@ fun AddressesScreen(
         }
     }
     state.confirm?.let { UnregisterDialog(it, onConfirmUnregister, onDismissUnregister) }
+    state.registerFee?.let { RegisterAgainDialog(it, actions) }
+}
+
+/** The fee of registering a lost address again, before the name is held: the same step as when it was added. */
+@Composable
+private fun RegisterAgainDialog(fee: RegisterFee, actions: AddressActions) {
+    WalletDialog(
+        onDismissRequest = actions.onDismissRegisterAgain,
+        title = { Text(stringResource(R.string.addresses_register_again_title)) },
+        text = { Text(stringResource(R.string.addresses_register_again_fee, fee.address.address, formatAmount(fee.feeMsat))) },
+        confirmButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = actions.onConfirmRegisterAgain) {
+                Text(stringResource(R.string.addresses_register_again))
+            }
+        },
+        dismissButton = {
+            WalletButton(kind = ButtonKind.Text, onClick = actions.onDismissRegisterAgain) { Text(stringResource(DesignR.string.cancel)) }
+        },
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -446,7 +495,7 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                             Text(stringResource(R.string.addresses_register_again))
                         }
                     AddressStatus.Taken ->
-                        WalletButton(onClick = { actions.onRemoveTaken(a) }, enabled = !state.busy) {
+                        WalletButton(onClick = { actions.onRemoveLost(a) }, enabled = !state.busy) {
                             Text(stringResource(R.string.addresses_remove))
                         }
                     is AddressStatus.CheckFailed,
@@ -474,8 +523,31 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
                         Text(stringResource(R.string.addresses_make_primary))
                     }
                 }
-                WalletButton(kind = ButtonKind.Text, onClick = { actions.onUnregister(a) }, enabled = !state.busy, tone = Tone.Danger) {
-                    Text(stringResource(R.string.addresses_unregister))
+                // A name the mint no longer holds for this wallet has nothing to free: it can only leave the list.
+                when (entry.status.takeIf { !checking }) {
+                    AddressStatus.Taken -> Unit
+                    AddressStatus.Available ->
+                        WalletButton(
+                            kind = ButtonKind.Text,
+                            onClick = { actions.onRemoveLost(a) },
+                            enabled = !state.busy,
+                            tone = Tone.Danger,
+                        ) {
+                            Text(stringResource(R.string.addresses_remove))
+                        }
+                    is AddressStatus.CheckFailed,
+                    is AddressStatus.Invalid,
+                    AddressStatus.Ours,
+                    AddressStatus.Unconfirmed,
+                    null ->
+                        WalletButton(
+                            kind = ButtonKind.Text,
+                            onClick = { actions.onUnregister(a) },
+                            enabled = !state.busy,
+                            tone = Tone.Danger,
+                        ) {
+                            Text(stringResource(R.string.addresses_unregister))
+                        }
                 }
             }
             watchOnly?.let { WatchOnlySection(it.key, actions.onCopyWatchOnly) }

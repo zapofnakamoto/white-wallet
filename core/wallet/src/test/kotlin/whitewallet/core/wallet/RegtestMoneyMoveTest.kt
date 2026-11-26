@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 
-/** Moving money between the regtest mints, where it can't go through. */
+/** Moving money between the regtest mints: what it costs, and where it can't go through. */
 @ExtendWith(ThirdMintLock::class)
 class RegtestMoneyMoveTest {
     @BeforeEach fun requireStack() = Regtest.requireStack()
@@ -37,6 +37,22 @@ class RegtestMoneyMoveTest {
                 assertEquals(before.map { it.amountMsat }, phone.notes().map { it.amountMsat })
                 assertEquals(emptyList(), phone.notes(Regtest.HOST3))
             }
+        }
+
+    @Test
+    fun `a move's fee is measured from the notes as they were, so a merge's refund lowers it`() =
+        runBlocking<Unit> {
+            val phone = Regtest.phone()
+            // Several notes: the move merges them first, and the regtest mint pays back base fees on a merge.
+            phone.fund(1000, 1000, 1000)
+            val notesMsat = phone.notes().sumOf { it.amountMsat }
+            val line = assertNotNull(phone.wallet.previewMove(Regtest.HOST2)).lines.single()
+            val quote = assertIs<MovePreview.Quote.Ok>(line.quote)
+            assertEquals(notesMsat - quote.arrivesMsat, quote.feeMsat, "the quote's fee, from the notes as they are")
+
+            val moved = assertIs<MintMoveResult.Moved>(phone.wallet.moveMoney(Regtest.HOST2, listOf(line)).single().result)
+            assertEquals(phone.notes(Regtest.HOST2).sumOf { it.amountMsat }, moved.arrivedMsat)
+            assertEquals(notesMsat - moved.arrivedMsat, moved.feeMsat, "the same measure as the quote's, not from the merged note")
         }
 
     @Test

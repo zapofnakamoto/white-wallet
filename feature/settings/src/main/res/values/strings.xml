@@ -92,6 +92,9 @@
     <string name="addresses_status_failed">Couldn\'t check it right now.</string>
     <string name="addresses_status_invalid">Not a valid address.</string>
     <string name="addresses_register_again">Register again</string>
+    <!-- Before registering a lost address again where the mint charges for it (its card is behind). %1$s: the address; %2$s: the fee -->
+    <string name="addresses_register_again_title">Register this address again?</string>
+    <string name="addresses_register_again_fee">Registering it again costs %2$s, once. The name is held for you now, and you pay when you like.</string>
     <string name="addresses_remove">Remove</string>
     <string name="addresses_not_registered_again">Couldn\'t register %1$s again. Try again in a moment.</string>
     <string name="addresses_add">Add address</string>
@@ -356,6 +359,8 @@
     <string name="notes_collect_fee_cap">Only when the fees are at most</string>
     <string name="notes_collect_fee_cap_option">%1$d%%</string>
     <string name="notes_collect_moved">Moved %1$s from %2$s after a fee of %3$s</string>
+    <!-- No fee: the mint paid back as much as it kept, or more (the amount that arrived says so) -->
+    <string name="notes_collect_moved_no_fee">Moved %1$s from %2$s</string>
     <string name="notes_collect_fee_too_high">Not moved: %1$s on %2$s. The fee of %3$s is more than %4$d%%.</string>
     <string name="notes_collect_too_small">Not moved: %1$s on %2$s is too little to move.</string>
     <string name="notes_collect_failed">Not moved: %1$s on %2$s. Trying again later.</string>
@@ -382,6 +387,8 @@
     <string name="money_back">Back</string>
     <string name="money_review_to">To %1$s</string>
     <string name="money_review_moves">%1$s on %2$s: %3$s arrives after a fee of %4$s</string>
+    <!-- As money_review_moves, without a fee: the mint pays back as much as it keeps, or more -->
+    <string name="money_review_moves_no_fee">%1$s on %2$s: %3$s arrives</string>
     <string name="money_review_over_cap">%1$s on %2$s stays: moving it costs more than %3$d%%</string>
     <string name="money_review_too_small">%1$s on %2$s stays: too little to move</string>
     <string name="money_review_unavailable">%1$s on %2$s stays: no price right now</string>
@@ -392,9 +399,12 @@
     <string name="money_review_stays_note">Money you don\'t move stays where it is, and stays yours. You can move it later from its page.</string>
     <string name="money_move_amount">Move %1$s</string>
     <string name="money_change_and_move">Change and move %1$s</string>
+    <!-- Beside "Change and move …": the home changes, no money moves -->
+    <string name="money_change_only">Change only</string>
     <string name="money_home_changed">New home: %1$s</string>
     <string name="money_result_money_stays">Your money stayed where it was.</string>
     <string name="money_result_moved">%1$s arrived from %2$s after a fee of %3$s</string>
+    <string name="money_result_moved_no_fee">%1$s arrived from %2$s</string>
     <string name="money_result_pending">%1$s from %2$s is on its way</string>
     <string name="money_result_failed">%1$s on %2$s didn\'t move (%3$s). It\'s still there.</string>
     <string name="money_reason_payment">the payment failed</string>

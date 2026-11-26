@@ -73,6 +73,9 @@
     <string name="onboarding_mint_custom">Custom…</string>
     <string name="onboarding_mint_local">Local regtest mint (developer mode)</string>
     <string name="onboarding_add_body">Another name for this account on %1$s. Payments to any of its addresses arrive in the same balance.</string>
+    <!-- Adding the account's first address from Settings (the button that leads here says the same) -->
+    <string name="onboarding_first_title">Get a Lightning address</string>
+    <string name="onboarding_first_body">People pay you at this address, on %1$s.</string>
     <string name="onboarding_change_body">Pick the name people will use to pay you on %1$s.</string>
     <!-- %1$s: the mint's own words, in whatever language it writes. -->
     <string name="onboarding_error_registration">The address wasn\'t registered: %1$s</string>

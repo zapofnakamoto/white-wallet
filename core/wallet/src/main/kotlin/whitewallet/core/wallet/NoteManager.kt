@@ -90,6 +90,7 @@ sealed interface MintMoveQuote {
 }
 
 sealed interface MintMoveResult {
+    /** [feeMsat]: the notes moved less what arrived; negative when the mints paid back more than they kept. */
     data class Moved(val arrivedMsat: Long, val feeMsat: Long) : MintMoveResult
 
     /** Paid, but the new note hasn't shown up yet (or the payment is still in flight); a later refresh settles it. */
@@ -235,6 +236,8 @@ internal class NoteManager(private val wallet: Wallet) {
         if (!accept(prepared.quote, prepared.notes.sumOf { it.amountMsat })) return MintMoveResult.Failed(NoteProblem.Declined)
         val quote = prepared.quote
         var notes = prepared.notes
+        // The fee is measured from the notes as the user saw them, as the quote is: a merge's refund lowers it, never hides in it.
+        val notesMsat = notes.sumOf { it.amountMsat }
 
         // One note pays one invoice: merge first. If anything later fails, the notes are just combined.
         if (notes.size > 1) {
@@ -273,7 +276,7 @@ internal class NoteManager(private val wallet: Wallet) {
                     amountMsat = expected,
                     host = quote.fromHost,
                     status = ActivityStatus.Pending,
-                    feeMsat = (amount - expected).takeIf { it > 0 },
+                    feeMsat = (notesMsat - expected).takeIf { it > 0 },
                     counterparty = quote.toHost,
                     automatic = automatic,
                     journalId = mintId,
@@ -281,7 +284,7 @@ internal class NoteManager(private val wallet: Wallet) {
             }
         val mints = MintReconciler(wallet)
         return when (melted) {
-            is MeltOutcome.Paid -> awaitMint(mints, mintId, output.ref.q, amount, expected)
+            is MeltOutcome.Paid -> awaitMint(mints, mintId, output.ref.q, notesMsat, expected)
             is MeltOutcome.Pending -> MintMoveResult.Pending
             is MeltOutcome.PaymentFailed,
             is MeltOutcome.Refused -> {
@@ -295,14 +298,14 @@ internal class NoteManager(private val wallet: Wallet) {
     }
 
     /** The target mints once it sees the payment; give it a moment. */
-    private suspend fun awaitMint(mints: MintReconciler, mintId: String, q: String, amount: Long, expected: Long): MintMoveResult {
+    private suspend fun awaitMint(mints: MintReconciler, mintId: String, q: String, notesMsat: Long, expected: Long): MintMoveResult {
         var wait = 250L
         val deadline = wallet.now() + wallet.payWaitMillis
         while (true) {
             val entry = mints.entry(mintId) ?: return MintMoveResult.Pending
             if (mints.reconcile(entry) == JournalStatus.Confirmed) {
                 val arrived = wallet.store.note(q)?.amountMsat ?: expected
-                return MintMoveResult.Moved(arrived, amount - arrived)
+                return MintMoveResult.Moved(arrived, notesMsat - arrived)
             }
             if (wallet.now() >= deadline) return MintMoveResult.Pending
             delay(wait)

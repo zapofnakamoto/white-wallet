@@ -973,12 +973,15 @@ private fun ActivityRow(activity: Activity, onClick: (() -> Unit)?) {
             ActivityStatus.Done -> if (sentNote) add(stringResource(R.string.activity_note_spent))
         }
         if (activity.certified == false) add(stringResource(DesignR.string.uncertified))
-        activity.feeMsat?.let { fee ->
-            add(
-                if (fee < 0) stringResource(R.string.activity_fee_refunded, formatAmount(-fee))
-                else stringResource(DesignR.string.fee, formatAmount(fee))
-            )
-        }
+        // A failed one kept nothing: a fee noted while it was under way isn't one.
+        activity.feeMsat
+            ?.takeIf { activity.status != ActivityStatus.Failed }
+            ?.let { fee ->
+                add(
+                    if (fee < 0) stringResource(R.string.activity_fee_refunded, formatAmount(-fee))
+                    else stringResource(DesignR.string.fee, formatAmount(fee))
+                )
+            }
     }
         .joinToString(stringResource(R.string.activity_detail_separator))
     val settled =

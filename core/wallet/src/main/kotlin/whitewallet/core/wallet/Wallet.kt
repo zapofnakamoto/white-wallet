@@ -790,13 +790,13 @@ class Wallet(
     }
 
     /**
-     * Removes [address] from the account if its mint says, checked now, that it is someone else's: payments to it never reach this wallet
-     * again. Whether it was removed.
+     * Removes [address] from the account if its mint says, checked now, that it is someone else's or no one's: payments to it never reach
+     * this wallet again, and there is nothing to free. Whether it was removed.
      */
-    suspend fun removeTakenAddress(address: RegisteredAddress): Boolean = lock.withLock {
+    suspend fun removeLostAddress(address: RegisteredAddress): Boolean = lock.withLock {
         val id = activeId()
         val status = addressCheck.check(address.username, address.host, id)
-        if (status != AddressStatus.Taken) {
+        if (status != AddressStatus.Taken && status != AddressStatus.Available) {
             setAddressStatus(id, address.address, status)
             return@withLock false
         }

@@ -330,6 +330,8 @@ private fun CollectDialog(preview: MovePreview, home: String, actions: CollectAc
                             is MovePreview.Quote.Ok ->
                                 if (line.overCap(preview.feeCapPercent))
                                     stringResource(R.string.money_review_over_cap, amount, line.host, preview.feeCapPercent)
+                                else if (q.feeMsat <= 0)
+                                    stringResource(R.string.money_review_moves_no_fee, amount, line.host, formatAmount(q.arrivesMsat))
                                 else
                                     stringResource(
                                         R.string.money_review_moves,
@@ -368,6 +370,7 @@ private fun LastRun(state: NotesSettingsState) {
         run.collected.forEach { c ->
             Text(
                 if (c.pending) stringResource(R.string.notes_collect_pending, c.host)
+                else if (c.feeMsat <= 0) stringResource(R.string.notes_collect_moved_no_fee, formatAmount(c.arrivedMsat), c.host)
                 else stringResource(R.string.notes_collect_moved, formatAmount(c.arrivedMsat), c.host, formatAmount(c.feeMsat)),
                 style = small,
             )
