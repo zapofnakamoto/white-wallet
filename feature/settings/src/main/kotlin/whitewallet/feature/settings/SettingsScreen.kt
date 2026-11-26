@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.AddressText
 import whitewallet.core.designsystem.ChevronIcon
 import whitewallet.core.designsystem.LocalAmountUnit
 import whitewallet.core.designsystem.R as DesignR
@@ -82,7 +83,7 @@ private fun Hub(
         SummaryRow(
             leading = { WalletAccountMark(name, state.accountPlace) },
             title = name,
-            summary = state.address ?: stringResource(R.string.settings_account_no_address),
+            summary = { state.address?.let { AddressText(it) } ?: Text(stringResource(R.string.settings_account_no_address)) },
             extra =
                 state.lastPolicyRun?.stoppedEarly?.let { stringResource(R.string.settings_policy_stopped, it) }
                     ?: status.takeIf { color == MaterialTheme.colorScheme.error },
@@ -188,12 +189,26 @@ internal fun SummaryRow(
     extraColor: Color = Color.Unspecified,
     onClick: () -> Unit,
 ) {
+    SummaryRow(leading, title, { Text(summary, color = summaryColor) }, titleColor, extra, extraColor, onClick)
+}
+
+/** A hub row whose summary is drawn by [summary]: an address, which breaks at its "@". */
+@Composable
+internal fun SummaryRow(
+    leading: @Composable () -> Unit,
+    title: String,
+    summary: @Composable () -> Unit,
+    titleColor: Color = Color.Unspecified,
+    extra: String? = null,
+    extraColor: Color = Color.Unspecified,
+    onClick: () -> Unit,
+) {
     WalletListItem(
         leadingContent = leading,
         headlineContent = { Text(title, color = titleColor) },
         supportingContent = {
             Column {
-                Text(summary, color = summaryColor)
+                summary()
                 extra?.let { Text(it, color = extraColor) }
             }
         },

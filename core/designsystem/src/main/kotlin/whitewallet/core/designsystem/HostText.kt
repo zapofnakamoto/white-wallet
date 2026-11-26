@@ -61,7 +61,7 @@ fun HostText(host: String, modifier: Modifier = Modifier, style: TextStyle = Loc
     )
 }
 
-private fun breakable(text: String) = text.replace(".", ".​")
+internal fun breakable(text: String) = text.replace(".", ".​")
 
 /**
  * Where in [host] (a port allowed) the name sits that was registered, the one that tells it from others: "example" in "mint.example.com"

@@ -48,6 +48,7 @@ import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
 import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.AddressText
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.EmptyState
 import whitewallet.core.designsystem.HostText
@@ -461,7 +462,7 @@ private fun AddressCard(entry: AddressEntry, state: AddressesState, actions: Add
     WalletCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(a.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                AddressText(a.address, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 if (entry.primary) {
                     Text(
                         stringResource(R.string.addresses_primary),

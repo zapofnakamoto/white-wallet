@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Tone
+import whitewallet.core.designsystem.AddressText
 import whitewallet.core.designsystem.ChevronIcon
 import whitewallet.core.designsystem.R as DesignR
 import whitewallet.core.designsystem.WalletAccountMark
@@ -291,7 +292,7 @@ fun WalletScreen(
                             {
                                 Column {
                                     InUse()
-                                    active.address?.let { Text(it) }
+                                    active.address?.let { AddressText(it) }
                                 }
                             }
                         } else {

@@ -34,6 +34,7 @@ import whitewallet.brand.WalletStatus
 import whitewallet.brand.ui.Anchor
 import whitewallet.brand.ui.ButtonKind
 import whitewallet.brand.ui.Page
+import whitewallet.core.designsystem.AddressText
 import whitewallet.core.designsystem.BrandBody
 import whitewallet.core.designsystem.BrandDecoration
 import whitewallet.core.designsystem.CopyShare
@@ -250,7 +251,7 @@ private fun AddressContent(state: ReceiveState, others: Boolean, actions: Invoic
     // A lost address never reaches the wallet again: nothing to scan or pass on, only its name and the fix. A silent mint's address
     // still shows: the mint may be back by the time someone pays it, and the screen keeps asking.
     if (!state.addressLost) QrCode("LIGHTNING:${address.uppercase()}")
-    Text(address, style = MaterialTheme.typography.titleMedium)
+    AddressText(address, style = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center))
     if (state.addressLost) {
         Text(
             stringResource(R.string.receive_address_lost),
