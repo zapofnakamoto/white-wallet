@@ -544,9 +544,17 @@ internal class Onboarding(private val wallet: Wallet) {
 
     companion object {
         private val USERNAME = Regex("^[a-z0-9._-]{1,32}$")
+        private val HELD_USERNAME = Regex("^[a-z0-9._-]+$")
         private val HOST = Regex("^[a-z0-9.-]+(:[0-9]{1,5})?$")
 
+        /** A name the wallet registers: at most 32 characters, as the mint it was written for allows. */
         fun normalizeUsername(value: String): String? = value.trim().lowercase().takeIf(USERNAME::matches)
+
+        /**
+         * A name the wallet may hold already and looks up: of any length. Lightning addresses have no limit (LUD-16), and an address found
+         * again may have been registered by another wallet, at a mint that allows more.
+         */
+        fun heldUsername(value: String): String? = value.trim().lowercase().takeIf(HELD_USERNAME::matches)
 
         fun normalizeHost(value: String): String? =
             value.trim().lowercase().removePrefix("https://").removePrefix("http://").trimEnd('/').takeIf(HOST::matches)

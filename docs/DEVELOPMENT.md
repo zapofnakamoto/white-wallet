@@ -353,7 +353,7 @@ What lnurl-mint 0.13.1 enforces, from its source. To read it: `docker create lnu
 | A received amount within `min_sendable_msat`..`max_sendable_msat`, and at least `min_mint_msat` after fees | Range yes, `min_mint_msat` through `minSendable` | Checks the range before asking (`InvoiceReceiver`, `quoteMove`) |
 | Fee on minting: `base_fee_msat` plus `fee_ppm` | Yes, `Mint fees` | `MintFee.noteValue`. Splits and merge refunds use the base fee alone |
 | A comment of at most `commentAllowed`, 64 | Yes | Cut to fit |
-| Usernames `^[a-z0-9_.-]{1,32}$`, not a mint's own name | The pattern no | Same pattern in `Onboarding`; a mint's own name reads as taken |
+| Usernames `^[a-z0-9_.-]{1,32}$`, not a mint's own name | The pattern no | Same pattern in `Onboarding` for a name to register; a mint's own name reads as taken. An address the account already holds is looked up and shown whatever its length (`Onboarding.heldUsername`, `AddressText`): Lightning addresses have no limit, and another wallet or mint may allow more |
 | No melt into an invoice this mint issued | No | Told from the mint's wording: `PayProblem.OwnMintInvoice`, after any split, which costs the split's fee (`RegtestMintRulesTest`) |
 | No melt into an invoice melted before, even one whose payment failed | No | The same, as `PayProblem.InvoiceUsed`. So only a pay link offers "Try again" |
 | A sunsetting mint (`sunset_mint`): no minting, no splits | No | Not handled by name: they fail as refused. Whole notes can still leave. Not tested: no regtest mint runs in this mode |

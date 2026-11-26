@@ -530,6 +530,23 @@ class OnboardingTest {
     }
 
     @Test
+    fun `an address the account holds is checked whatever the length of its name`() = withMint { mint, host ->
+        // Longer than the wallet lets anyone choose: registered by another wallet, found again one day.
+        val long = "a".repeat(40)
+        val wallet = wallet()
+        assertIs<OnboardResult.Ready>(wallet.onboard("alice", host))
+        val id = checkNotNull(wallet.store.currentAccountId())
+        mint.registered[long] = checkNotNull(mint.registered["alice"])
+        val held = wallet.store.addresses(id).first().single()
+        wallet.store.saveAddress(id, held.copy(username = long))
+        wallet.checkAddresses()
+        assertEquals(setOf(AddressStatus.Ours), wallet.addresses.first().map { it.status }.toSet())
+        // Choosing a name keeps its rule.
+        assertEquals(AddressStatus.Invalid(AddressProblem.Name), wallet.checkAddress(long, host))
+        assertIs<OnboardResult.UsernameInvalid>(wallet.addAddress(long, limit = 5))
+    }
+
+    @Test
     fun `a refresh never checks an address`() = withMint { mint, host ->
         val wallet = wallet()
         assertIs<OnboardResult.Ready>(wallet.onboard("alice", host))

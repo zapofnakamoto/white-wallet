@@ -656,8 +656,11 @@ class Wallet(
      * Checks whether [username]@[host] is free, taken, or already the active account's. Pass [forNewAccount] when choosing a name for an
      * account that does not exist yet, so nothing counts as ours. Read-only.
      */
-    suspend fun checkAddress(username: String, host: String, forNewAccount: Boolean = false): AddressStatus =
-        addressCheck.check(username, host, if (forNewAccount) null else store.currentAccountId())
+    suspend fun checkAddress(username: String, host: String, forNewAccount: Boolean = false): AddressStatus {
+        // A name to choose: held to the rule for registering one.
+        val name = Onboarding.normalizeUsername(username) ?: return AddressStatus.Invalid(AddressProblem.Name)
+        return addressCheck.check(name, host, if (forNewAccount) null else store.currentAccountId())
+    }
 
     /**
      * Registers another address for the active account: on its home mint, or on [host] (same recovery phrase, that mint's own keys; never

@@ -91,4 +91,19 @@ class AddressTextTest {
     @Test
     fun aRowsArrowStaysBesideAnOnionMint() =
         arrowBeside("abcdefghijklmnopqrstuvwxyz012345@2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion")
+
+    // Longer than the wallet lets anyone choose, and than any line: a name another wallet registered.
+    @Test fun aRowsArrowStaysBesideANameTooLongForAnyLine() = arrowBeside("a1b2c3d4e5".repeat(8) + "@mint.lnurlcash.com")
+
+    @Test
+    fun aNameTooLongForItsLineStillHasTheMintOnALineOfItsOwn() {
+        val long = "a1b2c3d4e5".repeat(8) + "@mint.example"
+        compose.setContent { Box(Modifier.width(200.dp)) { AddressText(long) } }
+        val layout = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(long).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action!!(layout)
+        val result = layout.single()
+        val text = result.layoutInput.text.text
+        val last = text.substring(result.getLineStart(result.lineCount - 1), result.getLineEnd(result.lineCount - 1))
+        assertEquals("@mint.example", last.filter { c -> c != '\u200B' })
+    }
 }

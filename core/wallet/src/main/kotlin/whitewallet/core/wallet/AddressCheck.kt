@@ -33,7 +33,7 @@ sealed interface AddressStatus {
 
 /** Why an address can't be looked up. Never shown as it is: each screen says it in the user's words. */
 enum class AddressProblem {
-    /** The name breaks the rule: 1–32 lowercase letters, digits, `.`, `-` or `_`. */
+    /** The name breaks the rule: lowercase letters, digits, `.`, `-` or `_`, and at most 32 of them for a name to register. */
     Name,
 
     /** The mint's host isn't a host name. */
@@ -53,7 +53,8 @@ internal class AddressCheck(private val wallet: Wallet) {
     suspend fun check(username: String, host: String, accountId: String?): AddressStatus = ownership(username, host, accountId).status
 
     suspend fun ownership(username: String, host: String, accountId: String?, also: Long? = null): Ownership {
-        val name = Onboarding.normalizeUsername(username) ?: return Ownership(AddressStatus.Invalid(AddressProblem.Name))
+        // Any length: the address may be one the account holds already. A name to register is held to its rule before it gets here.
+        val name = Onboarding.heldUsername(username) ?: return Ownership(AddressStatus.Invalid(AddressProblem.Name))
         val h = Onboarding.normalizeHost(host) ?: return Ownership(AddressStatus.Invalid(AddressProblem.Host))
         val url = Lnurl.lightningAddressUrl("$name@$h") ?: return Ownership(AddressStatus.Invalid(AddressProblem.Name))
         val response =
