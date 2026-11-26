@@ -7,8 +7,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.compose.composable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,14 +50,14 @@ class DeveloperGateViewModel @Inject constructor(preferences: AppPreferences, de
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 }
 
-/** A destination that only renders while developer mode is on; otherwise it calls [onLocked] (usually: go back). */
-fun NavGraphBuilder.developerComposable(route: String, onLocked: () -> Unit, content: @Composable () -> Unit) {
-    composable(route) {
+/** A screen that is only drawn while developer mode is on; otherwise it goes back. */
+internal fun NavGraphBuilder.developerComposable(nav: NavController, route: String, content: @Composable ScreenNav.() -> Unit) {
+    screen(nav, route) {
         val gate: DeveloperGateViewModel = hiltViewModel()
         val enabled by gate.enabled.collectAsStateWithLifecycle()
         when (enabled) {
             true -> content()
-            false -> LaunchedEffect(Unit) { onLocked() }
+            false -> LaunchedEffect(Unit) { back() }
             null -> Unit
         }
     }

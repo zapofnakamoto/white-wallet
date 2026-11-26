@@ -6,6 +6,8 @@ plugins {
 
 android {
     namespace = "whitewallet.app"
+    // Screen tests on the JVM find the test activity in the merged manifest.
+    testOptions.unitTests.isIncludeAndroidResources = true
     // The Android version Robolectric emulates, as in every module's tests.
     sourceSets.getByName("test").resources.directories.add(rootProject.file("build-logic/test-resources").path)
 }
@@ -45,6 +47,8 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.junit)
     testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
     testRuntimeOnly(libs.junit.vintage.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
 

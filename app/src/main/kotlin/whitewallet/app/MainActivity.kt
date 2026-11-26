@@ -26,7 +26,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
@@ -363,22 +362,22 @@ private fun WalletApp(
     }
     val logo = @Composable { Image(painterResource(R.drawable.ic_brand_logo), contentDescription = null) }
     NavHost(nav, startDestination = first) {
-        composable(Routes.WELCOME) {
-            WelcomeRoute(appName, logo, onCreated = { replaceAll(Routes.SETUP_MINT) }, onRestore = { nav.navigate(Routes.RESTORE) })
+        screen(nav, Routes.WELCOME) {
+            WelcomeRoute(appName, logo, onCreated = { replaceAll(Routes.SETUP_MINT) }, onRestore = { open(Routes.RESTORE) })
         }
-        composable(Routes.ADD_WALLET) {
+        screen(nav, Routes.ADD_WALLET) {
             WelcomeRoute(
                 appName,
                 logo,
                 onCreated = { replaceAll(Routes.SETUP_MINT) },
-                onRestore = { nav.navigate(Routes.RESTORE) },
-                onBack = { nav.popBackStack() },
+                onRestore = { open(Routes.RESTORE) },
+                onBack = { back() },
             )
         }
-        composable(Routes.RESTORE) {
-            RestoreRoute(onBack = { nav.popBackStack() }, onRestored = { replaceAll(Routes.SETUP_MINT) })
+        screen(nav, Routes.RESTORE) {
+            RestoreRoute(onBack = { back() }, onRestored = { replaceAll(Routes.SETUP_MINT) })
         }
-        composable(Routes.SETUP_MINT) {
+        screen(nav, Routes.SETUP_MINT) {
             AddMintRoute(
                 setup = true,
                 onFinish = { finish ->
@@ -390,7 +389,8 @@ private fun WalletApp(
                 },
             )
         }
-        composable(
+        screen(
+            nav,
             Routes.SETUP_ADDRESS,
             arguments =
                 listOf(
@@ -408,7 +408,8 @@ private fun WalletApp(
                 onAbandoned = leftSetup,
             )
         }
-        composable(
+        screen(
+            nav,
             Routes.WALLET_READY,
             arguments =
                 listOf(
@@ -421,51 +422,52 @@ private fun WalletApp(
         ) { entry ->
             WalletReadyRoute(entry.arguments?.getString("address"), onOpen = openWallet)
         }
-        composable(Routes.ADD_MINT) {
-            AddMintRoute(setup = false, onFinish = { nav.popBackStack() })
+        screen(nav, Routes.ADD_MINT) {
+            AddMintRoute(setup = false, onFinish = { back() })
         }
-        composable(Routes.SCAN_NOTES, arguments = listOf(navArgument("start") { defaultValue = false })) { entry ->
-            ScanRoute(start = entry.arguments?.getBoolean("start") == true, onBack = { nav.popBackStack() })
+        screen(nav, Routes.SCAN_NOTES, arguments = listOf(navArgument("start") { defaultValue = false })) { entry ->
+            ScanRoute(start = entry.arguments?.getBoolean("start") == true, onBack = { back() })
         }
-        composable(Routes.HOME) {
+        screen(nav, Routes.HOME) {
             HomeRoute(
                 appName,
-                onSend = { nav.navigate(Routes.SEND) },
-                onSendFrom = { host -> nav.navigate(Routes.sendFrom(host)) },
-                onReceiveOn = { host -> nav.navigate(Routes.receiveOn(host)) },
-                onScan = { nav.navigate(Routes.SCAN) },
-                onOpenNote = { id -> nav.navigate(Routes.note(id)) },
-                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+                onSend = { open(Routes.SEND) },
+                onSendFrom = { host -> open(Routes.sendFrom(host)) },
+                onReceiveOn = { host -> open(Routes.receiveOn(host)) },
+                onScan = { open(Routes.SCAN) },
+                onOpenNote = { id -> open(Routes.note(id)) },
+                onOpenMint = { host -> open(Routes.mint(host)) },
                 onClaim = openClaim,
                 unreadableLink = unreadableLink,
                 onUnreadableLinkShown = { unreadableLink = false },
-                onReceive = { nav.navigate(Routes.RECEIVE) },
-                onSettings = { nav.navigate(Routes.SETTINGS) },
-                onBackup = { nav.navigate(Routes.BACKUP) },
-                onManageWallets = { nav.navigate(Routes.WALLETS) },
-                onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
-                onAddMint = { nav.navigate(Routes.ADD_MINT) },
-                onScanMints = { nav.navigate(Routes.scanNotes(start = true)) },
-                onOpenMints = { nav.navigate(Routes.MINTS) },
-                onOpenNotesAttention = if (notesPage) ({ nav.navigate(Routes.NOTE_LIST_ATTENTION) }) else null,
+                onReceive = { open(Routes.RECEIVE) },
+                onSettings = { open(Routes.SETTINGS) },
+                onBackup = { open(Routes.BACKUP) },
+                onManageWallets = { open(Routes.WALLETS) },
+                onMoveFunds = { open(Routes.MOVE_FUNDS) },
+                onAddMint = { open(Routes.ADD_MINT) },
+                onScanMints = { open(Routes.scanNotes(start = true)) },
+                onOpenMints = { open(Routes.MINTS) },
+                onOpenNotesAttention = if (notesPage) ({ open(Routes.NOTE_LIST_ATTENTION) }) else null,
                 menu =
                     brand.on(BrandScreenEntry.HomeMenu).map { screen ->
-                        HomeMenuItem(screen.title) { nav.navigate(Routes.brand(screen.id)) }
+                        HomeMenuItem(screen.title) { open(Routes.brand(screen.id)) }
                     },
                 notesTab =
                     if (showNotesTab)
                         notesTab(
-                            onSettings = { nav.navigate(Routes.NOTES) },
-                            onOpenShared = { id -> nav.navigate(Routes.note(id)) },
-                            onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
+                            onSettings = { open(Routes.NOTES) },
+                            onOpenShared = { id -> open(Routes.note(id)) },
+                            onOpenArchive = { open(Routes.ARCHIVE) },
                             onClaim = openClaim,
-                            onReceive = { nav.navigate(Routes.RECEIVE) },
-                            onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+                            onReceive = { open(Routes.RECEIVE) },
+                            onOpenMint = { host -> open(Routes.mint(host)) },
                         )
                     else null,
             )
         }
-        composable(
+        screen(
+            nav,
             Routes.NOTE_LIST_WITH,
             arguments =
                 listOf(
@@ -476,30 +478,30 @@ private fun WalletApp(
                 ),
         ) {
             NotesRoute(
-                onBack = { nav.popBackStack() },
-                onSettings = { nav.navigate(Routes.NOTES) },
-                onOpenShared = { id -> nav.navigate(Routes.note(id)) },
-                onOpenArchive = { nav.navigate(Routes.ARCHIVE) },
+                onBack = { back() },
+                onSettings = { open(Routes.NOTES) },
+                onOpenShared = { id -> open(Routes.note(id)) },
+                onOpenArchive = { open(Routes.ARCHIVE) },
                 onClaim = openClaim,
-                onReceive = { nav.navigate(Routes.RECEIVE) },
-                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+                onReceive = { open(Routes.RECEIVE) },
+                onOpenMint = { host -> open(Routes.mint(host)) },
             )
         }
-        composable(Routes.ARCHIVE) { ArchiveRoute(onBack = { nav.popBackStack() }) }
+        screen(nav, Routes.ARCHIVE) { ArchiveRoute(onBack = { back() }) }
         // The new account is in use: its page opens over the wallet's.
-        composable(Routes.NEW_ACCOUNT) {
+        screen(nav, Routes.NEW_ACCOUNT) {
             AccountNameRoute(
-                onBack = { nav.popBackStack() },
+                onBack = { back() },
                 onCreated = { id ->
-                    nav.popBackStack()
-                    nav.navigate(Routes.account(id))
+                    open(Routes.account(id)) { popUpTo(Routes.NEW_ACCOUNT) { inclusive = true } }
                 },
             )
         }
-        composable(Routes.MOVE_FUNDS) {
-            MoveFundsRoute(onBack = { nav.popBackStack() }, onMint = { host -> nav.navigate(Routes.mint(host)) })
+        screen(nav, Routes.MOVE_FUNDS) {
+            MoveFundsRoute(onBack = { back() }, onMint = { host -> open(Routes.mint(host)) })
         }
-        composable(
+        screen(
+            nav,
             Routes.SEND_WITH,
             arguments =
                 listOf(
@@ -516,16 +518,17 @@ private fun WalletApp(
                 ),
         ) {
             SendRoute(
-                onDone = { nav.popBackStack() },
-                onCreateNote = { from -> nav.navigate(Routes.createNote(from)) },
+                onDone = { back() },
+                onCreateNote = { from -> open(Routes.createNote(from)) },
                 onClaim = openClaim,
-                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+                onOpenMint = { host -> open(Routes.mint(host)) },
             )
         }
-        composable(Routes.SCAN) {
-            ScanRoute(onBack = { nav.popBackStack() }, onScanned = openLink)
+        screen(nav, Routes.SCAN) {
+            ScanRoute(onBack = { back() }, onScanned = openLink)
         }
-        composable(
+        screen(
+            nav,
             Routes.CREATE_NOTE,
             arguments =
                 listOf(
@@ -537,15 +540,16 @@ private fun WalletApp(
                 ),
         ) {
             CreateNoteRoute(
-                onBack = { nav.popBackStack() },
-                onCreated = { id -> nav.navigate(Routes.note(id)) { popUpTo(Routes.HOME) } },
-                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
+                onBack = { back() },
+                onCreated = { id -> open(Routes.note(id)) { popUpTo(Routes.HOME) } },
+                onOpenMint = { host -> open(Routes.mint(host)) },
             )
         }
-        composable(Routes.NOTE, arguments = listOf(navArgument("id") { type = NavType.StringType })) {
-            SharedNoteRoute(onBack = { nav.popBackStack() })
+        screen(nav, Routes.NOTE, arguments = listOf(navArgument("id") { type = NavType.StringType })) {
+            SharedNoteRoute(onBack = { back() })
         }
-        composable(
+        screen(
+            nav,
             Routes.RECEIVE_ON,
             arguments =
                 listOf(
@@ -557,16 +561,17 @@ private fun WalletApp(
                 ),
         ) {
             ReceiveRoute(
-                onBack = { nav.popBackStack() },
-                onClaim = { nav.navigate(Routes.CLAIM) { popUpTo(Routes.HOME) } },
+                onBack = { back() },
+                onClaim = { open(Routes.CLAIM) { popUpTo(Routes.HOME) } },
                 onNoHome = { noHome ->
-                    nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) { popUpTo(Routes.HOME) }
+                    open(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) { popUpTo(Routes.HOME) }
                 },
-                onOpenMint = { host -> nav.navigate(Routes.mint(host)) },
-                onOpenAddresses = { nav.navigate(Routes.ADDRESSES) },
+                onOpenMint = { host -> open(Routes.mint(host)) },
+                onOpenAddresses = { open(Routes.ADDRESSES) },
             )
         }
-        composable(
+        screen(
+            nav,
             Routes.CLAIM_WITH,
             arguments =
                 listOf(
@@ -578,64 +583,65 @@ private fun WalletApp(
                 ),
         ) {
             ClaimRoute(
-                onBack = { nav.popBackStack(Routes.HOME, inclusive = false) },
-                onPay = { nav.navigate(Routes.send(it)) { popUpTo(Routes.HOME) } },
+                onBack = { backTo(Routes.HOME) },
+                onPay = { open(Routes.send(it)) { popUpTo(Routes.HOME) } },
             )
         }
-        composable(Routes.SETTINGS) {
+        screen(nav, Routes.SETTINGS) {
             SettingsRoute(
                 versionName = BuildConfig.VERSION_NAME,
                 brandPages = brand.on(BrandScreenEntry.Settings).map { BrandPage(it.title, Routes.brand(it.id), it.icon) },
-                onBack = { nav.popBackStack() },
-                onNavigate = { nav.navigate(settingsRoute(it)) },
+                onBack = { back() },
+                onNavigate = { open(settingsRoute(it)) },
             )
         }
-        composable(Routes.WALLETS) {
+        screen(nav, Routes.WALLETS) {
             WalletsRoute(
-                onBack = { nav.popBackStack() },
-                onOpen = { id -> nav.navigate(Routes.wallet(id)) },
-                onAdd = { nav.navigate(Routes.ADD_WALLET) },
-                onNavigate = { nav.navigate(settingsRoute(it)) },
-                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
+                onBack = { back() },
+                onOpen = { id -> open(Routes.wallet(id)) },
+                onAdd = { open(Routes.ADD_WALLET) },
+                onNavigate = { open(settingsRoute(it)) },
+                onAddAccount = { open(Routes.NEW_ACCOUNT) },
             )
         }
-        composable(Routes.WALLET, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+        screen(nav, Routes.WALLET, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
             WalletRoute(
                 walletId = entry.arguments?.getString("id").orEmpty(),
-                onBack = { nav.popBackStack() },
-                onNavigate = { nav.navigate(settingsRoute(it)) },
-                onAddAccount = { nav.navigate(Routes.NEW_ACCOUNT) },
+                onBack = { back() },
+                onNavigate = { open(settingsRoute(it)) },
+                onAddAccount = { open(Routes.NEW_ACCOUNT) },
             )
         }
-        composable(Routes.ACCOUNT_SETTINGS, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+        screen(nav, Routes.ACCOUNT_SETTINGS, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
             AccountSettingsRoute(
                 accountId = entry.arguments?.getString("id").orEmpty(),
-                onBack = { nav.popBackStack() },
-                onOpen = { nav.navigate(settingsRoute(it)) },
+                onBack = { back() },
+                onOpen = { open(settingsRoute(it)) },
             )
         }
-        composable(Routes.DEVELOPER) {
-            DeveloperSettingsRoute(DeveloperPages.all, onBack = { nav.popBackStack() }, onOpenPage = { nav.navigate(it) })
+        screen(nav, Routes.DEVELOPER) {
+            DeveloperSettingsRoute(DeveloperPages.all, onBack = { back() }, onOpenPage = { open(it) })
         }
         // Developer-only pages: each registered with developerComposable, so it can't be opened while the mode is off.
-        developerComposable(DeveloperPages.REQUEST_LOG, onLocked = { nav.popBackStack() }) {
-            RequestLogRoute(onBack = { nav.popBackStack() })
+        developerComposable(nav, DeveloperPages.REQUEST_LOG) {
+            RequestLogRoute(onBack = { back() })
         }
-        developerComposable(DeveloperPages.DERIVED_KEYS, onLocked = { nav.popBackStack() }) {
-            DerivedKeysRoute(onBack = { nav.popBackStack() })
+        developerComposable(nav, DeveloperPages.DERIVED_KEYS) {
+            DerivedKeysRoute(onBack = { back() })
         }
-        developerComposable(DeveloperPages.LOCAL_REGTEST, onLocked = { nav.popBackStack() }) {
-            LocalRegtestRoute(onBack = { nav.popBackStack() })
+        developerComposable(nav, DeveloperPages.LOCAL_REGTEST) {
+            LocalRegtestRoute(onBack = { back() })
         }
-        composable(Routes.DELETE) {
+        screen(nav, Routes.DELETE) {
             DeleteWalletRoute(
-                onBack = { nav.popBackStack() },
-                onBackup = { nav.navigate(Routes.BACKUP) },
+                onBack = { back() },
+                onBackup = { open(Routes.BACKUP) },
                 // Nothing of the deleted account stays reachable: continue with the remaining one, or start over.
                 onDeleted = { remains -> replaceAll(if (remains) Routes.HOME else Routes.WELCOME) },
             )
         }
-        composable(
+        screen(
+            nav,
             Routes.MINT,
             arguments =
                 listOf(
@@ -647,17 +653,18 @@ private fun WalletApp(
                 ),
         ) {
             MintDetailsRoute(
-                onBack = { nav.popBackStack() },
-                onChangeHome = { host -> nav.navigate(Routes.changeMint(host)) },
-                onSend = { host -> nav.navigate(Routes.sendFrom(host)) },
-                onReceive = { host -> nav.navigate(Routes.receiveOn(host)) },
-                onMoveMoney = { host -> nav.navigate(Routes.moveMoney(host)) },
-                onMoveAllHere = { nav.navigate(Routes.MOVE_HOME) },
-                onManageAccounts = { nav.navigate(Routes.WALLETS) },
-                onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
+                onBack = { back() },
+                onChangeHome = { host -> open(Routes.changeMint(host)) },
+                onSend = { host -> open(Routes.sendFrom(host)) },
+                onReceive = { host -> open(Routes.receiveOn(host)) },
+                onMoveMoney = { host -> open(Routes.moveMoney(host)) },
+                onMoveAllHere = { open(Routes.MOVE_HOME) },
+                onManageAccounts = { open(Routes.WALLETS) },
+                onMoveFunds = { open(Routes.MOVE_FUNDS) },
             )
         }
-        composable(
+        screen(
+            nav,
             Routes.CHANGE_MINT,
             arguments =
                 listOf(
@@ -671,11 +678,12 @@ private fun WalletApp(
             MoneyMoveRoute(
                 MoneyMoveMode.ChangeHome,
                 entry.arguments?.getString("host"),
-                onClose = { nav.popBackStack() },
-                onAddMint = { nav.navigate(Routes.ADD_MINT) },
+                onClose = { back() },
+                onAddMint = { open(Routes.ADD_MINT) },
             )
         }
-        composable(
+        screen(
+            nav,
             Routes.MOVE_MONEY,
             arguments =
                 listOf(
@@ -689,72 +697,73 @@ private fun WalletApp(
             MoneyMoveRoute(
                 MoneyMoveMode.Move,
                 entry.arguments?.getString("from"),
-                onClose = { nav.popBackStack() },
-                onAddMint = { nav.navigate(Routes.ADD_MINT) },
+                onClose = { back() },
+                onAddMint = { open(Routes.ADD_MINT) },
             )
         }
-        composable(Routes.MOVE_HOME) {
-            MoneyMoveRoute(MoneyMoveMode.MoveHome, null, onClose = { nav.popBackStack() })
+        screen(nav, Routes.MOVE_HOME) {
+            MoneyMoveRoute(MoneyMoveMode.MoveHome, null, onClose = { back() })
         }
-        composable(Routes.MINTS) {
+        screen(nav, Routes.MINTS) {
             MintsRoute(
-                onBack = { nav.popBackStack() },
-                onOpen = { host -> nav.navigate(Routes.mint(host)) },
-                onAdd = { nav.navigate(Routes.ADD_MINT) },
-                onNoHome = { noHome -> nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
-                onChangeHome = { nav.navigate(Routes.changeMint(null)) },
-                onManageAccounts = { nav.navigate(Routes.WALLETS) },
-                onMoveFunds = { nav.navigate(Routes.MOVE_FUNDS) },
+                onBack = { back() },
+                onOpen = { host -> open(Routes.mint(host)) },
+                onAdd = { open(Routes.ADD_MINT) },
+                onNoHome = { noHome -> open(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
+                onChangeHome = { open(Routes.changeMint(null)) },
+                onManageAccounts = { open(Routes.WALLETS) },
+                onMoveFunds = { open(Routes.MOVE_FUNDS) },
             )
         }
-        composable(Routes.SECURITY) {
-            SecuritySettingsRoute(onBack = { nav.popBackStack() })
+        screen(nav, Routes.SECURITY) {
+            SecuritySettingsRoute(onBack = { back() })
         }
-        composable(Routes.ABOUT) {
-            AboutRoute(appName, BuildConfig.VERSION_NAME, BuildConfig.SUPPORT_URL, onBack = { nav.popBackStack() })
+        screen(nav, Routes.ABOUT) {
+            AboutRoute(appName, BuildConfig.VERSION_NAME, BuildConfig.SUPPORT_URL, onBack = { back() })
         }
-        composable(Routes.DISPLAY) {
-            DisplaySettingsRoute(onBack = { nav.popBackStack() })
+        screen(nav, Routes.DISPLAY) {
+            DisplaySettingsRoute(onBack = { back() })
         }
-        composable(Routes.NOTES) {
-            NotesSettingsRoute(onBack = { nav.popBackStack() })
+        screen(nav, Routes.NOTES) {
+            NotesSettingsRoute(onBack = { back() })
         }
-        composable(Routes.ADDRESSES) {
+        screen(nav, Routes.ADDRESSES) {
             AddressesRoute(
-                onBack = { nav.popBackStack() },
-                onAdd = { nav.navigate(Routes.ADD_ADDRESS) },
-                onChangePrimary = { nav.navigate(Routes.CHANGE_ADDRESS) },
-                onAddElsewhere = { nav.navigate(Routes.ADD_ADDRESS_ELSEWHERE) },
-                onNoHome = { noHome -> nav.navigate(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
+                onBack = { back() },
+                onAdd = { open(Routes.ADD_ADDRESS) },
+                onChangePrimary = { open(Routes.CHANGE_ADDRESS) },
+                onAddElsewhere = { open(Routes.ADD_ADDRESS_ELSEWHERE) },
+                onNoHome = { noHome -> open(if (noHome == NoHome.NoMint) Routes.ADD_MINT else Routes.changeMint(null)) },
             )
         }
-        composable(Routes.ADD_ADDRESS) {
+        screen(nav, Routes.ADD_ADDRESS) {
             OnboardingRoute(
-                onDone = { nav.popBackStack() },
+                onDone = { back() },
                 mode = OnboardingMode.AddAddress,
-                onBack = { nav.popBackStack() },
+                onBack = { back() },
             )
         }
-        composable(Routes.ADD_ADDRESS_ELSEWHERE) {
+        screen(nav, Routes.ADD_ADDRESS_ELSEWHERE) {
             OnboardingRoute(
-                onDone = { nav.popBackStack() },
+                onDone = { back() },
                 mode = OnboardingMode.AddAddressElsewhere,
-                onBack = { nav.popBackStack() },
+                onBack = { back() },
             )
         }
-        composable(Routes.CHANGE_ADDRESS) {
+        screen(nav, Routes.CHANGE_ADDRESS) {
             OnboardingRoute(
-                onDone = { nav.popBackStack() },
+                onDone = { back() },
                 mode = OnboardingMode.ChangeAddress,
-                onBack = { nav.popBackStack() },
+                onBack = { back() },
             )
         }
-        composable(Routes.BACKUP) {
-            BackupRoute(onDone = { nav.popBackStack() })
+        screen(nav, Routes.BACKUP) {
+            BackupRoute(onDone = { back() })
         }
         // A new account's backup during setup: no way back, then on to [next] (the wallet, or the brand's welcome page), or back where
         // "Add account" was opened.
-        composable(
+        screen(
+            nav,
             Routes.BACKUP_AT_SETUP,
             arguments =
                 listOf(
@@ -769,18 +778,18 @@ private fun WalletApp(
             BackupRoute(
                 required = true,
                 onDone = {
-                    if (next == null) nav.popBackStack() else nav.navigate(next) { popUpTo(Routes.BACKUP_AT_SETUP) { inclusive = true } }
+                    if (next == null) back() else open(next) { popUpTo(Routes.BACKUP_AT_SETUP) { inclusive = true } }
                 },
             )
         }
-        composable(Routes.BRAND, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+        screen(nav, Routes.BRAND, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
             val screen = brand.byId.getValue(checkNotNull(entry.arguments?.getString("id")))
             screen.Content(
                 onBack = {
                     if (screen.entry.afterSetup) {
-                        nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } }
+                        open(Routes.HOME) { popUpTo(0) { inclusive = true } }
                     } else {
-                        nav.popBackStack()
+                        back()
                     }
                 }
             )
