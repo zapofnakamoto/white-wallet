@@ -283,6 +283,24 @@ class MoneyMoveScreenTest {
     }
 
     @Test
+    fun moneyOnAMintWhoseKeyDoesntMatchStaysAndIsNotCounted() {
+        val withKeyChanged =
+            MovePreview(
+                "new.example",
+                listOf(
+                    MovePreview.Line("old.example", 100_000, MovePreview.Quote.Ok(99_000, 1_000)),
+                    MovePreview.Line("changed.example", 50_000, MovePreview.Quote.Unavailable(NoteProblem.KeyChanged)),
+                ),
+                feeCapPercent = 2,
+            )
+        compose.setContent { MoneyMoveScreen(review(collects = false).copy(preview = withKeyChanged), {}, MoneyMoveActions()) }
+        compose.onNodeWithText(text(R.string.money_review_key_changed, "₿50", "changed.example")).assertExists()
+        compose.onNodeWithText(text(R.string.money_change_and_move, "₿100")).assertExists()
+        compose.onNodeWithText(text(R.string.money_review_choose)).performClick()
+        compose.onNode(isToggleable() and hasText("₿50 on changed.example")).assertDoesNotExist()
+    }
+
+    @Test
     fun aMovedMintWithARefundSaysWhatArrivedWithoutAFee() {
         val outcome =
             MoneyMoveOutcome(

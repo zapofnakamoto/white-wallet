@@ -47,6 +47,7 @@ import whitewallet.core.designsystem.showsWorking
 import whitewallet.core.wallet.AppDefaults
 import whitewallet.core.wallet.MovePreview
 import whitewallet.core.wallet.NotCollected
+import whitewallet.core.wallet.NoteProblem
 import whitewallet.core.wallet.PolicyRun
 import whitewallet.core.wallet.Wallet
 
@@ -341,7 +342,10 @@ private fun CollectDialog(preview: MovePreview, home: String, actions: CollectAc
                                         formatAmount(q.feeMsat),
                                     )
                             is MovePreview.Quote.TooSmall -> stringResource(R.string.money_review_too_small, amount, line.host)
-                            is MovePreview.Quote.Unavailable -> stringResource(R.string.money_review_unavailable, amount, line.host)
+                            is MovePreview.Quote.Unavailable ->
+                                if (q.problem == NoteProblem.KeyChanged)
+                                    stringResource(R.string.money_review_key_changed, amount, line.host)
+                                else stringResource(R.string.money_review_unavailable, amount, line.host)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                     )

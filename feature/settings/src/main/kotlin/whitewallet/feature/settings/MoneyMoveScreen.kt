@@ -542,7 +542,9 @@ private fun reviewLine(line: MovePreview.Line, state: MoneyMoveState): String {
             else if (q.feeMsat <= 0) stringResource(R.string.money_review_moves_no_fee, amount, line.host, formatAmount(q.arrivesMsat))
             else stringResource(R.string.money_review_moves, amount, line.host, formatAmount(q.arrivesMsat), formatAmount(q.feeMsat))
         is MovePreview.Quote.TooSmall -> stringResource(R.string.money_review_too_small, amount, line.host)
-        is MovePreview.Quote.Unavailable -> stringResource(R.string.money_review_unavailable, amount, line.host)
+        is MovePreview.Quote.Unavailable ->
+            if (q.problem == NoteProblem.KeyChanged) stringResource(R.string.money_review_key_changed, amount, line.host)
+            else stringResource(R.string.money_review_unavailable, amount, line.host)
     }
 }
 

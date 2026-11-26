@@ -48,6 +48,8 @@ internal class MoneyMove(private val wallet: Wallet) {
     private val manager = NoteManager(wallet)
 
     suspend fun preview(accountId: String, toHost: String, fromHost: String?, feeCapPercent: Int): MovePreview {
+        // A mint whose signing key doesn't match is sent nothing: its money stays, said as such, and the mint isn't asked for a price.
+        val keyChanged = wallet.mintsWithChangedKey.first()
         val lines =
             movable(accountId)
                 .filter { it.host != toHost && (fromHost == null || it.host == fromHost) }
@@ -55,7 +57,10 @@ internal class MoneyMove(private val wallet: Wallet) {
                 .toSortedMap()
                 .map { (host, notes) ->
                     val total = notes.sumOf { it.amountMsat }
-                    MovePreview.Line(host, total, quote(notes.map { it.id }, toHost, total))
+                    val quote =
+                        if (host in keyChanged) MovePreview.Quote.Unavailable(NoteProblem.KeyChanged)
+                        else quote(notes.map { it.id }, toHost, total)
+                    MovePreview.Line(host, total, quote)
                 }
         return MovePreview(toHost, lines, feeCapPercent)
     }

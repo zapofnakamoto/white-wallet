@@ -283,6 +283,7 @@
     <string name="money_review_over_cap">%1$s auf %2$s bleibt: das Verschieben kostet mehr als %3$d %%</string>
     <string name="money_review_too_small">%1$s auf %2$s bleibt: zu wenig zum Verschieben</string>
     <string name="money_review_unavailable">%1$s auf %2$s bleibt: gerade kein Preis</string>
+    <string name="money_review_key_changed">%1$s auf %2$s bleibt: der Signaturschlüssel passt nicht</string>
     <string name="money_review_fee_total">Gebühren insgesamt: %1$s</string>
     <string name="money_review_choose">Auswählen, was verschoben wird</string>
     <string name="money_review_choose_hide">Ausblenden</string>

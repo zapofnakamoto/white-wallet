@@ -153,8 +153,11 @@ publishes its section as the GitHub release notes, which brands that follow Whit
   address that doesn't reach the wallet any more (its name, the warning, Fix and "Request a specific amount" stay).
   An address the mint no longer holds for the wallet offers Remove instead of Unregister (nothing to free); one that
   is free again asks before Register again where the mint charges, with the fee. Adding the first address from
-  Settings is "Get a Lightning address", not "another name", and the fee the form says isn't asked about again. New
+  Settings is "Get a Lightning address", not "another name", and the fee the form says isn't asked about again. Moving
+  money (a new home, Move money, Move all money here, collecting's confirmation) leaves a mint whose signing key doesn't
+  match out: "₿2,999 on … stays: the signing key doesn't match", not counted and not asked for a price. New
   strings `money_review_moves_no_fee`, `money_result_moved_no_fee`, `notes_collect_moved_no_fee`, `money_change_only`,
+  `money_review_key_changed`,
   `addresses_register_again_title`, `addresses_register_again_fee`, `onboarding_first_title`, `onboarding_first_body`.
 
 - Shorter alerts. Home's alerts about notes and mints (a changed signing key, notes a mint doesn't know, a mint not

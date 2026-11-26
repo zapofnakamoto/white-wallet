@@ -5,9 +5,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
+import whitewallet.lnurlcash.client.LnurlcashClient
 
 /** Moving money between the regtest mints: what it costs, and where it can't go through. */
 @ExtendWith(ThirdMintLock::class)
@@ -53,6 +55,30 @@ class RegtestMoneyMoveTest {
             val moved = assertIs<MintMoveResult.Moved>(phone.wallet.moveMoney(Regtest.HOST2, listOf(line)).single().result)
             assertEquals(phone.notes(Regtest.HOST2).sumOf { it.amountMsat }, moved.arrivedMsat)
             assertEquals(notesMsat - moved.arrivedMsat, moved.feeMsat, "the same measure as the quote's, not from the merged note")
+        }
+
+    @Test
+    fun `money on a mint whose signing key doesn't match stays, said as such, while the rest is priced`() =
+        runBlocking<Unit> {
+            val store = InMemoryWalletStore()
+            val seeds = InMemorySeedStore()
+            fun start() = Wallet(store, seeds, LnurlcashClient(), policies = NotePolicies.InMemory(ManualStrategy.ID))
+            var wallet = start()
+            assertIs<CreateAccountResult.Created>(wallet.createAccount(Regtest.HOST, "Main"))
+            assertIs<ClaimResult.Claimed>(wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(Regtest.note(2000)))))
+            assertIs<ClaimResult.Claimed>(
+                wallet.claim(assertIs<ClaimPreview.Ready>(wallet.previewClaim(Regtest.note(2000, second = true))))
+            )
+            // Another key pinned than the first mint presents, as after its key changed; the app started again compares it afresh.
+            val pinned = assertNotNull(store.mint(Regtest.HOST))
+            store.saveMint(pinned.copy(mintPubkey = "02" + "11".repeat(32)))
+            wallet = start()
+            wallet.refresh()
+            assertEquals(setOf(Regtest.HOST), wallet.mintsWithChangedKey.first())
+
+            val lines = assertNotNull(wallet.previewMove(Regtest.HOST3)).lines.associateBy { it.host }
+            assertEquals(MovePreview.Quote.Unavailable(NoteProblem.KeyChanged), lines.getValue(Regtest.HOST).quote)
+            assertIs<MovePreview.Quote.Ok>(lines.getValue(Regtest.HOST2).quote)
         }
 
     @Test
