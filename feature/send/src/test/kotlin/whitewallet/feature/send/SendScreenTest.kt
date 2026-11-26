@@ -5,6 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
@@ -288,6 +289,26 @@ class SendScreenTest {
         // Back to the wallet's choice.
         compose.onNodeWithText(text(R.string.send_from_automatic)).performClick()
         assertEquals(listOf(null), picked)
+    }
+
+    // A recipient far longer than a line: a name another wallet registered, at an onion mint.
+    private val longPayee = "a1b2c3d4e5".repeat(8) + "@2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion"
+
+    @Test
+    fun aVeryLongRecipientIsShownWholeInTheReviewAndCanStillBePaid() {
+        val state =
+            SendState(preview = payLink.copy(payee = longPayee), amountText = "5000", quote = PayQuote.Ok(5_000_000, 0, "mint.example"))
+        compose.setContent { SendScreen(state, onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(longPayee).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.send_pay_amount, "₿5,000")).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun aVeryLongRecipientIsShownWholeAfterPayingAndDoneStaysInReach() {
+        val paid = SendState(preview = payLink.copy(payee = longPayee), result = PayResult.Paid(amountMsat = 1_000_000, feeMsat = 0))
+        compose.setContent { SendScreen(paid, onBack = {}, onDone = {}, actions = actions()) }
+        compose.onNodeWithText(text(R.string.send_success_to, longPayee)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(text(DesignR.string.done)).assertIsDisplayed()
     }
 
     @Test
