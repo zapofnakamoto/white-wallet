@@ -6,6 +6,8 @@ plugins {
 
 android {
     namespace = "whitewallet.app"
+    // The Android version Robolectric emulates, as in every module's tests.
+    sourceSets.getByName("test").resources.directories.add(rootProject.file("build-logic/test-resources").path)
 }
 
 tasks.withType<Test>().configureEach {

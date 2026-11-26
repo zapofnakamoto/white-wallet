@@ -10,3 +10,14 @@ internal fun Project.configureTestJvms() {
     val maxHeap = providers.gradleProperty("whitewallet.test.maxHeap").orElse("512m")
     tasks.withType<Test>().configureEach { maxHeapSize = maxHeap.get() }
 }
+
+// Robolectric runs offline, from the Android runtimes the root project fetched through Gradle (root build.gradle.kts,
+// robolectricRuntimes): no download at test time, which a dropped connection on CI would fail.
+internal fun Project.configureRobolectricOffline() {
+    val runtimes = rootProject.layout.buildDirectory.dir("robolectric")
+    tasks.withType<Test>().configureEach {
+        dependsOn(":robolectricRuntimes")
+        systemProperty("robolectric.offline", "true")
+        systemProperty("robolectric.dependency.dir", runtimes.get().asFile.path)
+    }
+}

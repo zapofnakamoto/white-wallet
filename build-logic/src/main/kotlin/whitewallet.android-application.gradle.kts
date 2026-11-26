@@ -19,6 +19,8 @@ tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.co
 
 configureTestJvms()
 
+configureRobolectricOffline()
+
 configureKotlinWarnings()
 
 if (path != ":brand-code") apply(plugin = "whitewallet.detekt")
