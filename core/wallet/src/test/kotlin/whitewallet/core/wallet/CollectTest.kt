@@ -33,7 +33,13 @@ class CollectTest {
     private val words = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ")
     private var clock = 1_800_000_000_000L
 
-    private class Fixture(val mint: MockMint, val store: InMemoryWalletStore, val wallet: Wallet, val keys: AccountKeys) {
+    private class Fixture(
+        val mint: MockMint,
+        val store: InMemoryWalletStore,
+        val policies: NotePolicies,
+        val wallet: Wallet,
+        val keys: AccountKeys,
+    ) {
         var next = 0L
 
         /** Notes paid to the address on the mock mint, found by a refresh. */
@@ -56,21 +62,25 @@ class CollectTest {
             assumeTrue(MockMint.available, "no conformance suite; run dev/conformance.sh")
             MockMint.start(*flags).use { mint ->
                 val store = InMemoryWalletStore()
-                val wallet =
-                    Wallet(
-                        store,
-                        InMemorySeedStore(mapOf("a" to words)),
-                        LnurlcashClient(),
-                        now = { clock },
-                        policies = NotePolicies.InMemory(ManualStrategy.ID),
-                        collectDefaults = defaults,
-                    )
-                wallet.payWaitMillis = 3_000
+                val policies = NotePolicies.InMemory(ManualStrategy.ID)
+                val wallet = newWallet(store, policies, defaults)
                 store.addAccount("a", "Main", PrimaryAddress("alice", mint.host))
                 assertIs<ConnectResult.Connected>(wallet.connectMint(mint.host))
-                Fixture(mint, store, wallet, testKeys(words, mint.host)).test()
+                Fixture(mint, store, policies, wallet, testKeys(words, mint.host)).test()
             }
         }
+
+    /** A wallet over [store] and [policies], as the app builds one on every start. */
+    private fun newWallet(store: InMemoryWalletStore, policies: NotePolicies, defaults: CollectDefaults = CollectDefaults()) =
+        Wallet(
+                store,
+                InMemorySeedStore(mapOf("a" to words)),
+                LnurlcashClient(),
+                now = { clock },
+                policies = policies,
+                collectDefaults = defaults,
+            )
+            .apply { payWaitMillis = 3_000 }
 
     @Test
     fun `notes on another mint move home when the fee is under the cap`() = withMint {
@@ -207,6 +217,32 @@ class CollectTest {
                 clock += 61 * 60_000L
                 wallet.refresh()
                 assertEquals(2, melts(), "tried again after the cooldown")
+            }
+        }
+
+    @Test
+    fun `a failed mint is still left alone after the app restarts`() =
+        withMint("--meltAlwaysFails") {
+            fund(30)
+            NotesTest.TargetMint(feeMsat = 0, mints = false).use { home ->
+                moveHomeTo(home.host)
+                wallet.setCollectAtHome(true)
+                assertEquals(1, melts())
+                wallet.refresh()
+                val rows = store.activities("a").first()
+
+                clock += 10 * 60_000L
+                newWallet(store, policies).refresh()
+                assertEquals(1, melts(), "nothing sent inside the wait")
+                assertEquals(rows, store.activities("a").first(), "no new history row")
+
+                clock += 51 * 60_000L
+                newWallet(store, policies).refresh()
+                assertEquals(2, melts(), "tried again an hour after the failure")
+
+                clock -= 24 * 60 * 60_000L
+                newWallet(store, policies).refresh()
+                assertEquals(3, melts(), "a clock set back a day doesn't make the wait a day longer")
             }
         }
 

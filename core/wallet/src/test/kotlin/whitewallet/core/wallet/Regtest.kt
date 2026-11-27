@@ -196,12 +196,14 @@ internal object Regtest {
         connection: StateFlow<Connection> = MutableStateFlow(Connection.Online),
     ): Phone {
         val store = InMemoryWalletStore()
-        val wallet =
+        val seeds = InMemorySeedStore()
+        val policies = NotePolicies.InMemory(strategy)
+        fun start() =
             Wallet(
                 store,
-                InMemorySeedStore(),
+                seeds,
                 client,
-                policies = NotePolicies.InMemory(strategy),
+                policies = policies,
                 collectDefaults = collectDefaults,
                 onWaitingForNetwork = onWaitingForNetwork,
                 now = now,
@@ -209,9 +211,10 @@ internal object Regtest {
                 settings = settings,
                 connection = connection,
             )
+        val wallet = start()
         val name = name()
         registered(wallet, wallet.onboard(name, host))
-        return Phone(store, wallet, "$name@$host")
+        return Phone(store, wallet, "$name@$host", ::start)
     }
 
     /** A second phone restored from [phone]'s recovery phrase on [host], without its address. */
@@ -222,7 +225,10 @@ internal object Regtest {
         return Phone(store, wallet, phone.address)
     }
 
-    class Phone(val store: InMemoryWalletStore, val wallet: Wallet, val address: String) {
+    class Phone(val store: InMemoryWalletStore, val wallet: Wallet, val address: String, private val start: (() -> Wallet)? = null) {
+        /** A new wallet over this phone's store, recovery phrase and policies, as the app builds one on every start. */
+        fun restarted(): Wallet = checkNotNull(start) { "a restored phone can't be restarted" }()
+
         /** Pays the address [sats] for each amount and refreshes: one note each, the mint's fee off. */
         suspend fun fund(vararg sats: Long) {
             sats.forEach { pay(address, it) }

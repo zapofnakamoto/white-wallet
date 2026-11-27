@@ -356,7 +356,9 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         val byHost = outstanding(accountId).filter { it.host != policy.homeHost }.groupBy { it.host }
         for ((host, notes) in byHost) {
             if (open.any { it.type == OperationType.Melt && it.host == host }) continue
-            if (wallet.collectBlockedUntil(accountId, host) > wallet.now()) continue
+            // A wait further off than a whole one is from a clock set back since: it's over.
+            val waitMillis = wallet.collectBlockedUntil(accountId, host) - wallet.now()
+            if (waitMillis > 0 && waitMillis <= wallet.collectDefaults.retryAfterMillis) continue
             var refused: NotCollected.Reason? = null
             val result =
                 wallet.working(WalletTask.Maintaining(MaintenanceStep.MovingHome)) {

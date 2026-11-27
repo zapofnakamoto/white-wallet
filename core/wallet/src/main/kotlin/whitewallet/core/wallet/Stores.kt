@@ -290,7 +290,7 @@ interface AppPreferences {
 /**
  * Note policies, each account's own: auto-rotate of notes on Lightning address keys (off by default), the id of the chosen note strategy
  * (null until the user picks one; the brand's default applies, see [NoteStrategies]), maintenance notices, collecting at its home mint, the
- * fee cap for that, and which mint its payments come from first.
+ * fee cap for that with how long a mint whose move failed is left alone, and which mint its payments come from first.
  */
 interface NotePolicies {
     fun autoRotate(accountId: String): Flow<Boolean>
@@ -311,6 +311,14 @@ interface NotePolicies {
 
     suspend fun setCollectFeeCap(accountId: String, percent: Int)
 
+    /**
+     * Until when collecting leaves each of the account's mints alone after a failed move, in epoch millis by host; kept across restarts so
+     * a failing mint isn't tried on every start. A mint without one is not waited for.
+     */
+    fun collectWaits(accountId: String): Flow<Map<String, Long>>
+
+    suspend fun setCollectWait(accountId: String, host: String, untilMillis: Long)
+
     /** Whether the account's payments use notes on other mints before its home mint's; off (home mint first) until chosen. */
     fun payFromOtherMintsFirst(accountId: String): Flow<Boolean>
 
@@ -330,6 +338,7 @@ interface NotePolicies {
         private val strategies = MutableStateFlow<Map<String, String>>(emptyMap())
         private val collect = MutableStateFlow<Map<String, Boolean>>(emptyMap())
         private val feeCaps = MutableStateFlow<Map<String, Int>>(emptyMap())
+        private val collectWaits = MutableStateFlow<Map<String, Map<String, Long>>>(emptyMap())
         private val otherMintsFirst = MutableStateFlow<Map<String, Boolean>>(emptyMap())
         private val notices = MutableStateFlow<Map<String, Boolean>>(emptyMap())
 
@@ -349,6 +358,12 @@ interface NotePolicies {
 
         override suspend fun setCollectFeeCap(accountId: String, percent: Int) = feeCaps.update { it + (accountId to percent) }
 
+        override fun collectWaits(accountId: String): Flow<Map<String, Long>> = collectWaits.map { it[accountId].orEmpty() }
+
+        override suspend fun setCollectWait(accountId: String, host: String, untilMillis: Long) = collectWaits.update {
+            it + (accountId to (it[accountId].orEmpty() + (host to untilMillis)))
+        }
+
         override fun payFromOtherMintsFirst(accountId: String): Flow<Boolean> = otherMintsFirst.map { it[accountId] ?: false }
 
         override suspend fun setPayFromOtherMintsFirst(accountId: String, enabled: Boolean) = otherMintsFirst.update {
@@ -365,6 +380,7 @@ interface NotePolicies {
             notices.update { it - accountId }
             collect.update { it - accountId }
             feeCaps.update { it - accountId }
+            collectWaits.update { it - accountId }
             otherMintsFirst.update { it - accountId }
         }
     }

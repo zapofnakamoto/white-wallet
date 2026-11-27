@@ -591,7 +591,7 @@ class MigrationTest {
         }
 
     @Test
-    fun `collecting and its fee cap set under v0_3_0 stay each account's`() =
+    fun `collecting, its fee cap and its waits stay each account's`() =
         runBlocking<Unit> {
             val file = File(context.filesDir, "collect.preferences_pb").apply { delete() }
             val before = SupervisorJob()
@@ -612,11 +612,20 @@ class MigrationTest {
                 assertEquals(false, prefs.collect("a1").first(), "another account of the same wallet keeps its own choice")
                 assertNull(prefs.collectFeeCap("a1").first())
                 assertNull(prefs.collect("a2").first(), "an account that never chose follows the brand")
+                assertEquals(emptyMap(), prefs.collectWaits("a0").first(), "nothing stored before: no mint is waited for")
+                prefs.setCollectWait("a0", "mint.example", 1_000)
+                prefs.setCollectWait("a0", "mint.example", 2_000)
+                prefs.setCollectWait("a0", "other.example", 3_000)
+                prefs.setCollectWait("a1", "mint.example", 4_000)
+                assertEquals(mapOf("mint.example" to 2_000L, "other.example" to 3_000L), prefs.collectWaits("a0").first())
+                assertEquals(mapOf("mint.example" to 4_000L), prefs.collectWaits("a1").first(), "each account waits on its own")
                 // Deleting an account forgets its choices only.
                 prefs.clear("a0")
                 assertNull(prefs.collect("a0").first())
                 assertNull(prefs.collectFeeCap("a0").first())
+                assertEquals(emptyMap(), prefs.collectWaits("a0").first())
                 assertEquals(false, prefs.collect("a1").first())
+                assertEquals(mapOf("mint.example" to 4_000L), prefs.collectWaits("a1").first())
             } finally {
                 scope.cancel()
             }

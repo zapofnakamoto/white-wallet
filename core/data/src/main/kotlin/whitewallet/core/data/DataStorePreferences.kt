@@ -175,6 +175,20 @@ internal class DataStorePreferences(
         prefs.edit { it[feeCapKey(accountId)] = percent }
     }
 
+    override fun collectWaits(accountId: String): Flow<Map<String, Long>> =
+        prefs.data.map { prefs -> prefs[collectWaitsKey(accountId)].orEmpty().mapNotNull(::collectWait).toMap() }
+
+    override suspend fun setCollectWait(accountId: String, host: String, untilMillis: Long) {
+        prefs.edit {
+            it[collectWaitsKey(accountId)] =
+                it[collectWaitsKey(accountId)].orEmpty().filterNot { e -> e.startsWith("$host ") }.toSet() + "$host $untilMillis"
+        }
+    }
+
+    /** Stored as "host untilMillis" (a host never contains a space). */
+    private fun collectWait(entry: String): Pair<String, Long>? =
+        entry.split(' ').takeIf { it.size == 2 }?.let { (host, until) -> until.toLongOrNull()?.let { host to it } }
+
     override fun payFromOtherMintsFirst(accountId: String): Flow<Boolean> = prefs.data.map { it[otherMintsFirstKey(accountId)] ?: false }
 
     override suspend fun setPayFromOtherMintsFirst(accountId: String, enabled: Boolean) {
@@ -194,6 +208,7 @@ internal class DataStorePreferences(
             it.remove(noticesKey(accountId))
             it.remove(collectKey(accountId))
             it.remove(feeCapKey(accountId))
+            it.remove(collectWaitsKey(accountId))
             it.remove(otherMintsFirstKey(accountId))
         }
     }
@@ -216,6 +231,8 @@ internal class DataStorePreferences(
         private fun collectKey(accountId: String) = booleanPreferencesKey("collect_at_home_$accountId")
 
         private fun feeCapKey(accountId: String) = intPreferencesKey("collect_fee_cap_$accountId")
+
+        private fun collectWaitsKey(accountId: String) = stringSetPreferencesKey("collect_waits_$accountId")
 
         private fun otherMintsFirstKey(accountId: String) = booleanPreferencesKey("pay_from_other_mints_first_$accountId")
 

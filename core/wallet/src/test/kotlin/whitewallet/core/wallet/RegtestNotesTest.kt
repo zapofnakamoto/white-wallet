@@ -14,6 +14,7 @@ import whitewallet.brand.MintNotes
 import whitewallet.brand.NoteStep
 import whitewallet.brand.NoteStrategy
 import whitewallet.core.model.ActivityKind
+import whitewallet.core.model.ActivityStatus
 import whitewallet.core.wallet.Regtest.HOST
 import whitewallet.lnurlcash.RevealsNoteSecret
 import whitewallet.lnurlcash.client.LnurlcashClient
@@ -292,5 +293,29 @@ class RegtestNotesTest {
             assertEquals(emptyList(), alice.notes(Regtest.HOST2))
             assertTrue(alice.notes().single().amountMsat > 2_990_000, "home, less the move's fees: ${alice.notes()}")
             assertEquals(true, alice.wallet.activity.first().single { it.kind == ActivityKind.MovedMint }.automatic)
+        }
+
+    @Test
+    fun `a mint whose move home failed is left alone after the app restarts`() =
+        runBlocking<Unit> {
+            val alice = Regtest.phone()
+            alice.fund(3000)
+            // A home mint whose invoice the regtest mint can't pay, as a mainnet mint's: the move fails, the money stays.
+            NotesTest.TargetMint(feeMsat = 0, mints = false).use { home ->
+                val account = alice.wallet.activeId()
+                alice.store.saveAccount(assertNotNull(alice.store.account(account)).copy(homeHost = home.host))
+                alice.wallet.setCollectAtHome(true)
+                val failed = alice.wallet.activity.first().filter { it.kind == ActivityKind.MovedMint }
+                assertEquals(listOf(ActivityStatus.Failed), failed.map { it.status })
+                assertEquals(1, alice.notes().size, "the note is still on the mint")
+                alice.wallet.refresh() // renews the address note: the next refresh adds no row on any start
+                val rows = alice.store.activities(account).first()
+
+                // Opened again twice: nothing is tried, nothing is logged.
+                repeat(2) { alice.restarted().refresh() }
+                assertEquals(rows, alice.store.activities(account).first(), "no new history row")
+                assertEquals(1, alice.notes().size)
+                assertIs<NoteCheck.Ok>(alice.wallet.recheckNote(alice.notes().single().id), "still outstanding at the mint")
+            }
         }
 }

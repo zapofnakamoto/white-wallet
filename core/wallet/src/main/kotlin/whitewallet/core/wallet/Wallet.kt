@@ -453,14 +453,11 @@ class Wallet(
         applyPolicies(id)
     }
 
-    /** Per (account, mint): until when collecting leaves that mint alone after a failed move. This session only. */
-    private val collectBlocks = MutableStateFlow<Map<Pair<String, String>, Long>>(emptyMap())
+    /** Until when collecting leaves the account's mint at [host] alone after a failed move; 0 if it doesn't. Kept across restarts. */
+    internal suspend fun collectBlockedUntil(accountId: String, host: String): Long = policies.collectWaits(accountId).first()[host] ?: 0
 
-    internal fun collectBlockedUntil(accountId: String, host: String): Long = collectBlocks.value[accountId to host] ?: 0
-
-    internal fun blockCollect(accountId: String, host: String, untilMillis: Long) = collectBlocks.update {
-        it + ((accountId to host) to untilMillis)
-    }
+    internal suspend fun blockCollect(accountId: String, host: String, untilMillis: Long) =
+        policies.setCollectWait(accountId, host, untilMillis)
 
     private val _task = MutableStateFlow<WalletTask?>(null)
 
@@ -1757,7 +1754,6 @@ class Wallet(
             store.deleteAccount(id)
             policies.clear(id)
             _lastPolicyRun.update { it - id }
-            collectBlocks.update { blocks -> blocks.filterKeys { it.first != id } }
             keySets.keys.removeAll { it.first == id }
             addressStatuses.update { statuses -> statuses.filterKeys { it.first != id } }
             addressChecks.forgetAccount(id)
