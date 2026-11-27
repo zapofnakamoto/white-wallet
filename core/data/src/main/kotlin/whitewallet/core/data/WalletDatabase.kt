@@ -69,6 +69,9 @@ internal interface WalletDao {
     @Query("SELECT * FROM notes WHERE accountId = :accountId ORDER BY updatedAtMillis DESC")
     fun notes(accountId: String): Flow<List<NoteEntity>>
 
+    @Query("SELECT * FROM notes WHERE accountId = :accountId AND state IN (:states) ORDER BY updatedAtMillis DESC")
+    fun notes(accountId: String, states: List<String>): Flow<List<NoteEntity>>
+
     @Query("SELECT * FROM notes WHERE id = :id") suspend fun note(id: String): NoteEntity?
 
     @Upsert suspend fun upsertNotes(notes: List<NoteEntity>)

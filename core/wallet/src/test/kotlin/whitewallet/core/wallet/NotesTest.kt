@@ -68,6 +68,16 @@ class NotesTest {
         }
 
     @Test
+    fun `spent notes are kept, and the wallet's notes leave them out`() = withMint {
+        fund(10, 20)
+        val inputs = outstanding().map { it.id }.toSet()
+        assertIs<NoteActionResult.Done>(wallet.combineNotes(inputs.toList()))
+        assertEquals(inputs, store.notes("a").first().filter { it.state == NoteState.Spent }.map { it.id }.toSet(), "kept")
+        assertEquals(outstanding(), wallet.notes.first(), "only the combined note")
+        assertEquals(30_000, wallet.balanceMsat.first())
+    }
+
+    @Test
     fun `combining needs two notes on one mint`() = withMint {
         fund(10)
         assertEquals(NoteActionResult.Failed(NoteProblem.TooFewNotes), wallet.combineNotes(outstanding().map { it.id }))

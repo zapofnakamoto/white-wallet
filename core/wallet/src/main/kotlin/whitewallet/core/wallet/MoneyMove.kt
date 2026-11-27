@@ -92,7 +92,7 @@ internal class MoneyMove(private val wallet: Wallet) {
 
     /** The notes a move can take: outstanding, with a key of this account (as collecting takes them). */
     private suspend fun movable(accountId: String): List<Note> =
-        wallet.store.notes(accountId).first().filter {
-            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null && it.isPickable()
+        wallet.store.notes(accountId, setOf(NoteState.Outstanding)).first().filter {
+            it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null && it.isPickable()
         }
 }

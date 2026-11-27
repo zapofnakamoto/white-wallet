@@ -112,6 +112,9 @@ class InMemoryWalletStore : WalletStore {
 
     override fun notes(accountId: String): Flow<List<Note>> = noteMap.map { it.values.filter { n -> n.accountId == accountId } }
 
+    override fun notes(accountId: String, states: Set<NoteState>): Flow<List<Note>> =
+        notes(accountId).map { list -> list.filter { it.state in states } }
+
     override fun primaryAddress(accountId: String): Flow<RegisteredAddress?> =
         combine(primaries, addressMap) { primaries, addresses -> primaryOf(accountId, primaries, addresses) }
 

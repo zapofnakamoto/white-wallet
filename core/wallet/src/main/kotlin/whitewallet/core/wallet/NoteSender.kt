@@ -330,7 +330,7 @@ internal class NoteSender(private val wallet: Wallet) {
      * doesn't go through keeps the wish for the next refresh. Each account's records change only by its own notes.
      */
     suspend fun reconcile(accountId: String) {
-        for (note in wallet.store.notes(accountId).first().filter { it.state.isShared }) {
+        for (note in wallet.store.notes(accountId, NoteState.SHARED).first()) {
             if (check(note) == Check.Waiting && note.handedOut == HandedOut.TakeBack) takeBackIfAsked(note.id)
         }
     }

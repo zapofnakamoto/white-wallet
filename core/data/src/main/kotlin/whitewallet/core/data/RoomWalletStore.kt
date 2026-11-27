@@ -13,6 +13,7 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
+import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
@@ -64,6 +65,9 @@ internal class RoomWalletStore(private val db: WalletDatabase) : WalletStore {
     }
 
     override fun notes(accountId: String): Flow<List<Note>> = dao.notes(accountId).map { list -> list.map { it.toModel() } }
+
+    override fun notes(accountId: String, states: Set<NoteState>): Flow<List<Note>> =
+        dao.notes(accountId, states.map { it.name }).map { list -> list.map { it.toModel() } }
 
     override fun primaryAddress(accountId: String): Flow<RegisteredAddress?> = dao.primaryAddress(accountId).map { it?.toModel() }
 

@@ -155,7 +155,7 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
         }
         val after = balance(accountId)
         // A note set aside as unknown left the balance, but no step spent it: not a fee, nor a note replaced.
-        val unknown = wallet.store.notes(accountId).first().filter { it.state == NoteState.Unknown }.map { it.id }.toSet()
+        val unknown = wallet.store.notes(accountId, setOf(NoteState.Unknown)).first().map { it.id }.toSet()
         val before = start.filter { it.id !in unknown }
         // A step whose outcome is open took its notes out of the balance until it settles: no change to tell yet.
         val settled = ambiguous(accountId) == unsettled && run.collected.none { it.pending }
@@ -169,11 +169,10 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     }
 
     /** The notes the balance is made of. */
-    private suspend fun balance(accountId: String): List<Note> =
-        wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
+    private suspend fun balance(accountId: String): List<Note> = wallet.store.notes(accountId, setOf(NoteState.Outstanding)).first()
 
     private suspend fun ambiguous(accountId: String): Set<String> =
-        wallet.store.notes(accountId).first().filter { it.state == NoteState.Ambiguous }.map { it.id }.toSet()
+        wallet.store.notes(accountId, setOf(NoteState.Ambiguous)).first().map { it.id }.toSet()
 
     private suspend fun follow(accountId: String, host: String, strategy: NoteStrategy, start: PolicyRun): PolicyRun {
         var run = start
@@ -410,8 +409,8 @@ internal class NotePolicyEngine(private val wallet: Wallet) {
     }
 
     private suspend fun outstanding(accountId: String): List<Note> =
-        wallet.store.notes(accountId).first().filter {
-            it.state == NoteState.Outstanding && it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null && it.isPickable()
+        wallet.store.notes(accountId, setOf(NoteState.Outstanding)).first().filter {
+            it.kind == NoteKind.KeyPath && it.purpose != null && it.index != null && it.isPickable()
         }
 
     private fun Note.forStrategy() = StrategyNote(id, amountMsat, isAddressNote, updatedAtMillis)
