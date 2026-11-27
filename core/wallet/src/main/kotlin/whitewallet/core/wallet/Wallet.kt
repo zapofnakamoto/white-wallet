@@ -1315,7 +1315,7 @@ class Wallet(
 
     /** The notes of [accountId] handed out as links that were taken back: their History rows say so ([ActivityStatus.Cancelled]). */
     private suspend fun takenBack(accountId: String): Set<String> =
-        store.activities(accountId).first().filter { it.status == ActivityStatus.Cancelled }.mapNotNull { it.sentNoteId }.toSet()
+        store.activities(accountId, ActivityStatus.Cancelled).mapNotNull { it.sentNoteId }.toSet()
 
     /**
      * [note], handed out as a link, is known to its mint again: it waits to be claimed again ([NoteCheck.HandedOutAgain]), or, if the user

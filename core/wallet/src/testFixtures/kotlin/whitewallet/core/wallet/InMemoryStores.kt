@@ -242,6 +242,9 @@ class InMemoryWalletStore : WalletStore {
             .map { it.second }
     }
 
+    override suspend fun activities(accountId: String, status: ActivityStatus) =
+        activityMap.value.values.map { it.second }.filter { it.accountId == accountId && it.status == status }
+
     override suspend fun activity(id: String): Activity? = activityMap.value[id]?.second
 
     override suspend fun putActivity(activity: Activity) {

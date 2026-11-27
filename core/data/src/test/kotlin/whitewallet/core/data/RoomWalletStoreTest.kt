@@ -217,6 +217,13 @@ class RoomWalletStoreTest {
             assertEquals(listOf(row.copy(status = ActivityStatus.Done)), store.activities("acc").first())
             assertEquals(row.copy(status = ActivityStatus.Done), store.activity("pay:j1"), "found by its id")
             assertNull(store.activity("pay:j2"))
+            assertEquals(
+                listOf(row.copy(status = ActivityStatus.Done)),
+                store.activities("acc", ActivityStatus.Done),
+                "found by its status",
+            )
+            assertEquals(emptyList(), store.activities("acc", ActivityStatus.Pending))
+            assertEquals(emptyList(), store.activities("other", ActivityStatus.Done), "only the account's own rows")
         }
 
     @Test

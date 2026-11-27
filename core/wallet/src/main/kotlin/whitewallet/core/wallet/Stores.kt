@@ -127,6 +127,9 @@ interface WalletStore {
     /** The account's history, newest first. */
     fun activities(accountId: String): Flow<List<Activity>>
 
+    /** The account's history rows in [status], in no particular order. */
+    suspend fun activities(accountId: String, status: ActivityStatus): List<Activity>
+
     /** The history row [id], if there is one. */
     suspend fun activity(id: String): Activity?
 

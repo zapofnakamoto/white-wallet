@@ -544,7 +544,7 @@ internal class NoteSender(private val wallet: Wallet) {
     }
 
     private suspend fun activity(accountId: String, noteId: String): Activity? =
-        wallet.store.activities(accountId).first().firstOrNull { it.id == activityId(noteId) && it.kind == ActivityKind.SentNote }
+        wallet.store.activity(activityId(noteId))?.takeIf { it.accountId == accountId && it.kind == ActivityKind.SentNote }
 
     /** The mints to make the note on: the home mint first, then the others (or the other way round, see [Wallet.payOrder]). */
     /**
