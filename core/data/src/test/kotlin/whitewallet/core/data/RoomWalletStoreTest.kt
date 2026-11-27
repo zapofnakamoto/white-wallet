@@ -55,6 +55,7 @@ class RoomWalletStoreTest {
 
     private val q1 = "a".repeat(64)
     private val q2 = "b".repeat(64)
+    private val q3 = "c".repeat(64)
 
     /** Saves account [id] (index [index] of wallet [walletId], saved first if new): its rows need it, as the foreign keys say. */
     private suspend fun account(id: String, walletId: String = id, index: Long = 0, home: String? = "mint.example") {
@@ -146,6 +147,20 @@ class RoomWalletStoreTest {
             assertEquals(1_000, store.accounts.first().single().balanceMsat)
             store.upsertNotes(listOf(notes[1].copy(state = NoteState.Outstanding)))
             assertEquals(6_000, store.accounts.first().single().balanceMsat)
+        }
+
+    @Test
+    fun `notes are read by their state, only the account's own`() =
+        runBlocking<Unit> {
+            account("acc")
+            account("other", walletId = "acc", index = 1)
+            val held = Note(q1, "acc", "mint.example", NoteKind.KeyPath, 0, 3, 1_000, null, NoteState.Outstanding, 1)
+            val spent = Note(q2, "acc", "mint.example", NoteKind.KeyPath, 0, 4, 5_000, null, NoteState.Spent, 1)
+            val theirs = Note(q3, "other", "mint.example", NoteKind.KeyPath, 0, 5, 2_000, null, NoteState.Outstanding, 1)
+            store.upsertNotes(listOf(held, spent, theirs))
+            assertEquals(listOf(held), store.notes("acc", NoteState.UNSPENT).first())
+            assertEquals(listOf(spent), store.notes("acc", setOf(NoteState.Spent)).first())
+            assertEquals(emptyList(), store.notes("acc", NoteState.SHARED).first())
         }
 
     @Test

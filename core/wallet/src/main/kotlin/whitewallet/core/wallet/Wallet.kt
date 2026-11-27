@@ -335,7 +335,8 @@ class Wallet(
 
     /** The active account's home mint, the one the user trusts most for its money; null while it has none. */
     val homeHost: Flow<String?> = activeAccount.map { it?.account?.homeHost }.distinctUntilChanged()
-    val notes: Flow<List<Note>> = ofActive(emptyList(), store::notes)
+    /** The active account's notes that aren't spent: spent ones are kept for good, and no screen shows them. */
+    val notes: Flow<List<Note>> = ofActive(emptyList()) { store.notes(it, NoteState.UNSPENT) }
     val balanceMsat: Flow<Long> = notes.map { notes -> notes.filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat } }
 
     /** The active account's received notes (see [ReceivedNote]), newest first: kept, claimed, or no longer claimable. */
@@ -565,13 +566,13 @@ class Wallet(
     suspend fun accountRemoval(): AccountRemoval = removal(activeId())
 
     private suspend fun removal(id: String): AccountRemoval {
-        val notes = store.notes(id).first()
+        val notes = store.notes(id, NoteState.UNSPENT).first()
         val received = store.receivedNotes(id).first()
         val incoming = received.filter { it.isPending }
         val blocked =
             when {
                 siblings(id).size <= 1 -> RemoveAccountResult.LastAccount
-                notes.any { it.state != NoteState.Spent } || incoming.isNotEmpty() -> RemoveAccountResult.InUse(AccountUse.Money)
+                notes.isNotEmpty() || incoming.isNotEmpty() -> RemoveAccountResult.InUse(AccountUse.Money)
                 store.journal(UNSETTLED).any { it.accountId == id } -> RemoveAccountResult.InUse(AccountUse.OpenOperation)
                 // Not money the wallet counts, but its spend is the only copy: the user tries it again or removes it first.
                 received.any { it.state == ReceivedState.Archived } -> RemoveAccountResult.InUse(AccountUse.ArchivedNotes)
@@ -904,8 +905,8 @@ class Wallet(
         sender.reclaim(id).also { applyPolicies(accountId) }
     }
 
-    /** The active wallet's notes, every account's (spent ones too), for what concerns the whole wallet. */
-    private val walletNotes: Flow<List<Note>> = ofActiveWalletAccounts(store::notes)
+    /** The active wallet's notes that aren't spent, every account's, for what concerns the whole wallet. */
+    private val walletNotes: Flow<List<Note>> = ofActiveWalletAccounts { store.notes(it, NoteState.UNSPENT) }
 
     /** The active wallet's Lightning addresses, every account's. */
     private val walletAddresses: Flow<List<RegisteredAddress>> = ofActiveWalletAccounts(store::addresses)
@@ -928,12 +929,11 @@ class Wallet(
         combine(ofActiveWallet(emptyList(), store::mints), walletHomes, walletNotes, walletAddresses, walletTrust) {
             mints,
             (home, homes),
-            notes,
+            held,
             addresses,
             (trusted, untrusted) ->
             val keys = mints.associate { it.host to it.mintPubkey }
             val known = mints.associateBy { it.host }
-            val held = notes.filter { it.state != NoteState.Spent }
             (keys.keys + held.map { it.host })
                 .distinct()
                 .map { host ->
@@ -1014,7 +1014,7 @@ class Wallet(
                 val ids = accounts.map { it.id }.toSet()
                 val use =
                     when {
-                        accounts.any { a -> store.notes(a.id).first().any { it.host == h && it.state != NoteState.Spent } } -> MintUse.Notes
+                        accounts.any { a -> store.notes(a.id, NoteState.UNSPENT).first().any { it.host == h } } -> MintUse.Notes
                         accounts.any { a -> store.addresses(a.id).first().any { it.host == h } } -> MintUse.Address
                         store.journal(UNSETTLED).any { it.host == h && it.accountId in ids } -> MintUse.OpenOperation
                         else -> null
@@ -1085,8 +1085,8 @@ class Wallet(
             store.accounts
                 .first()
                 .filter { it.account.walletId == mint.walletId }
-                .flatMap { store.notes(it.account.id).first() }
-                .filter { it.host == mint.host && it.kind == NoteKind.KeyPath && it.state != NoteState.Spent }
+                .flatMap { store.notes(it.account.id, NoteState.UNSPENT).first() }
+                .filter { it.host == mint.host && it.kind == NoteKind.KeyPath }
         // Just accepted, so its key matches: no request.
         val checked = KeyCheckedMint.of(this, mint.copy(mintPubkey = key.toHex())) ?: return
         val updated = held.mapNotNull { note ->
@@ -1148,7 +1148,7 @@ class Wallet(
                 val walletId = walletOf(activeId())
                 val held = suspend {
                     siblings(activeId()).sumOf { a ->
-                        store.notes(a.id).first().filter { it.state == NoteState.Outstanding }.sumOf { it.amountMsat }
+                        store.notes(a.id, setOf(NoteState.Outstanding)).first().sumOf { it.amountMsat }
                     }
                 }
                 val before = held()
@@ -1233,7 +1233,7 @@ class Wallet(
     suspend fun recheckNotes(): NotesCheck = lock.withLock {
         working(WalletTask.Updating) {
             val accountId = activeId()
-            val handedOutBefore = store.notes(accountId).first().filter { it.isHandedOut() }
+            val handedOutBefore = store.notes(accountId, NoteState.UNSPENT).first().filter { it.isHandedOut() }
             val takenBackBefore = takenBack(accountId)
             refreshUnderLock()
             var checked = 0
@@ -1241,7 +1241,10 @@ class Wallet(
             var unknown = 0
             var takeBackRefused = 0
             val unreachable = mutableListOf<String>()
-            val notes = store.notes(activeId()).first().filter { it.isRecheckable() || it.isUnknown() }
+            val notes =
+                store.notes(activeId(), setOf(NoteState.Outstanding, NoteState.Unknown)).first().filter {
+                    it.isRecheckable() || it.isUnknown()
+                }
             if (notes.isNotEmpty())
                 working(WalletTask.CheckingNotes(0, notes.size)) {
                     for ((i, note) in notes.withIndex()) {
@@ -1274,7 +1277,7 @@ class Wallet(
                         }
                     }
                 }
-            val now = store.notes(accountId).first().associateBy { it.id }
+            val now = store.notes(accountId, NoteState.UNSPENT).first().associateBy { it.id }
             NotesCheck(
                 checked,
                 gone,
@@ -1363,7 +1366,7 @@ class Wallet(
      * ([NotesCheck.takenBack], not in [NotesCheck.checked]), unless the mint refuses ([NotesCheck.takeBackRefused]).
      */
     suspend fun recheckUnknownNotes(): NotesCheck = lock.withLock {
-        val notes = store.notes(activeId()).first().filter { it.isUnknown() && !it.isArchived }
+        val notes = store.notes(activeId(), setOf(NoteState.Unknown)).first().filter { it.isUnknown() && !it.isArchived }
         if (notes.isEmpty()) return@withLock NotesCheck(0, 0, emptyList())
         working(WalletTask.CheckingNotes(0, notes.size)) {
                 var back = 0
@@ -1516,8 +1519,7 @@ class Wallet(
                 .filter { it.account.id in ids }
                 .any { summary ->
                     val id = summary.account.id
-                    store.addresses(id).first().isNotEmpty() ||
-                        store.notes(id).first().any { it.state.isShared || it.state == NoteState.Unknown }
+                    store.addresses(id).first().isNotEmpty() || store.notes(id, NoteState.SHARED + NoteState.Unknown).first().isNotEmpty()
                 }
     }
 
@@ -1602,7 +1604,7 @@ class Wallet(
 
     /** The mints [accountId] holds money on, and its home mint: a refresh asks each whether it is there ([mintsNotAnswering]). */
     private suspend fun mintsToAsk(accountId: String): List<String> {
-        val held = store.notes(accountId).first().filter { it.state == NoteState.Outstanding }.map { it.host }
+        val held = store.notes(accountId, setOf(NoteState.Outstanding)).first().map { it.host }
         return (listOfNotNull(homeOf(accountId)) + held).distinct()
     }
 

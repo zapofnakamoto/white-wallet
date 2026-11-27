@@ -14,6 +14,7 @@ import whitewallet.core.model.JournalStatus
 import whitewallet.core.model.KeyCounter
 import whitewallet.core.model.Mint
 import whitewallet.core.model.Note
+import whitewallet.core.model.NoteState
 import whitewallet.core.model.ReceivedNote
 import whitewallet.core.model.ReceivedState
 import whitewallet.core.model.RegisteredAddress
@@ -53,7 +54,11 @@ interface WalletStore {
      */
     suspend fun deleteAccount(id: String)
 
+    /** Every note the account has had, spent ones too. */
     fun notes(accountId: String): Flow<List<Note>>
+
+    /** The account's notes in one of [states]: what most callers need, as spent notes are kept for good. */
+    fun notes(accountId: String, states: Set<NoteState>): Flow<List<Note>>
 
     /** The address the account's user made primary (Receive offers it first); null for none. */
     fun primaryAddress(accountId: String): Flow<RegisteredAddress?>

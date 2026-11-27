@@ -98,7 +98,7 @@ internal class Restore(private val wallet: Wallet) {
             return failed(it.failure)
         }
         wallet.store.setActiveAccount(accountId)
-        val notes = wallet.store.notes(accountId).first().filter { it.state == NoteState.Outstanding }
+        val notes = wallet.store.notes(accountId, setOf(NoteState.Outstanding)).first()
         return RestoreResult.Restored(accountId, notes.size, notes.sumOf { it.amountMsat })
     }
 

@@ -33,12 +33,20 @@ enum class NoteState {
      * never spent; kept with its certificate, and outstanding again once the mint knows it, or shared again if it was handed out as a link
      * ([Note.handedOut]).
      */
-    Unknown,
+    Unknown;
+
+    companion object {
+        /** Every state but [Spent]: a note the wallet still holds, hands out or waits for an answer on. */
+        val UNSPENT: Set<NoteState> = entries.toSet() - Spent
+
+        /** Handed out as a link ([isShared]). */
+        val SHARED: Set<NoteState> = setOf(Shared, SharedUnconfirmed)
+    }
 }
 
 /** Handed out as a link, confirmed by its mint or not yet. */
 val NoteState.isShared: Boolean
-    get() = this == NoteState.Shared || this == NoteState.SharedUnconfirmed
+    get() = this in NoteState.SHARED
 
 /**
  * A note handed out as a link that its mint said it doesn't know ([Note.handedOut]): set aside like any other [NoteState.Unknown] note, but

@@ -50,9 +50,8 @@ internal class UnknownNotes(private val wallet: Wallet) {
     suspend fun recheckDue(accountId: String) {
         val now = wallet.now()
         val due =
-            wallet.store.notes(accountId).first().filter { note ->
-                note.state == NoteState.Unknown &&
-                    note.purpose != null &&
+            wallet.store.notes(accountId, setOf(NoteState.Unknown)).first().filter { note ->
+                note.purpose != null &&
                     note.index != null &&
                     wallet.mintOf(accountId, note.host) != null &&
                     wallet.unknownCheckedAt[note.id]?.let { now - it >= interval(now - note.updatedAtMillis) } != false
